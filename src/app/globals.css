@@ -1,0 +1,13 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* İsteğe bağlı: Bazı temel sıfırlamalar veya varsayılanlar eklenebilir */
+body {
+  @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+  /* Geçiş efekti ekleyebiliriz */
+  @apply transition-colors duration-300;
+}
+
+/* Diğer global stiller buraya eklenebilir */
