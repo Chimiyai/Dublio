@@ -1,18 +1,29 @@
-// src/app/(auth)/kayit/page.tsx
-'use client'; // Bu satır en başta olmalı
+'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react'; // useEffect'i import et
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react'; // useSession'ı import et
 
-export default function KayitPage() { // export default doğru mu?
+export default function KayitPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession(); // Oturum durumunu al
+
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+
+  // Sayfa yüklendiğinde veya oturum durumu değiştiğinde çalışır
+  useEffect(() => {
+    // Eğer kullanıcı zaten giriş yapmışsa ve bu sayfaya gelmişse
+    if (status === 'authenticated') {
+      console.log("Kayıt sayfasında zaten giriş yapılmış, ana sayfaya yönlendiriliyor.");
+      router.replace('/'); // Ana sayfaya yönlendir
+    }
+  }, [status, router]); // Bağımlılıkları ekle
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -47,15 +58,24 @@ export default function KayitPage() { // export default doğru mu?
     }
   };
 
-  // Fonksiyon bir JSX elementi return ediyor mu?
+  // Eğer oturum yükleniyorsa veya zaten giriş yapılmışsa formu gösterme
+  if (status === 'loading' || status === 'authenticated') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <p className="text-gray-700 dark:text-gray-300">Yönlendiriliyor...</p>
+      </div>
+    );
+  }
+
+  // Sadece giriş yapılmamışsa kayıt formunu göster
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="p-8 bg-white dark:bg-gray-800 shadow-md rounded-lg w-full max-w-md">
+        {/* ... (form içeriği aynı kalabilir) ... */}
         <h1 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">Hesap Oluştur</h1>
         <form onSubmit={handleSubmit}>
           {error && <p className="mb-4 text-red-500 dark:text-red-400 text-sm">{error}</p>}
           {success && <p className="mb-4 text-green-500 dark:text-green-400 text-sm">{success}</p>}
-
           <div className="mb-4">
             <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="username">
               Kullanıcı Adı
@@ -71,7 +91,6 @@ export default function KayitPage() { // export default doğru mu?
               disabled={isLoading || !!success}
             />
           </div>
-
           <div className="mb-4">
             <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="email">
               E-posta
@@ -87,7 +106,6 @@ export default function KayitPage() { // export default doğru mu?
               disabled={isLoading || !!success}
             />
           </div>
-
           <div className="mb-6">
             <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="password">
               Şifre
@@ -105,7 +123,6 @@ export default function KayitPage() { // export default doğru mu?
             />
             <p className="text-xs text-gray-600 dark:text-gray-400">En az 6 karakter olmalı.</p>
           </div>
-
           <div className="flex items-center justify-between">
             <button
               className={`bg-blue-500 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isLoading || !!success ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -122,4 +139,4 @@ export default function KayitPage() { // export default doğru mu?
       </div>
     </div>
   );
-} // Fonksiyonun kapanış parantezi doğru mu?
+}

@@ -1,107 +1,105 @@
-// src/app/(auth)/giris/page.tsx
-'use client'; // Form etkileşimi, state, router ve signIn için Client Component
+'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
-import { signIn } from 'next-auth/react'; // NextAuth'un giriş fonksiyonu
-import { useRouter, useSearchParams } from 'next/navigation'; // Yönlendirici ve URL parametreleri
+import { signIn, useSession } from 'next-auth/react'; // useSession'ı import et
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function GirisPage() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // URL'deki query parametrelerini okumak için
+  const searchParams = useSearchParams();
+  const { data: session, status } = useSession(); // Oturum durumunu al
 
-  // Eğer başka bir sayfadan giriş yapılması gerektiği için yönlendirildiyse,
-  // o sayfanın URL'si 'callbackUrl' parametresinde gelir. Giriş sonrası oraya döneriz.
-  // Yoksa ana sayfaya ('/') yönlendiririz.
   const callbackUrl = searchParams.get('callbackUrl') || '/';
-  // NextAuth'un ?error=... şeklinde gönderdiği hata mesajlarını almak için
   const errorParam = searchParams.get('error');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null); // Bizim form özelindeki hatalar
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // URL'den gelen NextAuth hatalarını state'e aktaralım (sadece bir kere)
+  // Sayfa yüklendiğinde veya oturum durumu değiştiğinde çalışır
   useEffect(() => {
-    if (errorParam) {
-      // NextAuth'un genel hata kodlarını daha anlaşılır mesajlara çevirebiliriz
+    // Eğer kullanıcı zaten giriş yapmışsa ve bu sayfaya gelmişse
+    if (status === 'authenticated') {
+      console.log("Giriş sayfasında zaten giriş yapılmış, yönlendiriliyor:", callbackUrl);
+      router.replace(callbackUrl); // Ana sayfaya veya callbackUrl'e yönlendir
+    }
+  }, [status, router, callbackUrl]); // Bağımlılıkları ekle
+
+  useEffect(() => {
+    if (errorParam && status !== 'authenticated') { // Sadece giriş yapılmamışsa hatayı göster
       switch (errorParam) {
         case 'CredentialsSignin':
           setError('E-posta veya şifre hatalı.');
           break;
         case 'Callback':
-          setError('Giriş sırasında bir yönlendirme hatası oluştu.');
+           // Bu hata genellikle OAuth sağlayıcılarıyla ilgilidir veya middleware yanlış yönlendirdiğinde.
+           // Middleware callbackUrl'i düzgün ayarladığı için buraya düşmemeli.
+          setError('Giriş sırasında bir yönlendirme hatası oluştu. Lütfen tekrar deneyin.');
           break;
         default:
-          setError(`Bir hata oluştu: ${errorParam}`);
+          setError(`Bir hata oluştu. (${errorParam})`);
       }
-      // Hata mesajını gösterdikten sonra URL'den temizleyebiliriz (isteğe bağlı)
-      // router.replace('/giris', undefined); // Bu bazen sorun çıkarabilir
     }
-  }, [errorParam]); // Sadece errorParam değiştiğinde çalışır
+  }, [errorParam, status]);
 
 
-  // Form gönderildiğinde çalışacak fonksiyon
   const handleSubmit = async (e: FormEvent) => {
+    // ... (handleSubmit içeriği aynı kalabilir) ...
     e.preventDefault();
     setIsLoading(true);
-    setError(null); // Önceki form hatalarını temizle
+    setError(null);
 
     try {
-      // NextAuth'un signIn fonksiyonunu çağırıyoruz
       const result = await signIn('credentials', {
-        // Hangi provider'ı kullanacağımızı belirtiyoruz ('credentials' -> CredentialsProvider)
-        // redirect: false -> Giriş sonucunu kendimiz işlemek istiyoruz, NextAuth otomatik yönlendirmesin.
-        // Eğer true yapsaydık, başarılı girişte callbackUrl'e, başarısızda error sayfasına yönlendirirdi.
         redirect: false,
-        email: email,       // credentials.email olarak authorize fonksiyonuna gidecek
-        password: password,   // credentials.password olarak authorize fonksiyonuna gidecek
-        // callbackUrl: callbackUrl // redirect:true ise nereye yönlendirileceğini belirtir
+        email: email,
+        password: password,
       });
 
-      console.log('signIn sonucu:', result); // Geliştirme için log
+      console.log('signIn sonucu:', result);
 
-      // Giriş başarısız olduysa (authorize null döndüyse veya başka bir hata olduysa)
       if (result?.error) {
-        // result.error genellikle 'CredentialsSignin' gibi bir kod içerir.
         if (result.error === 'CredentialsSignin') {
             setError('E-posta veya şifre hatalı.');
         } else {
-           // Diğer olası NextAuth hataları
            setError(`Giriş hatası: ${result.error}`);
         }
-        setIsLoading(false); // Yüklenmeyi durdur
+        setIsLoading(false);
       } else if (result?.ok && !result?.error) {
-        // Giriş başarılı (result.ok true ve error yoksa)
         console.log('Giriş başarılı, yönlendiriliyor:', callbackUrl);
-        // Başarılı giriş sonrası kullanıcıyı hedef URL'ye yönlendir
-        // setIsLoading(false) demeye gerek yok, sayfa değişecek.
-        router.push(callbackUrl);
-        router.refresh(); // Sayfanın yenilenmesini sağlayarak session bilgisinin güncellenmesini tetikle (önerilir)
+        // router.push(callbackUrl); // push yerine replace daha iyi olabilir
+        router.replace(callbackUrl); // Tarayıcı geçmişinde giriş sayfasını bırakmaz
+        router.refresh();
       } else {
-         // Beklenmedik bir durum
          setError('Giriş sırasında bilinmeyen bir hata oluştu.');
          setIsLoading(false);
       }
-
     } catch (err) {
-      // signIn fonksiyonu çağrılırken bir hata olursa (genellikle olmaz ama)
       console.error("signIn fonksiyonu hatası:", err);
       setError('Giriş işlemi sırasında bir hata oluştu.');
       setIsLoading(false);
     }
   };
 
+  // Eğer oturum yükleniyorsa veya zaten giriş yapılmışsa formu gösterme (isteğe bağlı)
+  if (status === 'loading' || status === 'authenticated') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <p className="text-gray-700 dark:text-gray-300">Yönlendiriliyor...</p>
+      </div>
+    );
+  }
+
+  // Sadece giriş yapılmamışsa formu göster
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="p-8 bg-white dark:bg-gray-800 shadow-md rounded-lg w-full max-w-md">
+        {/* ... (form içeriği aynı kalabilir) ... */}
         <h1 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">Giriş Yap</h1>
         <form onSubmit={handleSubmit}>
-          {/* Hata Mesajı Alanı */}
           {error && <p className="mb-4 text-red-500 dark:text-red-400 text-sm text-center">{error}</p>}
-
-          {/* E-posta Girişi */}
           <div className="mb-4">
             <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="email">
               E-posta
@@ -117,8 +115,6 @@ export default function GirisPage() {
               disabled={isLoading}
             />
           </div>
-
-          {/* Şifre Girişi */}
           <div className="mb-6">
             <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="password">
               Şifre
@@ -133,10 +129,7 @@ export default function GirisPage() {
               required
               disabled={isLoading}
             />
-            {/* Şifremi unuttum linki eklenebilir */}
           </div>
-
-          {/* Butonlar ve Link */}
           <div className="flex items-center justify-between">
             <button
               className={`bg-green-500 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
