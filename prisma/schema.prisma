@@ -23,17 +23,35 @@ datasource db {
 }
 
 model User {
-  id               Int       @id @default(autoincrement())
-  email            String    @unique
-  username         String    @unique
-  password         String
-  role             String    @default("user")
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  sentMessages     Message[] @relation("SentMessages")
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  username        String   @unique
+  password        String
+  role            String   @default("user") // Admin/User rolü
+  profileImageUrl String?  // YENİ - Profil Fotoğrafı
+  bannerImageUrl  String?  // YENİ - Banner Fotoğrafı
+  // subscriptionTier String? @default("FREE") // Gelecek için abonelik seviyesi (şimdilik eklemeyebiliriz)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  sentMessages    Message[] @relation("SentMessages")     
   receivedMessages Message[] @relation("ReceivedMessages")
+  emailChangeRequests EmailChangeRequest[]
 
   @@map("users")
+}
+
+model EmailChangeRequest {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  newEmail  String
+  token     String   @unique // Hash'lenmiş token saklanacak
+  expiresAt DateTime // Token geçerlilik süresi
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade) // User ile ilişki
+
+  @@index([userId])
+  @@map("email_change_requests")
 }
 
 model Project {
