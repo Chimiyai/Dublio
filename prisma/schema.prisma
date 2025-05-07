@@ -75,16 +75,14 @@ model DubbingArtist {
 
 model ProjectAssignment {
   id        Int      @id @default(autoincrement())
-  assignedAt DateTime @default(now()) // Atanma tarihi
+  assignedAt DateTime @default(now())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  artistId Int
+  artist   DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade)
 
-  // İlişkiler (Many-to-Many için bağlantı tablosu)
-  projectId Int // İlişkili projenin ID'si (Foreign Key)
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade) // Proje ilişkisi
-
-  artistId Int // İlişkili sanatçının ID'si (Foreign Key)
-  artist   DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade) // Sanatçı ilişkisi
-
-  // Bir sanatçının bir projeye sadece bir kez atanabilmesini sağlamak için:
   @@unique([projectId, artistId])
+  @@index([projectId]) // <-- Opsiyonel indeks
+  @@index([artistId])  // <-- Opsiyonel indeks
   @@map("project_assignments")
 }

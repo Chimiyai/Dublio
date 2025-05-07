@@ -1,17 +1,11 @@
-// src/components/Navbar.tsx
 'use client'; // Oturum bilgisini almak ve çıkış yapmak için Client Component
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react'; // Oturum hook'ları
 
 export default function Navbar() {
-  // useSession hook'u client tarafında oturum bilgilerini almak için kullanılır.
-  // data: Oturum bilgileri (session nesnesi) veya null (oturum yoksa).
-  // status: Oturumun durumu ('loading', 'authenticated', 'unauthenticated').
   const { data: session, status } = useSession();
-
-  // Kullanıcının rolünü kontrol et (opsiyonel ama kullanışlı)
-  const isAdmin = session?.user?.role === 'admin';
+  const isAdmin = status === 'authenticated' && session?.user?.role === 'admin';
 
   return (
     <nav className="bg-gray-800 text-white shadow-md">
@@ -23,7 +17,7 @@ export default function Navbar() {
 
         {/* Navigasyon Linkleri ve Kullanıcı Durumu */}
         <div className="flex items-center space-x-4">
-          {/* Genel Linkler (Herkes görebilir) */}
+          {/* Genel Linkler (Herkes görebilir) - Şimdilik yorumlu */}
           {/* <Link href="/projeler" className="hover:text-gray-300">Projeler</Link> */}
           {/* <Link href="/hakkimizda" className="hover:text-gray-300">Hakkımızda</Link> */}
 
@@ -33,28 +27,33 @@ export default function Navbar() {
           )}
 
           {/* Kullanıcı Giriş Yapmışsa (Authenticated) */}
-          {status === 'authenticated' && session?.user && (
+          {status === 'authenticated' && session?.user && ( // session?.user kontrolü burada önemli
             <>
-              {/* Admin Paneli Linki (Sadece adminler için) */}
+              {/* Admin'e Özel Linkler */}
               {isAdmin && (
-                <Link href="/admin" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 border border-yellow-400 px-2 py-1 rounded">
-                  Admin Paneli
-                </Link>
+                <>
+                  <Link href="/admin" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 border border-yellow-400 px-2 py-1 rounded">
+                    Admin Paneli
+                  </Link>
+                  <Link href="/admin/projeler" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
+                    Proje Yönetimi
+                  </Link>
+                  <Link href="/admin/users" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
+                    Kullanıcı Yönetimi
+                  </Link>
+                </>
               )}
 
-              {/* Profil Linki */}
-               <Link href="/profil" className="hover:text-gray-300 text-sm">
-                 {session.user.name || session.user.email} {/* Kullanıcı adı veya e-posta */}
-               </Link>
-
-               {/* Mesajlar Linki */}
-               <Link href="/mesajlar" className="hover:text-gray-300 text-sm">
-                 Mesajlar
-               </Link>
-
-              {/* Çıkış Yap Butonu */}
+              {/* Tüm Giriş Yapmış Kullanıcılar İçin Ortak Linkler */}
+              <Link href="/profil" className="hover:text-gray-300 text-sm">
+                {/* session.user burada kesinlikle var çünkü status === 'authenticated' && session?.user kontrolünden geçti */}
+                {session.user.name || session.user.email}
+              </Link>
+              <Link href="/mesajlar" className="hover:text-gray-300 text-sm">
+                Mesajlar
+              </Link>
               <button
-                onClick={() => signOut({ callbackUrl: '/' })} // Çıkış yap ve ana sayfaya yönlendir
+                onClick={() => signOut({ callbackUrl: '/' })}
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors"
               >
                 Çıkış Yap
