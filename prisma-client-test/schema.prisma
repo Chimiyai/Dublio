@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../node_modules/.prisma/client" // Eski yolu yorum satırına al
+  output   = "../prisma-client-test" // YENİ, geçici output yolu
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  username         String    @unique
+  password         String
+  role             String    @default("user")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  // İlişkiler
+  sentMessages     Message[] @relation("SentMessages") // Kullanıcının gönderdiği mesajlar (One-to-Many)
+  receivedMessages Message[] @relation("ReceivedMessages") // Kullanıcının aldığı mesajlar (One-to-Many)
+
+  @@map("users") // Tablo adını çoğul yapmak için (best practice)
+}
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  title       String // Proje başlığı (Oyun/Anime adı)
+  slug        String   @unique // URL için benzersiz kimlik
+  type        String // 'game' veya 'anime'
+  description String? // Açıklama (opsiyonel - ? işareti)
+  coverImage  String? // Kapak resmi URL'si (opsiyonel)
+  releaseDate DateTime @default(now()) // Yayınlanma/Erişim tarihi
+  isPublished Boolean  @default(true) // Yayında mı?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // İlişkiler
+  assignments ProjectAssignment[] // Bu projede görev alan sanatçılar (One-to-Many)
+
+  @@map("projects")
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  content   String // Mesaj içeriği (text)
+  createdAt DateTime @default(now())
+
+  // İlişkiler
+  senderId Int // Gönderen kullanıcının ID'si (Foreign Key)
+  sender   User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade) // Gönderen kullanıcı ilişkisi
+
+  receiverId Int // Alan kullanıcının ID'si (Foreign Key)
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade) // Alan kullanıcı ilişkisi
+
+  @@map("messages")
+}
+
+model DubbingArtist {
+  id          Int                 @id @default(autoincrement())
+  firstName   String // Eski 'name' yerine
+  lastName    String // Yeni alan
+  bio         String?
+  imageUrl    String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  assignments ProjectAssignment[]
+
+  @@map("dubbing_artists")
+}
+
+model ProjectAssignment {
+  id         Int           @id @default(autoincrement())
+  assignedAt DateTime      @default(now())
+  projectId  Int
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  artistId   Int
+  artist     DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, artistId])
+  @@index([projectId]) // <-- Opsiyonel indeks
+  @@index([artistId]) // <-- Opsiyonel indeks
+  @@map("project_assignments")
+}

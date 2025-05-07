@@ -3,8 +3,19 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  output   = "../node_modules/.prisma/client" // Doğru output yolu
 }
+
+// --- ENUM Doğru ---
+enum RoleInProject {
+  VOICE_ACTOR
+  MIX_MASTER
+  MODDER
+  TRANSLATOR
+  SCRIPT_WRITER
+  DIRECTOR
+}
+// -------------------
 
 datasource db {
   provider = "sqlite"
@@ -12,77 +23,76 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String   @unique
-  password  String
-  role      String   @default("user")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-// İlişkiler
-  sentMessages     Message[] @relation("SentMessages")     // Kullanıcının gönderdiği mesajlar (One-to-Many)
-  receivedMessages Message[] @relation("ReceivedMessages") // Kullanıcının aldığı mesajlar (One-to-Many)
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  username         String    @unique
+  password         String
+  role             String    @default("user")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 
-  @@map("users") // Tablo adını çoğul yapmak için (best practice)
+  @@map("users")
 }
 
 model Project {
-  id          Int      @id @default(autoincrement())
-  title       String   // Proje başlığı (Oyun/Anime adı)
-  slug        String   @unique // URL için benzersiz kimlik
-  type        String   // 'game' veya 'anime'
-  description String?  // Açıklama (opsiyonel - ? işareti)
-  coverImage  String?  // Kapak resmi URL'si (opsiyonel)
-  releaseDate DateTime @default(now()) // Yayınlanma/Erişim tarihi
-  isPublished Boolean  @default(true) // Yayında mı?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // İlişkiler
-  assignments ProjectAssignment[] // Bu projede görev alan sanatçılar (One-to-Many)
+  id            Int                 @id @default(autoincrement())
+  title         String
+  slug          String              @unique
+  type          String
+  description   String?
+  coverImage    String?
+  releaseDate   DateTime            @default(now())
+  isPublished   Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  assignments   ProjectAssignment[] // İlişki doğru
 
   @@map("projects")
 }
 
 model Message {
-  id        Int      @id @default(autoincrement())
-  content   String   // Mesaj içeriği (text)
-  createdAt DateTime @default(now())
-
-  // İlişkiler
-  senderId  Int // Gönderen kullanıcının ID'si (Foreign Key)
-  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade) // Gönderen kullanıcı ilişkisi
-
-  receiverId Int // Alan kullanıcının ID'si (Foreign Key)
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade) // Alan kullanıcı ilişkisi
+  id         Int      @id @default(autoincrement())
+  content    String
+  createdAt  DateTime @default(now())
+  senderId   Int
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId Int
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
 
 model DubbingArtist {
-  id        Int      @id @default(autoincrement())
-  name      String   // Sanatçının adı soyadı
-  bio       String?  // Kısa biyografisi (opsiyonel)
-  imageUrl  String?  // Profil resmi URL'si (opsiyonel)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int                 @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  bio         String?
+  imageUrl    String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  assignments ProjectAssignment[] // İlişki doğru
 
-  // İlişkiler
-  assignments ProjectAssignment[] // Bu sanatçının görev aldığı projeler (One-to-Many)
-
-  @@map("dubbing_artists") // Snake case tablo adı örneği
+  @@map("dubbing_artists")
 }
 
+// --- ProjectAssignment Modelini Düzeltelim ---
 model ProjectAssignment {
-  id        Int      @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   assignedAt DateTime @default(now())
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  artistId Int
-  artist   DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  
+  role       RoleInProject // BU ALAN KESİNLİKLE OLMALI
 
-  @@unique([projectId, artistId])
-  @@index([projectId]) // <-- Opsiyonel indeks
-  @@index([artistId])  // <-- Opsiyonel indeks
+  projectId  Int
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  artistId   Int
+  artist     DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, artistId, role])
+  @@index([projectId]) 
+  @@index([artistId])  
   @@map("project_assignments")
 }
+// ------------------------------------------

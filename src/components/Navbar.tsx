@@ -31,18 +31,21 @@ export default function Navbar() {
             <>
               {/* Admin'e Özel Linkler */}
               {isAdmin && (
-                <>
-                  <Link href="/admin" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 border border-yellow-400 px-2 py-1 rounded">
-                    Admin Paneli
-                  </Link>
-                  <Link href="/admin/projeler" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
-                    Proje Yönetimi
-                  </Link>
-                  <Link href="/admin/users" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
-                    Kullanıcı Yönetimi
-                  </Link>
-                </>
-              )}
+  <>
+    <Link href="/admin" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 border border-yellow-400 px-2 py-1 rounded">
+      Admin Paneli
+    </Link>
+    <Link href="/admin/projeler" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
+      Proje Yönetimi
+    </Link>
+    <Link href="/admin/users" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
+      Kullanıcı Yönetimi
+    </Link>
+    <Link href="/admin/sanatcilar" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded"> {/* YENİ LİNK */}
+      Sanatçı Yönetimi
+    </Link>
+  </>
+)}
 
               {/* Tüm Giriş Yapmış Kullanıcılar İçin Ortak Linkler */}
               <Link href="/profil" className="hover:text-gray-300 text-sm">
