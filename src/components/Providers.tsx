@@ -1,17 +1,17 @@
 // src/components/Providers.tsx
-'use client'; // Bu bileşenin bir Client Component olduğunu belirtiyoruz
+'use client'; 
 
-import { SessionProvider } from 'next-auth/react';
-import React from 'react'; // React'ı ve children tipini import ediyoruz
+import { SessionProvider } from "next-auth/react";
+import React from "react"; 
 
-// Bileşenin alacağı prop'ları tanımlıyoruz (React.ReactNode tipinde children)
-interface Props {
-  children: React.ReactNode;
+interface ProvidersProps {
+    children: React.ReactNode;
 }
 
-// Providers bileşenimiz
-export default function Providers({ children }: Props) {
-  // NextAuth'un SessionProvider'ını kullanarak children'ı (yani uygulamamızın geri kalanını) sarmalıyoruz.
-  // Bu sayede alt bileşenler useSession hook'unu kullanarak oturum bilgisine erişebilir.
-  return <SessionProvider>{children}</SessionProvider>;
+export default function Providers({ children }: ProvidersProps) {
+  return (
+    <SessionProvider> {/* <--- SessionProvider burada */}
+      {children}
+    </SessionProvider>
+  );
 }

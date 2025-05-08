@@ -116,15 +116,13 @@ export default function ProfileImageUploader({ currentImageUrl }: ProfileImageUp
         {/* Resim Önizleme/Mevcut Resim */}
         <div className="flex-shrink-0">
           {previewUrl ? (
-            <CldImage
-              src={previewUrl.startsWith('data:') ? previewUrl : (previewUrl.split('/').pop() || '')} // data: URL veya Cloudinary public ID
-              width="128" // Tailwind: w-32
-              height="128" // Tailwind: h-32
-              crop="fill" // Resmi dolduracak şekilde kırp
-              gravity="face" // Yüzü ortalamaya çalış (Cloudinary özelliği)
-              alt="Profil Fotoğrafı Önizleme"
-              className="rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-md"
-            />
+            <img // CldImage yerine img kullanıyoruz (önceki adıma göre)
+            src={previewUrl} // Doğrudan URL veya data: URL
+            width={128} 
+            height={128} 
+            alt="Profil Fotoğrafı Önizleme"
+            className="rounded-full object-cover border-4 ..."
+          />
           ) : (
             <UserCircleIcon className="h-32 w-32 text-gray-400 dark:text-gray-500" />
           )}

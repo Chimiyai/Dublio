@@ -1,4 +1,3 @@
-// src/app/profil/page.tsx
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { redirect } from 'next/navigation';
@@ -9,7 +8,9 @@ import ProfileImageUploader from '@/components/profile/ProfileImageUploader';
 import UpdateUsernameForm from '@/components/profile/UpdateUsernameForm';
 import UpdatePasswordForm from '@/components/profile/UpdatePasswordForm';
 import UpdateEmailForm from '@/components/profile/UpdateEmailForm';
-import { UserCircleIcon } from '@heroicons/react/24/outline'; // Varsayılan avatar için
+import BannerImageUploader from '@/components/profile/BannerImageUploader'; 
+import { UserCircleIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { CldImage } from 'next-cloudinary';
 
 export const metadata = {
   title: 'Profilim | Prestij Dublaj',
@@ -36,7 +37,8 @@ export default async function ProfilePage() {
       username: true,
       email: true,
       role: true,
-      profileImageUrl: true, // EKLENDİ
+      profileImageUrl: true, 
+      bannerImageUrl: true, // EKLENDİ
       createdAt: true,
       updatedAt: true,
     }
@@ -48,12 +50,39 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl md:text-4xl font-bold text-center mb-10 text-gray-800 dark:text-gray-100">
-        Profilim
-      </h1>
+    // Ana container'dan padding'i kaldırıp banner'ı tam genişlik yapabiliriz
+    <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-12"> 
       
-      <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+{/* --- BANNER ALANI (img ile) --- */}
+<div className="w-full h-48 ... relative ...">
+          {user.bannerImageUrl ? (
+              <img 
+                 src={user.bannerImageUrl} // Doğrudan URL
+                 alt={`${user.username} banner resmi`}
+                 className="object-cover w-full h-full" 
+                 // Next.js Image bileşeni veya 'loading="lazy"' daha iyi olabilir
+              />
+          ) : (
+              <div className="flex items-center justify-center h-full bg-gray-300 dark:bg-gray-700"> {/* Arka plan rengi ekle */}
+                 <PhotoIcon className="h-16 w-16 text-gray-500 dark:text-gray-400" />
+             </div>
+          )}
+          {/* Banner üzerine profil resmi bindirme */}
+          <div className="absolute ...">
+               {user.profileImageUrl ? (
+                      <img 
+                          src={user.profileImageUrl} // Doğrudan URL
+                          alt={`${user.username} profil fotoğrafı`}
+                          className="h-24 w-24 ... rounded-full object-cover ..."
+                      />
+                  ) : (
+                      <UserCircleIcon className="h-24 w-24 ..." />
+                  )}
+          </div>
+      </div>
+      {/* -------------------- */}
+      
+      <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-b-lg shadow-xl overflow-hidden pt-16 pb-6 md:pb-8 px-6 md:px-8 -mt-12 md:-mt-14 relative z-10">
           {/* Profil Resmi ve Bilgiler Yan Yana (Örnek Düzen) */}
           <div className="p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
               {/* Profil Resmi Alanı */}
@@ -100,11 +129,18 @@ export default async function ProfilePage() {
                       </div>
               </div>
           </div>
+          {/* Ayarlar Bölümü */}
+          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Profil Ayarları</h2>
 
           {/* Profil Fotoğrafı Yükleyici */}
           <div className="p-6 md:p-8 border-t border-gray-200 dark:border-gray-700">
             <ProfileImageUploader currentImageUrl={user.profileImageUrl} />
           </div>
+          {/* --- BANNER YÜKLEYİCİ --- */}
+          <div className="p-6 md:p-8 border-t border-gray-200 dark:border-gray-700">
+               <BannerImageUploader currentImageUrl={user.bannerImageUrl} /> 
+           </div>
+           {/* ----------------------- */}
            {/* --- KULLANICI ADI GÜNCELLEME FORMU --- */}
            <div className="p-6 md:p-8 border-t border-gray-200 dark:border-gray-700">
             <UpdateUsernameForm currentUsername={user.username} /> 
