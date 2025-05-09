@@ -166,18 +166,35 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                   {artists.map((artist) => (
                     <Link key={artist.id} href={`/sanatcilar/${artist.id}`} className="block group text-center p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105">
-                       <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-2 sm:mb-3">
-                           {artist.imageUrl ? (
-                                <Image
-                                    src={artist.imageUrl}
-                                    alt={`${artist.firstName} ${artist.lastName}`}
-                                    fill
-                                    className="rounded-full object-cover border-2 border-gray-200 dark:border-gray-700 group-hover:border-indigo-500"
-                                />
-                           ) : (
-                                <UserCircleIcon className="h-full w-full text-gray-400 dark:text-gray-500" />
-                           )}
-                       </div>
+                       <div 
+  className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-2 sm:mb-3 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 group-hover:border-indigo-500 flex items-center justify-center"
+  // 'relative' sınıfı, Image fill kullanmıyorsa Image için zorunlu değil,
+  // ama başka iç içe absolute elemanlar için kalabilir.
+  // 'flex items-center justify-center' eklendi, resim belirtilen width/height'tan küçükse ortalamak için.
+>
+  {artist.imageUrl ? (
+    <Image
+      src={artist.imageUrl}
+      alt={`${artist.firstName} ${artist.lastName}`}
+      // 'fill' prop'u kaldırıldı.
+      // Ebeveynin Tailwind sınıflarına göre piksel değerleri:
+      // w-20 -> 5rem -> 80px
+      // w-24 -> 6rem -> 96px
+      // En büyük boyutu (sm:w-24) baz alalım:
+      width={96} 
+      height={96}
+      className="object-cover w-full h-full rounded-full"
+      // 'object-cover': Oranı koruyarak 96x96 alanı kaplar.
+      // 'w-full h-full': Image bileşeninin iç sarmalayıcısının 96x96 alanını doldurmasını sağlar.
+      // 'rounded-full': Doğrudan resme de yuvarlaklık verebilir, ebeveyndeki overflow-hidden ile zaten sağlanıyor.
+      // Eğer resmin kendisi ebeveynden küçük kalırsa ve tam kaplamasını istemiyorsanız,
+      // buradaki w-full h-full'u kaldırıp sadece object-cover bırakabilirsiniz.
+      // Ancak genellikle dairesel avatar için tam kaplama istenir.
+    />
+  ) : (
+    <UserCircleIcon className="h-full w-full text-gray-400 dark:text-gray-500 p-1" />
+  )}
+</div>
                        <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
                            {artist.firstName} {artist.lastName}
                        </p>
