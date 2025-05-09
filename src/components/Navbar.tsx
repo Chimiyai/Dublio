@@ -38,7 +38,7 @@ export default function Navbar() {
     <Link href="/admin/projeler" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
       Proje Yönetimi
     </Link>
-    <Link href="/admin/users" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
+    <Link href="/admin/kullanicilar" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded">
       Kullanıcı Yönetimi
     </Link>
     <Link href="/admin/sanatcilar" className="text-sm font-semibold text-yellow-400 hover:text-yellow-300 px-2 py-1 rounded"> {/* YENİ LİNK */}

@@ -1,22 +1,20 @@
 // next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'res.cloudinary.com', // Cloudinary domain'i
+        hostname: 'res.cloudinary.com',
+        port: '', // port boş kalabilir veya tanımlanmayabilir
+        // pathname önemlidir, cloud adınızı içermeli
+        pathname: '/dharbtpfn/image/upload/**', 
+        // SENİN CLOUD ADINLA DEĞİŞTİR, örn: '/dharbtpfn/image/upload/**'
       },
-      // Daha önce eklediğiniz başka domain'ler varsa burada kalabilir
-      // Örnek:
-      // {
-      //   protocol: 'https',
-      //   hostname: 'tr.visafoto.com',
-      // },
+      // Diğer domainler...
     ],
   },
-  // Mevcut diğer ayarlarınız buraya gelebilir
-  // reactStrictMode: true, 
 };
 
 export default nextConfig;
