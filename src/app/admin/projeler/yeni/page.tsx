@@ -61,7 +61,7 @@ export default function YeniProjePage() {
 
     try {
       // API yolunu "projeler" olarak kullanıyoruz (tutarlılık için)
-      const response = await fetch('/api/admin/projeler', {
+      const response = await fetch('/api/admin/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

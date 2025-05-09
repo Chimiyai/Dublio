@@ -4,7 +4,8 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition, FormEvent, useEffect } from 'react';
 import { Project, DubbingArtist, RoleInProject } from '@prisma/client';
-import Select from 'react-select'; // react-select importu
+import Select from 'react-select';
+import CoverImageUploader from './CoverImageUploader'; // <--- YENİ IMPORT
 
 // API'den gelen proje tipi (assignments dahil)
 interface ProjectWithPrismaAssignments extends Project {
@@ -47,6 +48,7 @@ export default function EditProjectForm({ project, allArtists, availableRoles }:
   const [type, setType] = useState(project.type);
   const [description, setDescription] = useState(project.description || '');
   const [coverImage, setCoverImage] = useState(project.coverImage || '');
+  const [coverImagePublicId, setCoverImagePublicId] = useState(project.coverImagePublicId || null);
   const [releaseDate, setReleaseDate] = useState(
     project.releaseDate ? new Date(project.releaseDate).toISOString().split('T')[0] : ''
   );
@@ -136,7 +138,12 @@ export default function EditProjectForm({ project, allArtists, availableRoles }:
     if (type !== project.type) dataToUpdate.type = type;
     if (description !== (project.description || '')) dataToUpdate.description = description.trim() === '' ? null : description;
     const finalCoverImage = coverImage.trim() === '' ? null : coverImage;
-    if (finalCoverImage !== (project.coverImage || null)) dataToUpdate.coverImage = finalCoverImage;
+if (finalCoverImage !== (project.coverImage || null)) {
+    dataToUpdate.coverImage = finalCoverImage;
+}
+if (coverImagePublicId !== (project.coverImagePublicId || null)) {
+    dataToUpdate.coverImagePublicId = coverImagePublicId;
+}
     const initialDate = project.releaseDate ? new Date(project.releaseDate).toISOString().split('T')[0] : '';
     if (releaseDate !== initialDate) dataToUpdate.releaseDate = releaseDate ? new Date(releaseDate) : null;
     if (isPublished !== project.isPublished) dataToUpdate.isPublished = isPublished;
@@ -171,7 +178,7 @@ export default function EditProjectForm({ project, allArtists, availableRoles }:
 
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/admin/projeler/${project.slug}`, { // Orijinal slug ile istek atılır
+        const response = await fetch(`/api/admin/projects/${project.slug}`, { // Orijinal slug ile istek atılır
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -271,12 +278,23 @@ export default function EditProjectForm({ project, allArtists, availableRoles }:
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Açıklama</label>
           <textarea id="description" name="description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
           {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description.join(', ')}</p>}
-        </div>
-         <div className="sm:col-span-6">
-            <label htmlFor="coverImage" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Kapak Resmi URL</label>
-            <input type="url" name="coverImage" id="coverImage" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} placeholder="https://" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+          </div>
+{/* --- COVER IMAGE UPLOADER --- */}
+<div className="sm:col-span-6">
+        <CoverImageUploader 
+            currentCoverImageUrl={coverImage} 
+            currentCoverImagePublicId={coverImagePublicId} // YENİ PROP
+            onUploadComplete={({ imageUrl, publicId }) => { // YENİ CALLBACK
+                setCoverImage(imageUrl);
+                setCoverImagePublicId(publicId);
+            }}
+            projectIdOrSlug={project.slug}
+        />
+            {/* CoverImage input'unu (text olarak) kaldırabilir veya gizleyebiliriz artık */}
+            {/* Veya Uploader'dan gelen URL'yi göstermek için bir readonly input */}
             {errors.coverImage && <p className="mt-1 text-xs text-red-600">{errors.coverImage.join(', ')}</p>}
         </div>
+        {/* -------------------------- */}
          <div className="sm:col-span-6">
              <div className="flex items-center">
                 <input id="isPublished" name="isPublished" type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"/>

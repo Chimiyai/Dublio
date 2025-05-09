@@ -1,25 +1,25 @@
+// src/app/admin/projeler/duzenle/[slug]/page.tsx
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { notFound } from 'next/navigation';
-// Project, DubbingArtist ve RoleInProject tiplerini import et
-import { Project, DubbingArtist, RoleInProject, ProjectAssignment } from '@prisma/client'; 
-// Form bileşeninin doğru yolunu kontrol et
-import EditProjectForm from '@/components/admin/EditProjectForm'; 
+import { Project, DubbingArtist, RoleInProject } from '@prisma/client';
+import EditProjectForm from '@/components/admin/EditProjectForm';
+import { Metadata, ResolvingMetadata } from 'next';
 
-// Props tipi
 interface EditProjectPageProps {
   params: {
     slug: string;
   };
 }
 
-// generateMetadata fonksiyonu (opsiyonel, güncellenebilir)
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const slug = params.slug;
+export async function generateMetadata(
+  { params: { slug } }: EditProjectPageProps, // DOĞRUDAN DESTRUCTURING
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const project = await prisma.project.findUnique({
-    where: { slug: slug },
-    select: { title: true }, // Sadece başlığı çekmek yeterli
+    where: { slug: slug }, // slug'ı direkt kullan
+    select: { title: true },
   });
 
   if (!project) {
@@ -30,38 +30,28 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-
-export default async function EditProjectPage({ params }: { params: { slug: string } }) {
-  const slug = params.slug;
-  // Hem projeyi (atamalarıyla birlikte) hem de TÜM sanatçıları çek
+export default async function EditProjectPage({ params: { slug } }: EditProjectPageProps) { // DOĞRUDAN DESTRUCTURING
   const [projectData, allArtists] = await Promise.all([
     prisma.project.findUnique({
-      where: { slug: slug },
-      include: { 
-         // --- GÜNCELLEME: role alanını da seç ---
-         assignments: { 
-           select: { 
+      where: { slug: slug }, // slug'ı direkt kullan
+      include: {
+         assignments: {
+           select: {
               artistId: true,
-              role: true // Rol bilgisini de çekiyoruz
+              role: true
            }
          }
-         // --------------------------------------
       }
     }),
-    prisma.dubbingArtist.findMany({ // Tüm sanatçıları forma göndermek için
-      orderBy: { firstName: 'asc' } 
+    prisma.dubbingArtist.findMany({
+      orderBy: { firstName: 'asc' }
     })
   ]);
 
-  // Proje bulunamazsa 404 göster
   if (!projectData) {
     notFound();
   }
-  
-  // Veri dönüşümüne artık gerek yok, projectData doğrudan kullanılabilir.
-  // Önceki dönüşüm kodları silindi.
 
-  // RoleInProject enum değerlerini alıp forma göndereceğiz
   const availableRoles = Object.values(RoleInProject);
 
   return (
@@ -75,13 +65,11 @@ export default async function EditProjectPage({ params }: { params: { slug: stri
       <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8 text-center">
         Proje Düzenle: <span className="text-indigo-600">{projectData.title}</span>
       </h1>
-      <div className="max-w-4xl mx-auto"> {/* Form için alan */}
+      <div className="max-w-4xl mx-auto">
         <EditProjectForm
-          // --- GÜNCELLEME: Doğrudan projectData gönder ---
-          project={projectData} // İçinde assignments: { artistId, role }[] var
-          // ----------------------------------------------
-          allArtists={allArtists} 
-          availableRoles={availableRoles} // Rol seçeneklerini de gönder
+          project={projectData}
+          allArtists={allArtists}
+          availableRoles={availableRoles}
         />
       </div>
     </div>

@@ -24,7 +24,7 @@ export default function DeleteProjectButton({ projectSlug, projectTitle }: Delet
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/projeler/${projectSlug}`, {
+      const response = await fetch(`/api/admin/projects/${projectSlug}`, {
         method: 'DELETE',
       });
 

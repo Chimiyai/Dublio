@@ -61,6 +61,7 @@ model Project {
   type          String
   description   String?
   coverImage    String?
+  coverImagePublicId    String?
   releaseDate   DateTime            @default(now())
   isPublished   Boolean             @default(true)
   createdAt     DateTime            @default(now())
