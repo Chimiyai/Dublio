@@ -43,10 +43,20 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
   }
   // ---------------------------------
-
-
-  // Diğer tüm yollar için devam et
+// --- YENİ: Korumalı mesajlar rotası ---
+if (pathname.startsWith('/mesajlar')) {
+  if (!token) {
+      console.log(`[Middleware] /mesajlar için GİRİŞ YAPILMAMIŞ. Giriş sayfasına yönlendiriliyor.`);
+      const url = req.nextUrl.clone();
+      url.pathname = '/giris'; 
+      url.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(url);
+  }
+   console.log(`[Middleware] /mesajlar erişimi onaylandı: ${token.name}`);
   return NextResponse.next();
+}
+// ---------------------------------
+return NextResponse.next();
 }
 
 // Middleware'in hangi yollarda çalışacağını belirtir
@@ -54,6 +64,6 @@ export const config = {
   matcher: [
     '/admin/:path*', // Admin sayfaları
     '/profil/:path*', // Profil sayfaları (YENİ)
-    // '/mesajlar/:path*', // Gelecekte mesajlar sayfası için eklenebilir
+    '/mesajlar/:path*', // Mesaj sayfaları (YENİ)
   ],
 }
