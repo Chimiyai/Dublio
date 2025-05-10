@@ -1,47 +1,77 @@
+// src/app/api/admin/projects/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
+import { z } from 'zod'; // Zod'u import et (eğer validasyon için kullanacaksan)
+
+// Zod ile validasyon şeması (opsiyonel ama önerilir)
+const createProjectSchema = z.object({
+  title: z.string().min(1, "Başlık zorunludur."),
+  slug: z.string().min(1, "Slug zorunludur.").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug sadece küçük harf, rakam ve tire içerebilir ve tire ile başlayıp bitemez."),
+  type: z.enum(['game', 'anime'], { message: "Tür 'game' veya 'anime' olmalıdır." }),
+  description: z.string().nullable().optional(),
+  coverImage: z.string().url({ message: "Geçerli bir kapak resmi URL'si girin." }).nullable().optional(), // Artık tam URL bekliyoruz
+  coverImagePublicId: z.string().nullable().optional(), // Public ID de gelebilir
+  releaseDate: z.string().refine((date) => !isNaN(new Date(date).getTime()), {
+    message: "Geçersiz yayın tarihi formatı.",
+  }),
+  isPublished: z.boolean().optional().default(true),
+});
+
 
 export async function POST(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   if (!token || token.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
-  // ... (POST içeriği aynı kalacak) ...
+
   try {
     const body = await request.json();
+    
+    // Zod ile validasyon
+    const validation = createProjectSchema.safeParse(body);
+    if (!validation.success) {
+      // Zod hatalarını daha kullanıcı dostu bir formata dönüştürebiliriz
+      const errors: { [key: string]: string[] } = {};
+      validation.error.errors.forEach(err => {
+        const path = err.path.join('.');
+        if (!errors[path]) {
+          errors[path] = [];
+        }
+        errors[path].push(err.message);
+      });
+      return NextResponse.json({ message: 'Doğrulama hatası', errors }, { status: 400 });
+    }
+
     const {
       title,
       slug,
       type,
       description,
-      coverImage,
+      coverImage, // Formdan gelen tam URL
+      coverImagePublicId, // Formdan gelen Public ID
       releaseDate,
       isPublished,
-    } = body;
+    } = validation.data; // Doğrulanmış veriyi kullan
 
-    if (!title || !slug || !type || !releaseDate) {
-      return NextResponse.json(
-        { message: 'Başlık, slug, tür ve yayın tarihi zorunludur.' },
-        { status: 400 }
-      );
-    }
-    const existingProject = await prisma.project.findUnique({
+    const existingProjectBySlug = await prisma.project.findUnique({
       where: { slug },
     });
-    if (existingProject) {
+    if (existingProjectBySlug) {
       return NextResponse.json(
-        { message: 'Bu URL metni (slug) zaten kullanılıyor.' },
-        { status: 409 }
+        { message: 'Bu URL metni (slug) zaten kullanılıyor.', errors: {slug: ['Bu URL metni (slug) zaten kullanılıyor.']} },
+        { status: 409 } // Conflict
       );
     }
+
     const newProject = await prisma.project.create({
       data: {
         title,
         slug,
         type,
         description,
-        coverImage,
+        coverImage, // Veritabanına tam URL'i kaydet
+        coverImagePublicId, // Veritabanına Public ID'yi kaydet
         releaseDate: new Date(releaseDate),
         isPublished,
       },
@@ -49,22 +79,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {
     console.error('Proje oluşturma hatası:', error);
-    if (error instanceof Error && error.message.includes('Invalid date')) {
-        return NextResponse.json({ message: 'Geçersiz tarih formatı.' }, { status: 400 });
+    if (error instanceof z.ZodError) { // Zod hatası ise
+        return NextResponse.json({ message: 'Geçersiz veri.', errors: error.flatten().fieldErrors }, { status: 400 });
     }
     return NextResponse.json(
-      { message: 'Proje oluşturulurken bir hata oluştu.' },
+      { message: 'Proje oluşturulurken bir sunucu hatası oluştu.' },
       { status: 500 }
     );
   }
 }
 
+// GET fonksiyonu aynı kalabilir...
 export async function GET(request: NextRequest) {
+    // ... (GET içeriği) ...
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
     if (!token || token.role !== 'admin') {
         return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
     }
-    // ... (GET içeriği aynı kalacak) ...
     try {
         const projects = await prisma.project.findMany({
             orderBy: { createdAt: 'desc' }

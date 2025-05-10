@@ -7,7 +7,8 @@ import { UserCircleIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { RoleInProject } from '@prisma/client'; // Prisma Enum
+import { RoleInProject } from '@prisma/client'; // <-- BU SATIR ÖNEMLİ
+import { formatProjectRole } from '@/lib/utils';
 
 interface ProjectDetailPageProps {
   params: {
@@ -79,10 +80,6 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
   if (!project) {
     notFound();
   }
-
-  const formatRole = (role: RoleInProject | string) => {
-      return role.toString().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
 
   const groupedAssignments = project.assignments.reduce((acc, assignment) => {
         const roleKey = assignment.role.toString();
@@ -161,7 +158,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
             {Object.entries(groupedAssignments).map(([role, artists]) => (
               <div key={role}>
                 <h3 className="text-lg sm:text-xl font-semibold mb-4 border-b border-gray-300 dark:border-gray-700 pb-2 text-indigo-600 dark:text-indigo-400">
-                  {formatRole(role)}
+                {formatProjectRole(role as RoleInProject)} {/* Gerekirse tip zorlaması */}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                   {artists.map((artist) => (

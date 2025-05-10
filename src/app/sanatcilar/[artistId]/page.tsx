@@ -7,19 +7,8 @@ import { FilmIcon, BriefcaseIcon, UserCircleIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Prisma } from '@prisma/client';
-
-// formatRole fonksiyonu aynı kalabilir...
-function formatRole(role: string) {
-  const roleMap: { [key: string]: string } = {
-    VOICE_ACTOR: 'Seslendirme Sanatçısı',
-    MIX_MASTER: 'Mix Master',
-    MODDER: 'Modder',
-    TRANSLATOR: 'Çevirmen',
-    SCRIPT_WRITER: 'Senaryo Yazarı',
-    DIRECTOR: 'Yönetmen',
-  };
-  return roleMap[role] || role;
-}
+import { formatProjectRole } from '@/lib/utils';
+import { RoleInProject } from '@prisma/client';
 
 type ArtistWithAssignments = Prisma.DubbingArtistGetPayload<{
   include: {
@@ -197,7 +186,7 @@ export default async function ArtistDetailPage({ params }: { params: { artistId:
                     </p>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300">
                       <BriefcaseIcon className="h-3 w-3 mr-1" />
-                      {formatRole(role)}
+                      {formatProjectRole(role)} {/* role zaten RoleInProject tipinde olmalı */}
                     </span>
                   </div>
                 </Link>
