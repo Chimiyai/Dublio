@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getToken } from 'next-auth/jwt';
 import { z } from 'zod'; // Zod'u import et (eğer validasyon için kullanacaksan)
+import { RoleInProject } from '@prisma/client';
 
 // Zod ile validasyon şeması (opsiyonel ama önerilir)
 const createProjectSchema = z.object({
@@ -16,6 +17,11 @@ const createProjectSchema = z.object({
     message: "Geçersiz yayın tarihi formatı.",
   }),
   isPublished: z.boolean().optional().default(true),
+  assignments: z.array(z.object({ // <-- Bu isim önemli
+    artistId: z.number().int(),
+    role: z.nativeEnum(RoleInProject)
+  })).optional().default([]),
+  
 });
 
 
@@ -43,16 +49,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Doğrulama hatası', errors }, { status: 400 });
     }
 
-    const {
+    const { // Destructuring doğru
       title,
       slug,
       type,
       description,
-      coverImage, // Formdan gelen tam URL
-      coverImagePublicId, // Formdan gelen Public ID
+      coverImage,
+      coverImagePublicId,
       releaseDate,
       isPublished,
-    } = validation.data; // Doğrulanmış veriyi kullan
+      assignments // Bu, client'tan gelen ve Zod ile doğrulanmış assignments dizisi
+    } = validation.data;
 
     const existingProjectBySlug = await prisma.project.findUnique({
       where: { slug },
@@ -70,12 +77,28 @@ export async function POST(request: NextRequest) {
         slug,
         type,
         description,
-        coverImage, // Veritabanına tam URL'i kaydet
-        coverImagePublicId, // Veritabanına Public ID'yi kaydet
+        coverImage,
+        coverImagePublicId,
         releaseDate: new Date(releaseDate),
         isPublished,
+        // ProjectAssignment kayıtlarını oluştur
+        assignments: { 
+          createMany: { 
+            // Zod'dan gelen `assignments` dizisini burada kullanıyoruz.
+            // Bu `assignments` değişkeni yukarıda destruct edilmişti.
+            data: assignments.map(assignment => ({ 
+              artistId: assignment.artistId,
+              role: assignment.role,
+            })),
+            // skipDuplicates: true, // Opsiyonel
+          },
+        },
       },
+      include: { 
+        assignments: true,
+      }
     });
+
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {
     console.error('Proje oluşturma hatası:', error);
