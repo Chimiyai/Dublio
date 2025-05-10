@@ -4,9 +4,9 @@
 import { useState, FormEvent, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import CoverImageUploader from '@/components/admin/CoverImageUploader';
 import Select from 'react-select'; // react-select importu
 import { DubbingArtist, RoleInProject } from '@prisma/client'; // Tipleri import et
+import ImageUploader from '@/components/admin/ImageUploader';
 
 // Formdaki mevcut atamaların state tipi (EditProjectForm'dan alındı)
 interface CurrentAssignment {
@@ -190,14 +190,18 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
           {formErrors.description && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.description) ? formErrors.description.join(', ') : formErrors.description}</p>}
         </div>
         
-        <CoverImageUploader
-          currentCoverImageUrl={null}
-          currentCoverImagePublicId={null}
+        <ImageUploader
+          currentImageUrl={null} // Yeni proje için
+          currentImagePublicId={null} // Yeni proje için
           onUploadComplete={({ imageUrl, publicId }) => {
             setCoverImage(imageUrl);
             setCoverImagePublicId(publicId);
           }}
-          projectIdOrSlug={slug || title || 'yeni-proje'}
+          uploadApiEndpoint="/api/admin/projects/cover-image" // Proje kapak resmi API'si
+          folder="project_covers" // Cloudinary klasörü
+          identifier={slug || title || 'yeni-proje'} // Dosya adı için
+          aspectRatio="aspect-[16/9]" // Kapak resmi için en-boy oranı
+          label="Kapak Resmi"
         />
         {formErrors.coverImage && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.coverImage) ? formErrors.coverImage.join(', ') : formErrors.coverImage}</p>}
         

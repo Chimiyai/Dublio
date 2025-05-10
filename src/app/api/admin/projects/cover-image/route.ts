@@ -2,9 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { v2 as cloudinary } from 'cloudinary';
-// prisma'ya bu endpoint'te doğrudan ihtiyacımız olmayabilir, çünkü sadece URL döndüreceğiz.
-// URL'yi veritabanına kaydetme işini Proje Ekleme/Düzenleme API'si yapacak.
+import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary'; // <-- TİPLERİ BURAYA EKLE
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -13,98 +11,89 @@ cloudinary.config({
   secure: true,
 });
 
-async function streamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffer> {
-    const reader = stream.getReader();
-    const chunks: Uint8Array[] = [];
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) chunks.push(value);
-    }
-    return Buffer.concat(chunks);
-}
+// streamToBuffer fonksiyonuna gerek kalmadı, direkt file.arrayBuffer() kullanıyoruz.
+// async function streamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffer> { ... }
+
+const generateUniqueFilename = (originalName: string, identifier?: string | null) => {
+  const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg'; // uzantıyı küçük harf yap
+  const safeIdentifier = identifier ? identifier.toLowerCase().replace(/[^a-z0-9_]+/g, '_') : 'image';
+  // Dosya adında geçersiz karakterler olmadığından emin ol
+  const cleanOriginalNameBase = originalName.substring(0, originalName.lastIndexOf('.'))
+                                      .toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+  return `${safeIdentifier}_${cleanOriginalNameBase}_${Date.now()}.${extension}`.substring(0, 100); // Public ID uzunluk sınırını aşmamak için kısalt
+};
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.role !== 'admin') { // Sadece adminler yükleyebilsin
-    return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
+  if (!session || session.user?.role !== 'admin') {
+    return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 }); // 403 Forbidden daha uygun
   }
 
   try {
     const formData = await request.formData();
-    const file = formData.get('coverImageFile') as File | null; // Formdan gelen dosyanın adı
-    const projectIdOrSlug = formData.get('projectIdOrSlug') as string | null; // Yüklenecek projenin ID'si veya slug'ı
+    const file = formData.get('imageFile') as File | null;
+    const identifier = formData.get('identifier') as string | null;
+    const folder = formData.get('folder') as string | null;
 
     if (!file) {
-      return NextResponse.json({ message: 'Dosya yüklenmedi.' }, { status: 400 });
+      return NextResponse.json({ message: 'Resim dosyası bulunamadı.' }, { status: 400 });
     }
-    if (!projectIdOrSlug) {
-        return NextResponse.json({ message: 'Proje kimliği belirtilmedi.' }, { status: 400 });
-    }
+
     if (!file.type.startsWith('image/')) {
-         return NextResponse.json({ message: 'Sadece resim dosyaları yüklenebilir.' }, { status: 400 });
+        return NextResponse.json({ message: 'Geçersiz dosya tipi. Lütfen bir resim yükleyin.' }, { status: 400 });
     }
-     // Kapak resmi için farklı bir boyut limiti (örn: 8MB)
-     const maxSizeInBytes = 8 * 1024 * 1024; 
-     if (file.size > maxSizeInBytes) {
-       return NextResponse.json({ message: `Dosya boyutu çok büyük. Maksimum ${maxSizeInBytes / (1024 * 1024)}MB olabilir.` }, { status: 400 });
-     }
+    const maxFileSizeMB = 8;
+    const maxSizeInBytes = maxFileSizeMB * 1024 * 1024;
+    if (file.size > maxSizeInBytes) {
+        return NextResponse.json({ message: `Dosya boyutu çok büyük. Maksimum ${maxFileSizeMB}MB.` }, { status: 400 });
+    }
 
-    const fileBuffer = await streamToBuffer(file.stream());
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    const uploadResult = await new Promise<{ secure_url?: string; public_id?: string; [key: string]: any } | undefined>((resolve, reject) => {
-       cloudinary.uploader.upload_stream(
+    const uniqueFilename = generateUniqueFilename(file.name, identifier);
+
+    const result = await new Promise<UploadApiResponse | UploadApiErrorResponse>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
         {
-          folder: 'prestij_dublaj/project_covers',
-          public_id: `project_${projectIdOrSlug}_cover`, // Benzersiz ID için proje ID/slug kullan
-          overwrite: true,
-          format: 'webp', 
-          transformation: [ // Kapak resimleri için uygun transformasyonlar
-            { width: 1200, crop: 'limit' }, // Genişliği sınırla, oranı koru
-            { quality: 'auto:good' }       // Kaliteyi otomatik ayarla
-          ]
+          resource_type: 'image',
+          public_id: uniqueFilename,
+          folder: folder || undefined, // Eğer folder null/undefined ise Cloudinary kök dizinine yükler
+          // overwrite: true, // Eğer aynı public_id varsa üzerine yaz (varsayılan false)
+          // quality: 'auto', // Kalite ayarı
+          // fetch_format: 'auto' // Format ayarı
         },
-        (error, result) => { 
+        (error, result) => {
           if (error) {
-             console.error("Cloudinary SDK upload_stream error:", error); // Daha detaylı log
-            // Hata objesini doğrudan reject et ki dış try-catch yakalasın
-            return reject(new Error(error.message || 'Cloudinary yükleme hatası (stream)')); 
+            console.error('Cloudinary yükleme hatası:', error);
+            reject(error);
+          } else if (result) { // result undefined gelme ihtimaline karşı kontrol
+            resolve(result);
+          } else {
+            reject(new Error("Cloudinary'den beklenmedik boş yanıt."));
           }
-          resolve(result);
         }
-      ).end(fileBuffer);
+      ).end(buffer);
     });
-    
-    if (!uploadResult?.secure_url || !uploadResult?.public_id) {
-         console.error("Cloudinary yükleme sonucu hatalı veya gerekli bilgiler eksik:", uploadResult);
-         // Bu durumda da spesifik bir hata fırlatabiliriz
-         throw new Error('Cloudinary yüklemesi başarısız oldu veya URL/PublicID alınamadı.');
+
+    // Hata kontrolünü result objesinin yapısına göre yapalım
+    if ('error' in result || !result.public_id || !result.secure_url) {
+        const errorMessage = ('error' in result && result.error?.message) ? result.error.message : 'Cloudinary yüklemesi başarısız oldu veya sonuç eksik.';
+        console.error('Cloudinary sonucu hatası veya eksik:', result);
+        throw new Error(errorMessage);
     }
 
-    return NextResponse.json({ 
-        message: 'Kapak resmi başarıyla yüklendi ve bilgiler alındı.', 
-        imageUrl: uploadResult.secure_url,
-        publicId: uploadResult.public_id
-    }, { status: 200 });
+    // Başarılı durumda `result` UploadApiResponse tipinde olmalı
+    const successResult = result as UploadApiResponse;
 
-  } catch (error: any) {
-    console.error('GENEL Kapak resmi yükleme API hatası:', error);
-    // Hata mesajını ve tipini logla
-    console.error('Hata tipi:', typeof error, 'Hata string:', String(error));
-    
-    // Zaten bir NextResponse döndürülmüşse (bu pek olası değil ama)
-    if (error instanceof NextResponse) {
-        return error;
-    }
-
-    let errorMessage = 'Kapak resmi yüklenirken bir sunucu hatası oluştu.';
-    if (error.message?.includes('Cloudinary') || error.http_code) { 
-       errorMessage = `Cloudinary hatası: ${error.message || 'Bilinmeyen Cloudinary hatası'}`;
-    } else if (typeof error.message === 'string') {
-       errorMessage = error.message;
-    }
-
-    return NextResponse.json({ message: errorMessage, errorDetail: String(error) }, { status: 500 });
+    return NextResponse.json({
+      message: 'Resim başarıyla yüklendi.',
+      imageUrl: successResult.secure_url,
+      publicId: successResult.public_id,
+    });
+  } catch (error: any) { // Hata tipini any olarak alıp message'ı kontrol edelim
+    console.error('Resim yükleme API genel hatası:', error);
+    return NextResponse.json({ message: error.message || 'Resim yüklenirken bir sunucu hatası oluştu.' }, { status: 500 });
   }
 }

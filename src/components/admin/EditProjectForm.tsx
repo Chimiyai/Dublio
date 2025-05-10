@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition, FormEvent, useEffect } from 'react';
 import { Project, DubbingArtist, RoleInProject } from '@prisma/client';
 import Select from 'react-select';
-import CoverImageUploader from './CoverImageUploader'; // <--- YENİ IMPORT
+import ImageUploader from '@/components/admin/ImageUploader';
 
 // API'den gelen proje tipi (assignments dahil)
 interface ProjectWithPrismaAssignments extends Project {
@@ -281,15 +281,19 @@ if (coverImagePublicId !== (project.coverImagePublicId || null)) {
           </div>
 {/* --- COVER IMAGE UPLOADER --- */}
 <div className="sm:col-span-6">
-        <CoverImageUploader 
-            currentCoverImageUrl={coverImage} 
-            currentCoverImagePublicId={coverImagePublicId} // YENİ PROP
-            onUploadComplete={({ imageUrl, publicId }) => { // YENİ CALLBACK
-                setCoverImage(imageUrl);
-                setCoverImagePublicId(publicId);
-            }}
-            projectIdOrSlug={project.slug}
-        />
+<ImageUploader
+  currentImageUrl={coverImage} // Mevcut URL state'i
+  currentImagePublicId={coverImagePublicId} // Mevcut Public ID state'i
+  onUploadComplete={({ imageUrl, publicId }) => {
+    setCoverImage(imageUrl);
+    setCoverImagePublicId(publicId);
+  }}
+  uploadApiEndpoint="/api/admin/projects/cover-image"
+  folder="project_covers"
+  identifier={project.slug} // Mevcut projenin slug'ı
+  aspectRatio="aspect-[16/9]"
+  label="Kapak Resmi"
+/>
             {/* CoverImage input'unu (text olarak) kaldırabilir veya gizleyebiliriz artık */}
             {/* Veya Uploader'dan gelen URL'yi göstermek için bir readonly input */}
             {errors.coverImage && <p className="mt-1 text-xs text-red-600">{errors.coverImage.join(', ')}</p>}
