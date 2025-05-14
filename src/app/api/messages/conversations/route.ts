@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc', // En yeni mesajlar önemli
       },
       include: {
-        sender: { select: { id: true, username: true, profileImageUrl: true } },
-        receiver: { select: { id: true, username: true, profileImageUrl: true } },
+        sender: { select: { id: true, username: true, profileImagePublicId: true } },
+        receiver: { select: { id: true, username: true, profileImagePublicId: true } },
       },
     });
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const conversationsMap = new Map<
       number, 
       { 
-        partner: { id: number; username: string; profileImageUrl: string | null }; 
+        partner: { id: number; username: string; profileImagePublicId: string | null }; 
         lastMessage: { content: string; createdAt: Date; isSender: boolean };
       }
     >();
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
           partner: {
             id: partner.id,
             username: partner.username,
-            profileImageUrl: partner.profileImageUrl,
+            profileImagePublicId: partner.profileImagePublicId,
           },
           lastMessage: {
             content: message.content,

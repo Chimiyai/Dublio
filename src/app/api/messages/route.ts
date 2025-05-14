@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
         content: content,
       },
       include: { // Gönderilen mesajı hemen döndürmek için (opsiyonel)
-        sender: { select: { id: true, username: true, profileImageUrl: true }},
-        receiver: { select: { id: true, username: true, profileImageUrl: true }}
+        sender: { select: { id: true, username: true, profileImagePublicId: true }},
+        receiver: { select: { id: true, username: true, profileImagePublicId: true }}
       }
     });
 

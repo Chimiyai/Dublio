@@ -53,8 +53,8 @@ export default async function MessagesPage() {
       createdAt: 'desc',
     },
     include: {
-      sender: { select: { id: true, username: true, profileImageUrl: true } },
-      receiver: { select: { id: true, username: true, profileImageUrl: true } },
+      sender: { select: { id: true, username: true, profileImagePublicId: true } },
+      receiver: { select: { id: true, username: true, profileImagePublicId: true } },
     },
   });
 
@@ -67,7 +67,7 @@ export default async function MessagesPage() {
         partner: {
           id: partner.id,
           username: partner.username,
-          profileImageUrl: partner.profileImageUrl,
+          profileImageUrl: partner.profileImagePublicId,
         },
         lastMessage: {
           content: message.content,

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
         ],
       },
       include: {
-        sender: { select: { id: true, username: true, profileImageUrl: true } },
+        sender: { select: { id: true, username: true, profileImagePublicId: true } },
         // receiver'a genellikle gerek yok çünkü kiminle konuştuğumuzu zaten biliyoruz (partnerId)
         // ama istersen eklenebilir.
       },
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     // Bu, konuşma sayfasının başında partnerin adını vb. göstermek için kullanışlı olur.
     const partnerUser = await prisma.user.findUnique({
         where: { id: partnerId },
-        select: { id: true, username: true, profileImageUrl: true }
+        select: { id: true, username: true, profileImagePublicId: true }
     });
 
     if (!partnerUser) {

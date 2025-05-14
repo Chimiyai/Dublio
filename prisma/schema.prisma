@@ -23,19 +23,18 @@ datasource db {
 }
 
 model User {
-  id              Int      @id @default(autoincrement())
-  email           String   @unique
-  username        String   @unique
-  password        String
-  role            String   @default("user") // Admin/User rolü
-  profileImageUrl String?  // YENİ - Profil Fotoğrafı
-  bannerImageUrl  String?  // YENİ - Banner Fotoğrafı
-  // subscriptionTier String? @default("FREE") // Gelecek için abonelik seviyesi (şimdilik eklemeyebiliriz)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  sentMessages    Message[] @relation("SentMessages")     
-  receivedMessages Message[] @relation("ReceivedMessages")
-  emailChangeRequests EmailChangeRequest[]
+  id                     Int      @id @default(autoincrement())
+  email                  String   @unique
+  username               String   @unique
+  password               String
+  role                   String   @default("user")
+  profileImagePublicId   String?
+  bannerImagePublicId    String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  sentMessages           Message[] @relation("SentMessages")     
+  receivedMessages        Message[] @relation("ReceivedMessages")
+  emailChangeRequests    EmailChangeRequest[]
 
   @@map("users")
 }
@@ -60,9 +59,9 @@ model Project {
   slug          String              @unique
   type          String
   description   String?
-  coverImage    String?
   coverImagePublicId    String?
-  releaseDate   DateTime            @default(now())
+  bannerImagePublicId String?
+  releaseDate   DateTime?            @default(now())
   isPublished   Boolean             @default(true)
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
@@ -84,17 +83,18 @@ model Message {
 }
 
 model DubbingArtist {
-  id          Int                 @id @default(autoincrement())
-  firstName   String
-  lastName    String
-  bio         String?
-  imageUrl    String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  assignments ProjectAssignment[] // İlişki doğru
+  id              Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  bio             String?
+  imagePublicId   String?  // BU ALANIN VARLIĞI VE DOĞRU YAZILDIĞI ÇOK ÖNEMLİ
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  assignments     ProjectAssignment[]
 
   @@map("dubbing_artists")
 }
+
 
 // --- ProjectAssignment Modelini Düzeltelim ---
 model ProjectAssignment {
