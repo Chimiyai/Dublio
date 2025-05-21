@@ -20,6 +20,7 @@ export default function CoverImageUploader({
 }: CoverImageUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentCoverImageUrl);
+  const [uploadedImagePublicId, setUploadedImagePublicId] = useState<string | null>(null); // YENİ: Yüklenen resmin public ID'sini tutmak için
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isUploading, startTransition] = useTransition();
@@ -27,22 +28,25 @@ export default function CoverImageUploader({
 
   // Prop'tan gelen resim URL'si veya Public ID değiştiğinde önizlemeyi güncelle
   useEffect(() => {
-    if (currentCoverImageUrl) {
+    if (!file && !uploadedImagePublicId) {
+      if (currentCoverImageUrl) {
         setPreviewUrl(currentCoverImageUrl);
-    } else if (currentCoverImagePublicId) {
-        // Eğer sadece Public ID varsa, CldImage bunu handle edeceği için
-        // previewUrl'i null bırakabiliriz veya bir placeholder URL set edebiliriz.
-        // Şimdilik CldImage'in kendi mantığına bırakalım.
-        setPreviewUrl(null); // Veya currentCoverImagePublicId'yi direkt kullan? CldImage'a bırakalım.
-    } else {
+      } else if (currentCoverImagePublicId) {
+        // CldImage için public ID'yi doğrudan kullanacağız, previewUrl'i null yapabiliriz
+        // ya da burada da CldImage'in URL oluşturma mantığını taklit edebiliriz.
+        // Şimdilik CldImage'in göstermesine bırakalım.
+        setPreviewUrl(null); 
+      } else {
         setPreviewUrl(null);
+      }
     }
-  }, [currentCoverImageUrl, currentCoverImagePublicId]);
+  }, [currentCoverImageUrl, currentCoverImagePublicId, file, uploadedImagePublicId]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
-    setSuccessMessage(null); // Mesajları temizle
+    setSuccessMessage(null);
     setError(null);
+    setUploadedImagePublicId(null);
 
     if (selectedFile) {
       if (!selectedFile.type.startsWith('image/')) {
@@ -61,7 +65,6 @@ export default function CoverImageUploader({
         return;
       }
       setFile(selectedFile);
-      // Dosya önizlemesi oluştur (Data URL)
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
@@ -69,7 +72,9 @@ export default function CoverImageUploader({
       reader.readAsDataURL(selectedFile);
     } else {
       setFile(null);
-      setPreviewUrl(currentCoverImageUrl); // Seçim iptal edilirse veya dosya yoksa eskiye dön
+      if (currentCoverImageUrl) setPreviewUrl(currentCoverImageUrl);
+      else if (currentCoverImagePublicId) setPreviewUrl(null); // CldImage'in public ID'den göstermesi için
+      else setPreviewUrl(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -103,12 +108,15 @@ export default function CoverImageUploader({
 
         setSuccessMessage('Resim başarıyla Cloudinary\'ye yüklendi! Değişiklikleri kaydetmeyi unutmayın.');
         onUploadComplete({ imageUrl: data.imageUrl, publicId: data.publicId });
-        setPreviewUrl(data.imageUrl); // Önizlemeyi Cloudinary'den gelen URL ile güncelle
+        // YÜKLEME SONRASI ÖNİZLEME GÜNCELLEMESİ
+        setPreviewUrl(data.imageUrl); // Cloudinary'den gelen TAM URL ile önizlemeyi güncelle
+        setUploadedImagePublicId(data.publicId); // Yüklenen resmin public ID'sini sakla
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         setTimeout(() => setSuccessMessage(null), 4000);
 
       } catch (err) {
+        // ... (hata yönetimi aynı)
         console.error('Kapak resmi yükleme fetch hatası:', err);
         setError('Yükleme sırasında bir ağ hatası oluştu.');
       }
@@ -117,10 +125,24 @@ export default function CoverImageUploader({
 
   const triggerFileInput = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // Input'u sıfırla ki aynı dosya tekrar seçilebilsin
+      fileInputRef.current.value = ''; 
       fileInputRef.current.click();
     }
   };
+  // HANGİ RESMİN GÖSTERİLECEĞİNE KARAR VEREN MANTIK
+  let displayImageUrl: string | null = null;
+  let displayPublicId: string | null = null;
+
+  if (previewUrl && previewUrl.startsWith('data:')) { // Kullanıcı yeni dosya seçti (henüz yüklenmedi)
+    displayImageUrl = previewUrl;
+  } else if (uploadedImagePublicId) { // Yeni resim yüklendi
+    displayImageUrl = previewUrl; // Bu, yükleme sonrası Cloudinary'den gelen tam URL olmalı
+    // displayPublicId = uploadedImagePublicId; // Eğer CldImage kullanacaksak bunu kullanabiliriz
+  } else if (currentCoverImagePublicId) { // Mevcut public ID var
+    displayPublicId = currentCoverImagePublicId;
+  } else if (currentCoverImageUrl) { // Mevcut tam URL var
+    displayImageUrl = currentCoverImageUrl;
+  }
 
   return (
     <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -128,28 +150,25 @@ export default function CoverImageUploader({
         Kapak Resmi
       </label>
       
-      {/* Önizleme Alanı */}
       <div className="mb-3 bg-gray-100 dark:bg-gray-700/50 rounded overflow-hidden aspect-[16/9] w-full max-w-sm mx-auto flex items-center justify-center">
-        {previewUrl && previewUrl.startsWith('data:') ? ( // Kullanıcı yeni dosya seçti, data URL ile önizle
-            <img src={previewUrl} alt="Kapak Resmi Önizleme" className="object-contain w-full h-full" />
-        ) : currentCoverImagePublicId ? ( // Mevcut Public ID varsa CldImage ile göster
+        {displayImageUrl ? (
+            <img src={displayImageUrl} alt="Kapak Resmi Önizleme" className="object-contain w-full h-full" />
+        ) : displayPublicId ? (
              <CldImage
-                src={currentCoverImagePublicId}
+                src={displayPublicId} // Public ID'yi kullan
                 alt="Mevcut Kapak Resmi"
-                width={320} // İstediğiniz bir en boy oranı için ayarlayın
+                width={320} 
                 height={180}
-                crop="fill" // Veya "fit", "limit" vb.
+                crop="fill"
                 gravity="center"
-                className="object-cover w-full h-full"
+                className="object-cover w-full h-full" // CldImage object-cover/contain'i kendi props'larıyla yönetir
             />
-        ) : currentCoverImageUrl ? ( // Public ID yok ama URL varsa (eski kayıtlar veya fallback)
-            <img src={currentCoverImageUrl} alt="Mevcut Kapak Resmi" className="object-contain w-full h-full" />
-        ) : ( // Hiçbiri yoksa placeholder
+        ) : (
           <PhotoIcon className="h-16 w-16 text-gray-400 dark:text-gray-500" />
         )}
       </div>
 
-      {/* Yükleme Kontrolleri */}
+      {/* Yükleme Kontrolleri (Aynı kalabilir) */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <button
           type="button"
@@ -158,7 +177,8 @@ export default function CoverImageUploader({
           className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
         >
           <PhotoIcon className="h-5 w-5 mr-2" />
-          {currentCoverImageUrl || previewUrl ? "Değiştir" : "Resim Seç"}
+          {/* Buton metnini de dinamik yapalım */}
+          {displayImageUrl || displayPublicId ? "Değiştir" : "Resim Seç"}
         </button>
 
         <input

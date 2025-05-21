@@ -30,10 +30,11 @@ model User {
   role                   String   @default("user")
   profileImagePublicId   String?
   bannerImagePublicId    String?
+  bio                    String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
   sentMessages           Message[] @relation("SentMessages")     
-  receivedMessages        Message[] @relation("ReceivedMessages")
+  receivedMessages       Message[] @relation("ReceivedMessages")
   emailChangeRequests    EmailChangeRequest[]
 
   @@map("users")

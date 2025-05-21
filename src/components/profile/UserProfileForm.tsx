@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import ProfileImageUploader from '@/components/profile/ProfileImageUploader';
 import BannerImageUploader from '@/components/profile/BannerImageUploader';
 import UpdateUsernameForm from '@/components/profile/UpdateUsernameForm';
+import UpdateBioForm from '@/components/profile/UpdateBioForm';
 import UpdatePasswordForm from '@/components/profile/UpdatePasswordForm';
 import UpdateEmailForm from '@/components/profile/UpdateEmailForm';
 import toast from 'react-hot-toast';
@@ -21,6 +22,7 @@ interface UserProfileFormProps {
   user: { 
     id: number; 
     username: string;
+    bio: string;
     email: string;
     role: string;
     profileImagePublicId: string | null;
@@ -174,6 +176,7 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
             <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{initialUser.username}</h1>
                 <p className="text-md text-gray-600 dark:text-gray-400">{initialUser.email}</p>
+                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{initialUser.bio}</p>
                 <span className={`mt-2 inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium ${
                     initialUser.role === 'admin' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                 }`}>
@@ -223,6 +226,9 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
             
                 <div className="p-6 md:p-0 border-t border-gray-200 dark:border-gray-700">
                     <UpdateUsernameForm currentUsername={initialUser.username} /> 
+                </div>
+                <div className="p-6 md:p-0 border-t border-gray-200 dark:border-gray-700">
+                    <UpdateBioForm currentBio={initialUser.bio} />
                 </div>
                 <div className="p-6 md:p-0 border-t border-gray-200 dark:border-gray-700">
                     <UpdatePasswordForm /> 

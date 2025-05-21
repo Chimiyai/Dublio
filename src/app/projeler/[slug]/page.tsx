@@ -89,8 +89,10 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     notFound();
   }
 
-  // groupedAssignments için tip ayarlaması
-  // assignment.artist'in tipi artık artist.select ile uyumlu
+  const formatRole = (role: RoleInProject | string) => {
+      return role.toString().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const groupedAssignments = project.assignments.reduce((acc, assignment) => {
     const roleKey = assignment.role.toString();
     if (!acc[roleKey]) {
@@ -150,7 +152,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
             {Object.entries(groupedAssignments).map(([role, artistsArray]) => ( // artists -> artistsArray
               <div key={role}>
                 <h3 className="text-lg sm:text-xl font-semibold mb-4 border-b border-gray-300 dark:border-gray-700 pb-2 text-indigo-600 dark:text-indigo-400">
-                  {formatProjectRole(role as RoleInProject)}
+                  {formatRole(role)}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                   {artistsArray.map((artist) => ( // artist artık ArtistForProjectDetail tipinde

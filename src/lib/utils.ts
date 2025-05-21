@@ -11,11 +11,11 @@ export function formatProjectRole(role: RoleInProject | string): string {
   const roleString = role.toString();
   const roleMap: { [key: string]: string } = { // key string olabilir
     VOICE_ACTOR: 'Seslendirme Sanatçısı',
-    MIX_MASTER: 'Mix/Mastering Uzmanı',
-    MODDER: 'Mod Yapımcısı',
+    MIX_MASTER: 'SFX/VFX',
+    MODDER: 'Mod Geliştiricisi',
     TRANSLATOR: 'Çevirmen',
     SCRIPT_WRITER: 'Senaryo Yazarı',
-    DIRECTOR: 'Yönetmen',
+    DIRECTOR: 'Prodüktör',
     // Prisma şemandaki RoleInProject enum'undaki TÜM değerleri buraya ekle
   };
   // Eşleşme yoksa, alt çizgiyi boşlukla değiştir ve baş harfleri büyüt
