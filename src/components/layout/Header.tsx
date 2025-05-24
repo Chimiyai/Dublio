@@ -1,0 +1,639 @@
+// src/components/layout/Header.tsx
+"use client";
+
+import Link from 'next/link';
+import Image from 'next/image';
+import React, { useState, useEffect, useRef, Fragment, JSX } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import {
+  Bars3Icon,
+  BellIcon,
+  XMarkIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChatBubbleOvalLeftEllipsisIcon, // Mesajlar ikonu için
+  UserCircleIcon, // Avatar için placeholder
+  ArrowRightOnRectangleIcon, // Çıkış ikonu
+  UserIcon as ProfileIcon, // Profil ikonu
+  UsersIcon, // Arkadaşlar ikonu
+} from '@heroicons/react/24/outline';
+
+// Sahte veri
+const navLinksData = [
+  { label: 'Oyunlar', href: '#', dropdownId: 'oyunlarDropdown' },
+  { label: 'Animeler', href: '#', dropdownId: 'animelerDropdown' },
+  { label: 'Kadromuz', href: '#' },
+  { label: 'Bize Katıl!', href: '#' },
+];
+
+const oyunlarDropdownContent = {
+  main: [
+    { label: 'Tüm Oyunlar (3,704)', href: '#' },
+    { label: 'Yeni Eklenenler (80)', href: '#' },
+  ],
+  favorites: [
+    { label: 'Oyun Adı 1', href: '#', icon: '/images/game-icon-placeholder1.png' }, // public/images altında olmalı
+    { label: 'Oyun Ekle +', href: '#', isAction: true },
+  ],
+};
+
+const animelerDropdownContent = {
+  main: [
+    { label: 'Tüm Animeler (1,250)', href: '#' },
+  ],
+  watchlist: [
+    { label: 'Liste Oluştur +', href: '#', isAction: true },
+  ],
+};
+
+// Tip tanımlamalarını ekleyelim (isteğe bağlı ama iyi pratik)
+interface NavLinkItem {
+  label: string;
+  href: string;
+  dropdownId?: string;
+}
+interface DropdownItem {
+  label: string;
+  href: string;
+  icon?: string;
+  isAction?: boolean;
+}
+interface MobileMenuItemCore {
+    label: string;
+    href?: string;
+}
+interface MobileMenuLinkItem extends MobileMenuItemCore {
+    action: 'link';
+    href: string;
+}
+interface MobileMenuSubmenuItem extends MobileMenuItemCore {
+    action: 'submenu';
+    target: string;
+    iconRight?: JSX.Element;
+    label: string; // label burada da olmalı
+}
+type MobileMenuItem = MobileMenuLinkItem | MobileMenuSubmenuItem;
+
+
+const Header = () => {
+  const { data: session, status } = useSession();
+  const isLoadingSession = status === "loading";
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // Profil dropdown state'i
+  const [isClosing, setIsClosing] = useState(false); // Dropdown kapanma animasyonu için
+  const [mobileSubMenu, setMobileSubMenu] = useState<string | null>(null);
+
+  const headerRef = useRef<HTMLElement>(null);
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null); // Profil dropdown için ref
+  const mobilePanelRef = useRef<HTMLDivElement>(null);
+
+  const navLinks: NavLinkItem[] = [ // Tip ataması eklendi
+    ...navLinksData,
+    ...(session?.user?.role === 'admin' && !isLoadingSession ? [{ label: 'Admin Paneli', href: '/admin' }] : [])
+  ];
+
+  useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    const targetElement = event.target as Node;
+
+    // Profil dropdown kontrolü
+    if (isProfileDropdownOpen && profileDropdownRef.current && !profileDropdownRef.current.contains(targetElement)) {
+      const profileToggle = headerRef.current?.querySelector('button[data-dropdown-type="profile"]');
+      if (!profileToggle || (profileToggle && !profileToggle.contains(targetElement))) {
+        // Animasyonlu kapanma için toggleProfileDropdown kullan
+        toggleProfileDropdown();
+      }
+    }
+
+    // Profil dropdown kontrolü
+    if (isProfileDropdownOpen && profileDropdownRef.current && !profileDropdownRef.current.contains(targetElement)) {
+      const profileToggle = headerRef.current?.querySelector('button[data-dropdown-type="profile"]');
+      if (!profileToggle || (profileToggle && !profileToggle.contains(targetElement))) {
+        setIsProfileDropdownOpen(false);
+      }
+    }
+
+    // Mobil menü kontrolü
+    if (isMobileMenuOpen && mobilePanelRef.current && !mobilePanelRef.current.contains(targetElement)) {
+      const mobileToggle = document.getElementById('mobileMenuToggle');
+      if (!mobileToggle || (mobileToggle && !mobileToggle.contains(targetElement))) {
+        setIsMobileMenuOpen(false);
+        setMobileSubMenu(null);
+      }
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => document.removeEventListener('mousedown', handleClickOutside);
+}, [activeDropdown, isProfileDropdownOpen, isMobileMenuOpen]);
+
+  useEffect(() => {
+    if (isMobileMenuOpen || activeDropdown) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileMenuOpen(false);
+        setActiveDropdown(null);
+        setMobileSubMenu(null);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isMobileMenuOpen, activeDropdown, isProfileDropdownOpen]);
+
+  const toggleDropdown = (dropdownId: string) => {
+    const handleToggle = (e: React.MouseEvent) => {
+      // Fare olaylarını engelle
+      e.preventDefault();
+      e.stopPropagation();
+      
+      setActiveDropdown(prev => (prev === dropdownId ? null : dropdownId));
+      setIsMobileMenuOpen(false);
+    };
+
+    return handleToggle;
+  };
+
+  const toggleNavDropdown = (dropdownId: string, event?: React.MouseEvent) => {
+    setActiveDropdown(prev => {
+      if (prev === dropdownId) {
+        return null; // Açıksa kapat
+      } else {
+        setIsProfileDropdownOpen(false); // Diğer dropdown'ı kapat
+        setIsMobileMenuOpen(false); // Mobil menüyü kapat
+        return dropdownId; // Yenisini aç
+      }
+    });
+  };
+  const toggleProfileDropdown = (event?: React.MouseEvent) => {
+    if (isProfileDropdownOpen) {
+      setIsClosing(true);
+      setTimeout(() => {
+        setIsProfileDropdownOpen(false);
+        setIsClosing(false);
+      }, 200); // Animation duration
+    } else {
+      setActiveDropdown(null); // Diğer dropdown'ı kapat
+      setIsMobileMenuOpen(false); // Mobil menüyü kapat
+      setIsProfileDropdownOpen(true);
+    }
+  };
+
+
+  const toggleMobileMenu = () => {
+    const newState = !isMobileMenuOpen;
+    setIsMobileMenuOpen(newState);
+    if (newState) {
+      setActiveDropdown(null);
+    } else {
+      setMobileSubMenu(null);
+    }
+  };
+  const handleMobileSubMenu = (targetMenuKey: string | null) => { // <<< BU FONKSİYON
+  setMobileSubMenu(targetMenuKey);
+};
+
+  const getMobileMenuMainItems = (): MobileMenuItem[] => {
+    const mainItems: MobileMenuItem[] = [
+      { label: 'Oyunlar', action: 'submenu', target: 'gamesSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-prestij-text-muted" /> },
+      { label: 'Animeler', action: 'submenu', target: 'animeSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-prestij-text-muted" /> },
+      { label: 'Kadromuz', action: 'link', href: '#' },
+      { label: 'Bize Katıl!', action: 'link', href: '#' },
+    ];
+    if (session?.user?.role === 'admin' && !isLoadingSession) {
+      mainItems.push({ label: 'Admin Paneli', action: 'link', href: '/admin' });
+    }
+    return mainItems;
+  };
+
+  const mobileMenuData = {
+    main: getMobileMenuMainItems(),
+    gamesSubmenu: [
+        ...(oyunlarDropdownContent.main as DropdownItem[]), // Tip ataması
+        ...(oyunlarDropdownContent.favorites.map(item => ({ label: item.label, href: item.href, isAction: item.isAction })) as DropdownItem[])
+    ],
+    animeSubmenu: [
+        ...(animelerDropdownContent.main as DropdownItem[]),
+        ...(animelerDropdownContent.watchlist.map(item => ({ label: item.label, href: item.href, isAction: item.isAction })) as DropdownItem[])
+    ],
+  };
+  const userProfileImage = session?.user?.image || '/images/default-avatar.png'; // Varsayılan avatar
+  const userBannerImage = '/images/default-banner.jpg'; // Varsayılan banner
+
+
+return (
+    <header ref={headerRef} id="mainHeader" className="bg-prestij-bg-dark-1 sticky top-0 z-[1000] border-b border-prestij-border-primary min-h-header">
+      {/* Ana sarmalayıcı DIV tam genişlikte, iç padding'i o kontrol edecek */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-full">
+          <div className="flex items-center justify-between h-full relative min-h-header py-1.5">
+            {/* max-w-screen-xl (veya sizin 1250px'e denk gelen bir max-width sınıfı) içeriği ortalar ama kenarlara padding ana div'den gelir */}
+            {/* VEYA max-w-screen-xl mx-auto kullanmayıp direkt justify-between ile elemanları kenarlara yaslayabilirsiniz */}
+
+            {/* Mobil Menü Toggle */}
+            <div className="flex items-center lg:hidden"> {/* Mobil toggle için bir sarmalayıcı */}
+              <button
+                  id="mobileMenuToggle"
+                  data-dropdown-toggle="false"
+                  className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-2 -ml-2" // -ml-2 padding'i dengeler
+                  onClick={toggleMobileMenu}
+              >
+                  {isMobileMenuOpen ? <XMarkIcon className="h-7 w-7" /> : <Bars3Icon className="h-7 w-7" />}
+              </button>
+            </div>
+
+            {/* Logo (Mobil için ortada, Desktop için solda) */}
+            {/* Mobil'de logonun ortalanması için düzenleme */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none lg:mr-auto">
+                <Link href="/" className="flex items-center gap-2">
+                    <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={50} height={50} className="h-[45px] sm:h-[50px] w-auto" />
+                    <span className="site-name text-xl sm:text-2xl font-medium text-prestij-text-primary hidden sm:block">Prestij</span>
+                </Link>
+            </div>
+
+            {/* Desktop Navigasyon ve Arama */}
+            <div className="header-center hidden lg:flex items-center justify-center gap-6 mx-auto">
+                <nav className="main-navigation">
+                    <ul className="flex items-center gap-5">
+                        {navLinks.map((link) => (
+                            <li key={link.label}>
+                                {link.dropdownId ? (
+                                    <button
+                                        data-dropdown-type="nav"
+                                        data-dropdown-id={link.dropdownId!}
+                                        data-dropdown-toggle="true"
+                                        onClick={toggleDropdown(link.dropdownId!)}
+                                        onMouseDown={(e) => e.preventDefault()} // Basılı tutmayı engelle
+                                        className={`nav-link flex items-center gap-1.5 text-sm text-prestij-text-accent hover:text-prestij-purple transition-colors py-1.5 ${activeDropdown === link.dropdownId ? 'text-prestij-purple' : ''}`}
+                                    >
+                                        {link.label}
+                                        <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform duration-300 ${activeDropdown === link.dropdownId ? 'rotate-180' : ''}`} />
+                                    </button>
+                                ) : (
+                                    <Link href={link.href} className="nav-link text-sm text-prestij-text-accent hover:text-prestij-purple transition-colors py-1.5">
+                                        {link.label}
+                                    </Link>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+                <div className="search-area">
+                    <input
+                        type="text"
+                        placeholder="İçerik Ara..."
+                        className="search-input bg-prestij-bg-dark-4 text-prestij-text-dropdown border border-prestij-border-secondary rounded-md py-1.5 px-3 text-xs w-48 focus:border-prestij-purple focus:bg-prestij-bg-dark-1/[0.7] outline-none transition-colors placeholder-prestij-text-placeholder"
+                    />
+                </div>
+            </div>
+
+            {/* Kullanıcı Aksiyonları (Sağda) */}
+            <div className="user-actions flex items-center gap-3 sm:gap-4 lg:ml-auto">
+                {/* Mesajlar İkonu */}
+                {session?.user && ( // Sadece giriş yapmışsa göster
+                    <Link href="/mesajlar" className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-1.5 rounded-full hover:bg-prestij-purple/10">
+                        <ChatBubbleOvalLeftEllipsisIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    </Link>
+                )}
+                {/* Bildirim İkonu */}
+                <Link href="#" className="notification-bell text-prestij-text-accent hover:text-prestij-purple transition-colors p-1.5 rounded-full hover:bg-prestij-purple/10">
+                    <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                </Link>
+
+                {isLoadingSession ? (
+                    <div className="h-8 w-8 bg-prestij-bg-button/50 animate-pulse rounded-full"></div>
+                ) : session?.user ? (
+                    // Profil Avatarı ve Dropdown Tetiği
+                    <div className="relative">
+                        {/* Profil Dropdown container'ını güncelle */}
+<div className="relative">
+  <button
+    data-dropdown-type="profile"
+    onClick={toggleProfileDropdown}
+    className="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-prestij-bg-dark-1 focus:ring-prestij-purple"
+  >
+    <span className="sr-only">Kullanıcı menüsünü aç</span>
+    <Image
+      className="h-8 w-8 rounded-full object-cover"
+      src={userProfileImage}
+      alt="Profil Fotoğrafı"
+      width={32}
+      height={32}
+    />
+  </button>
+
+  {(isProfileDropdownOpen || isClosing) && (
+    <div
+                                ref={profileDropdownRef}
+                                className={`origin-top absolute mt-2 w-60 rounded-lg shadow-xl bg-prestij-dropdown-bg ring-1 ring-prestij-dropdown-border-alt focus:outline-none overflow-hidden
+                ${isClosing ? 'animate-dropdown-close' : 'animate-dropdown-open'}
+                right-0 lg:left-1/2 lg:transform lg:-translate-x-1/2 // Konumlandırma animasyondan sonra
+                `}
+                                role="menu"
+                                aria-orientation="vertical"
+                                aria-labelledby="user-menu-button"
+                                
+                            >
+      {/* Banner ve Profil Resmi Alanı */}
+<div className="relative h-28 bg-gray-700"> 
+    {/* Banner */}
+    <Image
+        src={userBannerImage}
+        alt="Banner"
+        layout="fill"
+        objectFit="cover"
+        priority
+    />
+    
+    {/* Ana karartma gradient'i */}
+    <div 
+        className="absolute inset-0" 
+        style={{
+            background: 'linear-gradient(to bottom,rgba(0, 0, 0, 0) 0%, rgba(13, 13, 13, 0.73) 60%, rgba(13,13,13,1) 100%)'
+        }}
+    />
+
+    {/* Ek yumuşak geçiş için üst gradient */}
+    <div 
+        className="absolute inset-0" 
+        style={{
+            background: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, transparent 40%)'
+        }}
+    />
+
+    {/* Profil resmi container'ı */}
+    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="relative w-16 h-16">
+                                            {/* Avatarın etrafına yumuşak bir glow/parlama için pseudo-element veya ek div kullanılabilir */}
+                                            {/* Örnek: Basit bir box-shadow ile glow */}
+                                            <div className="absolute inset-0 rounded-full opacity-0 group-hover/avatar:opacity-30 blur-md transition-opacity duration-300 animate-pulse-slow"></div>
+
+                                            <Image
+                                                className="h-16 w-16 rounded-full object-cover"
+                                                src={userProfileImage}
+                                                alt="Profil"
+                                                width={64}
+                                                height={64}
+                                                priority
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="pt-3 px-4 pb-2 text-center mt-0">
+                                    <p className="text-sm font-medium text-prestij-text-primary truncate">
+                                        {session?.user?.name || session?.user?.email}
+                                    </p>
+                                </div>
+
+                                {/* Kısa Ayırıcı Çizgi */}
+                                <div className="px-4 my-1">
+                                    <div className="h-px bg-prestij-divider-short"></div>
+                                </div>
+
+                                {/* Profil linki */}
+<Link
+    href={`/profil/${session.user.name || session.user.id}`}
+    className="flex items-center px-4 py-2.5 text-sm text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple text-left transition-colors rounded-md mx-2 w-[calc(100%-16px)]" // w-[calc(100%-16px)] ve mx-2 ekledik
+    role="menuitem"
+    onClick={() => setIsProfileDropdownOpen(false)}
+>
+    <ProfileIcon className="mr-3 h-5 w-5" aria-hidden="true" />
+    Profilim
+</Link>
+
+{/* Arkadaşlar linki */}
+<Link
+    href="/arkadaslar"
+    className="flex items-center px-4 py-2.5 text-sm text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple text-left transition-colors rounded-md mx-2 w-[calc(100%-16px)]"
+    role="menuitem"
+    onClick={() => setIsProfileDropdownOpen(false)}
+>
+    <UsersIcon className="mr-3 h-5 w-5" aria-hidden="true" />
+    Arkadaşlar
+</Link>
+
+{/* Çıkış Yap butonu */}
+<button
+    onClick={() => { signOut(); setIsProfileDropdownOpen(false); }}
+    className="flex items-center px-4 py-2.5 text-sm text-prestij-text-logout hover:bg-red-500/10 hover:text-red-400 text-left transition-colors rounded-md mx-2 mb-1 w-[calc(100%-16px)]"
+    role="menuitem"
+>
+    <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" aria-hidden="true" />
+    Çıkış Yap
+</button>
+                            </div>
+                        )}
+                </div>
+                </div>
+                ) : (
+                    <Link
+                        href="/giris"
+                        className="btn bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white text-xs sm:text-sm font-medium py-1.5 px-3 sm:px-4 rounded-md transition-colors whitespace-nowrap"
+                    >
+                        Giriş Yap
+                    </Link>
+                )}
+                <button className="btn hidden md:block bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white text-xs sm:text-sm font-medium py-1.5 px-3 sm:px-4 rounded-md transition-colors whitespace-nowrap">
+                    PrestiJ'i İndir
+                </button>
+            </div>
+          </div>
+      </div>
+
+      {/* Dropdown'lar */}
+      <div ref={dropdownContainerRef} className="relative"> {/* Dropdown'ların pozisyonu için relative */}
+        {['oyunlarDropdown', 'animelerDropdown'].map(dropdownId => (
+          <div
+              key={dropdownId}
+              id={dropdownId}
+              className={`header-dropdown absolute top-0 left-0 w-full bg-prestij-bg-dark-4 shadow-header-dropdown transition-all duration-300 ease-out ${activeDropdown === dropdownId ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2 pointer-events-none'}`}
+              // style={{top: headerRef.current ? headerRef.current.offsetHeight : '60px'}} // Dinamik top pozisyonu, eğer header yüksekliği değişebiliyorsa
+          >
+              {/* Dropdown içeriği container ile sarmalanabilir veya direkt tam genişlikte olabilir */}
+              <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8"> {/* Dropdown içeriği için padding */}
+                  <div className="flex flex-col sm:flex-row gap-6 sm:gap-10">
+                      {dropdownId === 'oyunlarDropdown' && (
+                          <>
+                              <div className="dropdown-column flex-1">
+                                  <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">OYUNLAR</h3>
+                                  <ul>
+                                      {oyunlarDropdownContent.main.map(item => (
+                                          <li key={item.label} className="mb-1.5">
+                                              <Link href={item.href} className="text-sm text-prestij-text-dropdown hover:text-prestij-purple transition-colors py-1 block">
+                                                  {item.label}
+                                              </Link>
+                                          </li>
+                                      ))}
+                                  </ul>
+                              </div>
+                              <div className="dropdown-column flex-1">
+                                  <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">FAVORİ OYUNLARIM</h3>
+                                  <ul>
+                                      {oyunlarDropdownContent.favorites.map((item: DropdownItem) => (
+                                          <li key={item.label} className="mb-1.5">
+                                              <Link href={item.href} className={`text-sm ${item.isAction ? 'italic text-prestij-text-muted hover:text-prestij-purple' : 'text-prestij-text-dropdown hover:text-prestij-purple'} transition-colors py-1 flex items-center gap-2`}>
+                                                  {item.icon && <Image src={item.icon} alt="" width={24} height={24} className="rounded" />}
+                                                  {item.label}
+                                              </Link>
+                                          </li>
+                                      ))}
+                                  </ul>
+                              </div>
+                          </>
+                      )}
+                      {dropdownId === 'animelerDropdown' && (
+                          <>
+                              <div className="dropdown-column flex-1">
+                                <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">ANİMELER</h3>
+                                <ul>
+                                  {(animelerDropdownContent.main as DropdownItem[]).map(item => (
+                                    <li key={item.label} className="mb-1.5">
+                                      <Link href={item.href} className="text-sm text-prestij-text-dropdown hover:text-prestij-purple transition-colors py-1 block">
+                                        {item.label}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div className="dropdown-column flex-1">
+                                <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">İZLEME LİSTEM</h3>
+                                <ul>
+                                  {(animelerDropdownContent.watchlist as DropdownItem[]).map(item => (
+                                    <li key={item.label} className="mb-1.5">
+                                      <Link href={item.href} className={`text-sm ${item.isAction ? 'italic text-prestij-text-muted hover:text-prestij-purple' : 'text-prestij-text-dropdown hover:text-prestij-purple'} transition-colors py-1 block`}>
+                                        {item.label}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                          </>
+                      )}
+                  </div>
+              </div>
+          </div>
+        ))}
+      </div>
+
+
+      {/* Mobil Yan Panel */}
+      <>
+            {(isMobileMenuOpen || activeDropdown) && (
+              <div
+                className="fixed inset-0 bg-black/50 z-[990] lg:hidden"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setActiveDropdown(null);
+                  setMobileSubMenu(null);
+                }}
+              />
+            )}
+
+            <div
+                id="mobileSidePanel"
+                ref={mobilePanelRef}
+                className={`mobile-side-panel fixed top-0 left-0 w-full max-w-xs sm:max-w-sm h-full bg-prestij-bg-dark-1 shadow-xl z-[1001] transition-transform duration-300 ease-in-out lg:hidden border-r border-prestij-border-primary flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            >
+                <div className="panel-header p-4 flex justify-end items-center border-b border-prestij-border-primary">
+                    <button onClick={toggleMobileMenu} className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-1">
+                        <XMarkIcon className="h-6 w-6" />
+                    </button>
+                </div>
+                <div className="panel-content p-4 flex-grow overflow-y-auto">
+                    <nav>
+                        <ul>
+                            {mobileSubMenu === null && mobileMenuData.main.map((item: MobileMenuItem) => (
+                                <li key={`mobile-main-${item.label}`} className="mb-0.5">
+                                    {item.action === 'link' ? (
+                                        <Link
+                                            href={item.href}
+                                            className="block w-full text-left py-3 px-3 text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple rounded-md transition-colors"
+                                            onClick={toggleMobileMenu}
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleMobileSubMenu(item.target)} // handleMobileSubMenu kullanıldı
+                                            className="w-full flex justify-between items-center py-3 px-3 text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple rounded-md transition-colors"
+                                        >
+                                            {item.label}
+                                            {item.iconRight}
+                                        </button>
+                                    )}
+                                </li>
+                            ))}
+
+                            {mobileSubMenu && (
+                                <>
+                                    <li>
+                                        <button
+                                            onClick={() => handleMobileSubMenu(null)} // Geri dön
+                                            className="w-full flex items-center gap-2 py-3 px-3 text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple rounded-md transition-colors font-medium mb-2"
+                                        >
+                                            <ChevronLeftIcon className="h-5 w-5 text-prestij-text-muted" />
+                                            Geri
+                                        </button>
+                                    </li>
+                                    {/* mobileMenuData'dan alt menü elemanlarını doğru şekilde almalıyız */}
+                                    {(mobileMenuData[mobileSubMenu as keyof typeof mobileMenuData] as DropdownItem[]).map((subItem: DropdownItem) => (
+                                        <li key={`mobile-sub-${subItem.label}`} className="mb-0.5">
+                                            <Link
+                                                href={subItem.href}
+                                                className={`block py-3 px-3 rounded-md transition-colors ${subItem.isAction ? 'text-prestij-purple italic font-medium' : 'text-prestij-text-secondary'} hover:bg-prestij-purple/10 hover:text-prestij-purple`}
+                                                onClick={toggleMobileMenu}
+                                            >
+                                                {subItem.label}
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </>
+                            )}
+                        </ul>
+                        {/* Giriş/Çıkış ve İndir Butonları */}
+                        {mobileSubMenu === null && (
+                            <div className="mt-6 pt-4 border-t border-prestij-border-primary space-y-2">
+                                 {isLoadingSession ? (
+                                    <div className="h-10 bg-prestij-bg-button/50 animate-pulse rounded-md mb-2"></div>
+                                 ) : session?.user ? (
+                                    <button
+                                        onClick={() => { signOut(); toggleMobileMenu(); }}
+                                        className="block w-full text-center py-2.5 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors font-medium"
+                                    >
+                                        Çıkış Yap
+                                    </button>
+                                 ) : (
+                                    <Link
+                                        href="/giris"
+                                        className="block w-full text-center py-2.5 px-4 bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white rounded-md transition-colors font-medium"
+                                        onClick={toggleMobileMenu}
+                                    >
+                                        Giriş Yap
+                                    </Link>
+                                 )}
+                                <Link
+                                    href="#" // İndirme linkini buraya ekleyin
+                                    className="block w-full text-center py-2.5 px-4 bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white rounded-md transition-colors font-medium"
+                                    onClick={toggleMobileMenu}
+                                >
+                                    PrestiJ'i İndir
+                                </Link>
+                            </div>
+                        )}
+                    </nav>
+                </div>
+            </div>
+        </>
+    </header>
+  );
+};
+
+export default Header;

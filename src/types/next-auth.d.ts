@@ -1,33 +1,26 @@
-// src/types/next-auth.d.ts
+// src/types/next-auth.d.ts (veya projenizdeki uygun yol)
 import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 import { JWT, DefaultJWT } from "next-auth/jwt";
 
-// JWT interface'ini genişletiyoruz
-// Token'ımıza eklediğimiz özel alanları (id, role) buraya ekliyoruz
-declare module "next-auth/jwt" {
-  interface JWT extends DefaultJWT {
-    id: string;
-    role: string;
-    // Başka özel alanlar eklersek buraya da ekleyeceğiz
-  }
-}
-
-// Session interface'ini genişletiyoruz
-// Session.user nesnesine eklediğimiz özel alanları buraya ekliyoruz
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: string;
-      // Varsayılan Session user tiplerini de korumak için ...DefaultSession["user"] kullanıyoruz
-    } & DefaultSession["user"]; // name, email, image alanlarını korur
+      role?: string | null; // Veya User modelinizdeki role tipine göre
+    } & DefaultSession["user"]; // name, email, image gibi varsayılanları koru
   }
 
-  // User interface'ini (authorize fonksiyonundan dönen) genişletiyoruz
-  // Bu, authorize fonksiyonunda role döndürdüğümüzde hata almamızı engeller
-  // ve JWT callback'indeki 'user' parametresine tip ekler.
+  // NextAuth User tipi, authorize'dan dönenle ve callbacks.jwt içindeki user ile eşleşmeli
   interface User extends DefaultUser {
-     role: string;
-     // id zaten DefaultUser içinde string olarak var, email ve name de öyle.
+    role?: string | null; // User modelinizdeki rolle eşleşmeli
+    // Eğer authorize'dan başka özel alanlar döndürüyorsanız, buraya da ekleyin
+  }
+}
+
+declare module "next-auth/jwt" {
+  // JWT token'ına eklediğimiz özel alanlar
+  interface JWT extends DefaultJWT {
+    id: string;
+    role?: string | null;
   }
 }

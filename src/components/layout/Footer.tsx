@@ -1,109 +1,131 @@
 // src/components/layout/Footer.tsx
-import Link from 'next/link';
+"use client";
+
 import Image from 'next/image';
-// İkonları react-icons'tan import etmeyi unutma (eğer yüklüyse)
-// import { FaFacebookF, FaTwitter, FaInstagram, FaTiktok, FaDiscord } from 'react-icons/fa';
+import Link from 'next/link';
 
-// react-icons yüklü değilse veya sorun çıkarıyorsa, şimdilik ikonları metin olarak yazabilirsin
-// ya da Heroicons'tan benzerlerini bulabilirsin.
+const Footer = () => {
+  const year = new Date().getFullYear(); // Dinamik yıl için
 
-export default function Footer() {
-  // Sosyal medya linkleri için sahte veri (gerçek linklerle değiştirilecek)
+  const gameLinks = [
+    { label: "Oyun 1", href: "#" }, { label: "Oyun 2", href: "#" },
+    { label: "Oyun 3", href: "#" }, { label: "Oyun 4", href: "#" },
+    { label: "Oyun 5", href: "#" },
+  ];
+  const animeLinks = [
+    { label: "Anime 1", href: "#" }, { label: "Anime 2", href: "#" },
+    { label: "Anime 3", href: "#" }, { label: "Anime 4", href: "#" },
+    { label: "Anime 5", href: "#" },
+  ];
+  const aboutLinks = [
+    { label: "Ekip Üyelerimiz", href: "#" },
+    { label: "Site Hakkında", href: "#" },
+  ];
   const socialLinks = [
-    { href: "#", label: "Facebook" /* icon: <FaFacebookF /> */ },
-    { href: "#", label: "Twitter" /* icon: <FaTwitter /> */ },
-    { href: "#", label: "Instagram" /* icon: <FaInstagram /> */ },
-    { href: "#", label: "TikTok" /* icon: <FaTiktok /> */ },
-    { href: "#", label: "Discord" /* icon: <FaDiscord /> */ },
+    { label: "Facebook", href: "#", iconClass: "fab fa-facebook-f" },
+    { label: "X (Twitter)", href: "#", iconClass: "fab fa-twitter" }, // veya fa-x-twitter
+    { label: "Instagram", href: "#", iconClass: "fab fa-instagram" },
+    { label: "TikTok", href: "#", iconClass: "fab fa-tiktok" },
+    { label: "Discord", href: "#", iconClass: "fab fa-discord" },
   ];
 
   return (
-    <footer id="mainFooter" className="bg-bg-primary-dark text-gray-400 pt-10 text-sm"> {/* Ana renkler config'den */}
-      {/* Footer Top Bar */}
-      <div className="footer-top-bar border-b border-gray-700/50 pb-6 mb-8">
-        <div className="container mx-auto px-4"> {/* px-4 eklendi container için */}
-          <h2 className="footer-main-title text-2xl font-semibold text-gray-100">PrestiJ STUDIO</h2>
+    <footer id="mainFooter" className="bg-footer-bg text-footer-text text-footer-base pt-10">
+      {/* Üst Bar */}
+      <div className="footer-top-bar border-b border-footer-border pb-6 mb-8">
+        <div className="container mx-auto px-4">
+          <h2 className="footer-main-title text-xl sm:text-2xl font-semibold text-footer-main-title-text">
+            PrestiJ STUDIO
+          </h2>
         </div>
       </div>
 
-      {/* Footer Content Container */}
-      <div className="container footer-content-container mx-auto px-4 flex flex-wrap justify-between gap-8 pb-10">
+      {/* Ana İçerik Alanı */}
+      <div className="container mx-auto footer-content-container px-4 flex flex-wrap justify-between gap-x-6 gap-y-8 pb-10">
         {/* Logo Sütunu */}
-        <div className="footer-logo-column shrink-0 w-full sm:w-auto mb-6 sm:mb-0">
-          {/* public klasöründe images/logo-placeholder.png olduğundan emin ol */}
-          <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={120} height={50} className="footer-logo-img h-auto" /> {/* height="auto" veya orjinal boyut */}
+        <div className="footer-logo-column flex-shrink-0 w-full sm:w-auto mb-6 sm:mb-0">
+          <Image 
+            src="/images/logo-placeholder.png" // public/images altında olmalı
+            alt="PrestiJ Logo" 
+            width={120} 
+            height={120} // Width ile aynı yapıp object-fit kullanabiliriz veya gerçek boyutları
+            className="footer-logo-img w-[120px] h-auto mx-auto sm:mx-0" 
+          />
         </div>
 
         {/* Link Sütunları */}
         <div className="footer-links-column flex-1 min-w-[150px] sm:min-w-[180px]">
-          <h4 className="footer-column-title text-base font-semibold text-white mb-4 uppercase tracking-wider">OYUNLAR</h4>
-          <ul>
-            {['Oyun 1', 'Oyun 2', 'Oyun 3', 'Oyun 4', 'Oyun 5'].map(game => (
-              <li key={game} className="mb-2">
-                <Link href="#" className="hover:text-text-brand-purple hover:underline">{game}</Link>
-              </li>
+          <h4 className="footer-column-title text-base font-semibold text-footer-column-title-text mb-4 uppercase tracking-wider">OYUNLAR</h4>
+          <ul className="space-y-2.5">
+            {gameLinks.map(link => (
+              <li key={link.label}><Link href={link.href} className="text-footer-link-text hover:text-footer-link-hover-text hover:underline transition-colors">{link.label}</Link></li>
             ))}
           </ul>
         </div>
 
         <div className="footer-links-column flex-1 min-w-[150px] sm:min-w-[180px]">
-          <h4 className="footer-column-title text-base font-semibold text-white mb-4 uppercase tracking-wider">ANİMELER</h4>
-          <ul>
-            {['Anime 1', 'Anime 2', 'Anime 3', 'Anime 4', 'Anime 5'].map(anime => (
-              <li key={anime} className="mb-2">
-                <Link href="#" className="hover:text-text-brand-purple hover:underline">{anime}</Link>
-              </li>
+          <h4 className="footer-column-title text-base font-semibold text-footer-column-title-text mb-4 uppercase tracking-wider">ANİMELER</h4>
+          <ul className="space-y-2.5">
+            {animeLinks.map(link => (
+              <li key={link.label}><Link href={link.href} className="text-footer-link-text hover:text-footer-link-hover-text hover:underline transition-colors">{link.label}</Link></li>
             ))}
           </ul>
         </div>
 
         <div className="footer-links-column flex-1 min-w-[150px] sm:min-w-[180px]">
-          <h4 className="footer-column-title text-base font-semibold text-white mb-4 uppercase tracking-wider">HAKKIMIZDA</h4>
-          <ul>
-            <li className="mb-2"><Link href="#" className="hover:text-text-brand-purple hover:underline">Ekip Üyelerimiz</Link></li>
-            <li className="mb-2"><Link href="#" className="hover:text-text-brand-purple hover:underline">Site Hakkında</Link></li>
+          <h4 className="footer-column-title text-base font-semibold text-footer-column-title-text mb-4 uppercase tracking-wider">HAKKIMIZDA</h4>
+          <ul className="space-y-2.5">
+            {aboutLinks.map(link => (
+              <li key={link.label}><Link href={link.href} className="text-footer-link-text hover:text-footer-link-hover-text hover:underline transition-colors">{link.label}</Link></li>
+            ))}
           </ul>
         </div>
 
         {/* İletişim Sütunu */}
-        <div className="footer-contact-column flex-1 min-w-[180px] sm:min-w-[220px]">
-          <h4 className="footer-column-title text-base font-semibold text-white mb-4 uppercase tracking-wider">İLETİŞİM</h4>
-          <p className="contact-label text-xs text-gray-500 mb-2 mt-0">Sosyal Medya</p>
-          <div className="social-icons-footer flex gap-3 mb-4">
-            {socialLinks.map(social => (
-              <Link key={social.label} href={social.href} aria-label={social.label} className="text-gray-400 hover:text-white hover:scale-110 transition-all text-xl">
-                {/* {social.icon || social.label} // İkon yoksa label yazsın */}
-                {social.label.substring(0,1)} {/* Şimdilik baş harfi */}
-              </Link>
-            ))}
+        <div className="footer-contact-column flex-1 min-w-[200px] sm:min-w-[220px]">
+          <h4 className="footer-column-title text-base font-semibold text-footer-column-title-text mb-4 uppercase tracking-wider">İLETİŞİM</h4>
+          <div>
+            <p className="contact-label text-footer-contact-label-text text-footer-contact-label-size mb-2">Sosyal Medya</p>
+            <div className="social-icons-footer flex items-center gap-3 mb-4">
+              {socialLinks.map(social => (
+                <Link key={social.label} href={social.href} aria-label={social.label} target="_blank" rel="noopener noreferrer"
+                   className="text-footer-social-icon hover:text-footer-social-icon-hover hover:scale-110 transition-all text-footer-social-icon-size">
+                  <i className={social.iconClass}></i>
+                </Link>
+              ))}
+            </div>
+            <p className="contact-label text-footer-contact-label-text text-footer-contact-label-size mb-1 mt-4">E-Mail</p>
+            <a href="mailto:test@prestudublaj.com" className="email-link text-footer-link-text hover:text-footer-link-hover-text hover:underline font-medium transition-colors break-all">
+              test@prestudublaj.com
+            </a>
           </div>
-          <p className="contact-label text-xs text-gray-500 mb-2">E-Mail</p>
-          <Link href="mailto:test@prestudublaj.com" className="email-link font-medium hover:text-text-brand-purple hover:underline">test@prestudublaj.com</Link>
         </div>
       </div>
 
-      {/* Footer Bottom Bar */}
-      <div className="footer-bottom-bar border-t border-gray-700/50 py-5 text-xs text-gray-500">
-        <div className="container footer-bottom-content mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
-          <div className="copyright-text-wrapper">
-            <p className="copyright-text">© {new Date().getFullYear()} PrestiJ Studio Tüm Hakları Saklıdır.</p>
+      {/* Alt Bar */}
+      <div className="footer-bottom-bar border-t border-footer-border py-5 text-footer-bottom-bar-text-size text-footer-bottom-bar-text">
+        <div className="container mx-auto footer-bottom-content px-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+          <div className="copyright-text-wrapper text-center sm:text-left">
+            <p className="copyright-text">© {year} PrestiJ Studio Tüm Hakları Saklıdır.</p>
           </div>
-          <div className="developer-credit">
+          <div className="developer-credit text-center">
             <p>
-              <Link href="CHIMIYA_LINKI_BURAYA" target="_blank" rel="noopener noreferrer" className="chimiya-link font-medium text-gray-400 hover:text-white hover:border-b hover:border-white transition-colors">
+              <Link href="#" target="_blank" rel="noopener noreferrer" className="chimiya-link text-footer-chimiya-link hover:text-footer-chimiya-link-hover hover:border-b hover:border-footer-chimiya-link-hover transition-colors">
                 Chimiya
               </Link> tarafından geliştirildi
             </p>
           </div>
-          <div className="footer-legal-nav-wrapper">
-            <nav className="footer-legal-nav flex gap-2 justify-center sm:justify-end">
-              <Link href="#" className="hover:text-gray-200 hover:underline">Kullanım Koşulları</Link>
-              <span className="hidden sm:inline">|</span>
-              <Link href="#" className="hover:text-gray-200 hover:underline">Güvenlik Politikası</Link>
+          <div className="footer-legal-nav-wrapper text-center sm:text-right">
+            <nav className="footer-legal-nav">
+              <Link href="#" className="hover:text-white hover:underline transition-colors">Kullanım Koşulları</Link>
+              <span className="mx-2">|</span>
+              <Link href="#" className="hover:text-white hover:underline transition-colors">Güvenlik Politikası</Link>
             </nav>
           </div>
         </div>
       </div>
     </footer>
   );
-}
+};
+
+export default Footer;

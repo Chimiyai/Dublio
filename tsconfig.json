@@ -1,45 +1,27 @@
 {
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ], // Tarayıcı ve modern JS özellikleri için kütüphaneler
-    "allowJs": true, // JS dosyalarının projeye dahil edilmesine izin ver
-    "skipLibCheck": true, // Bağımlılıkların (node_modules) tip kontrolünü atla (hızlandırır)
-    "strict": true, // Tüm katı tip kontrolü kurallarını etkinleştir (önerilir)
-    "noEmit": true, // TS'nin JS dosyaları üretmesini engelle (Next.js kendi yapar)
-    "esModuleInterop": true, // CommonJS ve ES modülleri arasında daha iyi uyum sağlar
-    "module": "esnext", // Modern ES modül sistemini kullan
-    "moduleResolution": "bundler", // Modül çözümleme stratejisi (Next.js için önerilen)
-    "resolveJsonModule": true, // JSON dosyalarını import etmeye izin ver
-    "isolatedModules": true, // Her dosyanın ayrı ayrı derlenebilir olmasını sağla
-    "jsx": "preserve", // JSX'i dönüştürme, Next.js'e bırak (React 17+ için)
-    "incremental": true, // Derlemeyi hızlandırmak için önceki derleme bilgilerini kullan
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
     "plugins": [
       {
-        "name": "next" // Next.js'e özel TypeScript eklentisi
+        "name": "next"
       }
     ],
-    // --- Bizim için en önemli kısım ---
-    "baseUrl": ".", // Kısayolların kök dizinden başlayacağını belirtir
     "paths": {
-      "@/*": [
-        "./src/*"
-      ] // '@/' kısayolunu './src/' klasörüne yönlendirir
+      "@/*": ["./src/*"]
     }
-    // ---------------------------------
-    ,
-    "target": "ES2017"
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/middleware.ts"
-  ], // Derleyiciye hangi dosyaları dahil edeceğini söyler
-  "exclude": [
-    "node_modules"
-  ] // Hangi dosyaların hariç tutulacağını söyler
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

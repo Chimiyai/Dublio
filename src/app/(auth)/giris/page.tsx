@@ -1,149 +1,186 @@
-'use client';
+// src/app/(auth)/giris/page.tsx
+"use client";
 
-import { useState, FormEvent, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react'; // useSession'ı import et
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { signIn, useSession } from 'next-auth/react'; // signIn ve useSession
+import { useRouter, useSearchParams } from 'next/navigation'; // Yönlendirme ve query params için
+// import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 export default function GirisPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, status } = useSession(); // Oturum durumunu al
-
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
-  const errorParam = searchParams.get('error');
+  const { data: session, status } = useSession();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Sayfa yüklendiğinde veya oturum durumu değiştiğinde çalışır
+  // Eğer kullanıcı zaten giriş yapmışsa ana sayfaya yönlendir
   useEffect(() => {
-    // Eğer kullanıcı zaten giriş yapmışsa ve bu sayfaya gelmişse
-    if (status === 'authenticated') {
-      console.log("Giriş sayfasında zaten giriş yapılmış, yönlendiriliyor:", callbackUrl);
-      router.replace(callbackUrl); // Ana sayfaya veya callbackUrl'e yönlendir
+    if (status === "authenticated") {
+      router.replace('/'); // Veya "/profil" veya istenen başka bir sayfa
     }
-  }, [status, router, callbackUrl]); // Bağımlılıkları ekle
+  }, [status, router]);
 
+  // Kayıt sonrası başarı mesajını göster
   useEffect(() => {
-    if (errorParam && status !== 'authenticated') { // Sadece giriş yapılmamışsa hatayı göster
-      switch (errorParam) {
-        case 'CredentialsSignin':
-          setError('E-posta veya şifre hatalı.');
-          break;
-        case 'Callback':
-           // Bu hata genellikle OAuth sağlayıcılarıyla ilgilidir veya middleware yanlış yönlendirdiğinde.
-           // Middleware callbackUrl'i düzgün ayarladığı için buraya düşmemeli.
-          setError('Giriş sırasında bir yönlendirme hatası oluştu. Lütfen tekrar deneyin.');
-          break;
-        default:
-          setError(`Bir hata oluştu. (${errorParam})`);
-      }
+    const kayitDurumu = searchParams.get('kayit');
+    if (kayitDurumu === 'basarili') {
+      setSuccessMessage('Kaydınız başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.');
+      // İsteğe bağlı: URL'den query param'ı temizle
+      // router.replace('/giris', { scroll: false });
     }
-  }, [errorParam, status]);
+    const nextAuthError = searchParams.get('error');
+    if (nextAuthError) {
+        // NextAuth'un redirect ile gönderdiği hataları yakala
+        // Örnek: CredentialsSignin, EmailSignin, vb.
+        // Bu hataları daha kullanıcı dostu mesajlara çevirebilirsiniz.
+        if (nextAuthError === "CredentialsSignin") {
+            setError("E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.");
+        } else {
+            setError("Giriş sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+        }
+    }
+
+  }, [searchParams, router]);
 
 
-  const handleSubmit = async (e: FormEvent) => {
-    // ... (handleSubmit içeriği aynı kalabilir) ...
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+    setSuccessMessage(null);
+    setIsLoading(true);
 
     try {
       const result = await signIn('credentials', {
-        redirect: false,
+        redirect: false, // Hata durumunda sayfada kalmak için false
         email: email,
         password: password,
       });
 
-      console.log('signIn sonucu:', result);
-
       if (result?.error) {
-        if (result.error === 'CredentialsSignin') {
-            setError('E-posta veya şifre hatalı.');
+        // Hata mesajını NextAuth'tan gelen `error` parametresine göre ayarla
+        if (result.error === "CredentialsSignin") {
+            setError("E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.");
         } else {
-           setError(`Giriş hatası: ${result.error}`);
+            setError(result.error || 'Giriş sırasında bir hata oluştu.');
         }
         setIsLoading(false);
-      } else if (result?.ok && !result?.error) {
-        console.log('Giriş başarılı, yönlendiriliyor:', callbackUrl);
-        // router.push(callbackUrl); // push yerine replace daha iyi olabilir
-        router.replace(callbackUrl); // Tarayıcı geçmişinde giriş sayfasını bırakmaz
-        router.refresh();
+      } else if (result?.ok) {
+        // Başarılı giriş, NextAuth zaten yönlendirme yapabilir (eğer callbackUrl varsa)
+        // Veya burada manuel yönlendirme yapabilirsiniz.
+        // `useEffect` içindeki status kontrolü de yönlendirmeyi yapacaktır.
+        router.push('/'); // Veya istediğiniz bir sayfa, örn: /profil
       } else {
-         setError('Giriş sırasında bilinmeyen bir hata oluştu.');
-         setIsLoading(false);
+        setError('Beklenmedik bir durum oluştu. Lütfen tekrar deneyin.');
+        setIsLoading(false);
       }
     } catch (err) {
-      console.error("signIn fonksiyonu hatası:", err);
-      setError('Giriş işlemi sırasında bir hata oluştu.');
+      console.error("Giriş hatası yakalandı:", err);
+      setError('Giriş sırasında bir hata oluştu. Lütfen tekrar deneyin.');
       setIsLoading(false);
     }
   };
 
-  // Eğer oturum yükleniyorsa veya zaten giriş yapılmışsa formu gösterme (isteğe bağlı)
-  if (status === 'loading' || status === 'authenticated') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-        <p className="text-gray-700 dark:text-gray-300">Yönlendiriliyor...</p>
-      </div>
-    );
+  if (status === "loading") {
+    return <div className="flex justify-center items-center min-h-screen">Yükleniyor...</div>;
   }
+  // Eğer zaten giriş yapılmışsa (useEffect yönlendirene kadar) bir şey gösterme veya null döndür
+  if (session) return null;
 
-  // Sadece giriş yapılmamışsa formu göster
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-      <div className="p-8 bg-white dark:bg-gray-800 shadow-md rounded-lg w-full max-w-md">
-        {/* ... (form içeriği aynı kalabilir) ... */}
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-100">Giriş Yap</h1>
-        <form onSubmit={handleSubmit}>
-          {error && <p className="mb-4 text-red-500 dark:text-red-400 text-sm text-center">{error}</p>}
-          <div className="mb-4">
-            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="email">
-              E-posta
-            </label>
+    <div className="w-full max-w-md p-8 space-y-6 bg-prestij-bg-dark-1 shadow-xl rounded-lg">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-prestij-text-primary">
+          Giriş Yap
+        </h1>
+        <p className="mt-2 text-prestij-text-muted">
+          Hesabınıza erişin.
+        </p>
+      </div>
+
+      {successMessage && (
+        <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-md mb-4">
+            <p className="text-sm text-green-400">{successMessage}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+            E-posta Adresi
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="appearance-none block w-full pl-3 pr-3 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+            placeholder="ornek@mail.com"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+            Şifre
+          </label>
+          <div className="relative">
             <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400"
-              id="email"
-              type="email"
-              placeholder="eposta@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" htmlFor="password">
-              Şifre
-            </label>
-            <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400"
               id="password"
-              type="password"
-              placeholder="********"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
+              className="appearance-none block w-full pl-3 pr-10 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+              placeholder="••••••••"
             />
-          </div>
-          <div className="flex items-center justify-between">
             <button
-              className={`bg-green-500 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              type="submit"
-              disabled={isLoading}
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-400 hover:text-prestij-purple"
             >
-              {isLoading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+              <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
             </button>
-            <Link href="/kayit" className="inline-block align-baseline font-bold text-sm text-blue-500 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
-              Hesabın yok mu? Kayıt Ol
-            </Link>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-md">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        <div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-prestij-purple hover:bg-prestij-purple-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-prestij-purple disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? (
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" /* ... */ ></svg>
+            ) : (
+              'Giriş Yap'
+            )}
+          </button>
+        </div>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-prestij-text-muted">
+        Hesabın yok mu?{' '}
+        <Link href="/kayit" className="font-medium text-prestij-purple hover:text-prestij-purple-light hover:underline">
+          Kayıt Ol
+        </Link>
+      </p>
     </div>
   );
 }

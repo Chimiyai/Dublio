@@ -1,34 +1,35 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import Providers from "@/components/Providers";
-import Navbar from "@/components/Navbar";
+import { Inter } from "next/font/google";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer"; // Footer'ı import et
-import { Toaster } from 'react-hot-toast';
-import Head from 'next/head';
+import Providers from "@/components/Providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Prestij Dublaj",
-  description: "Oyun ve anime dublajları - Prestij Ekibi",
+  title: "PrestiJ Studio",
+  description: "Gelişmiş Arayüz",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="tr" className="dark">
-      <Head>
+    <html lang="tr" className={inter.variable}>
+      <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossOrigin="anonymous" referrerPolicy="no-referrer" />
-      </Head>
-      <body className={`${inter.className} bg-bg-primary-dark text-gray-300`}> {/* Temel renkler */}
+      </head>
+      <body className="font-sans bg-prestij-bg-dark-2 text-prestij-text-secondary min-h-screen flex flex-col">
         <Providers>
-          <Toaster position="top-center" reverseOrder={false} />
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow pt-16 sm:pt-20">{children}</main> {/* Navbar yüksekliği kadar padding */}
-            <Footer /> {/* Footer burada */}
-          </div>
+          <Header />
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
         </Providers>
       </body>
     </html>
