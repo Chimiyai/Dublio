@@ -1,51 +1,104 @@
 // src/components/home/HeroSection.tsx
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import TopProjectCard from './TopProjectCard';
+import TopProjectCard from './TopProjectCard'; // TopProjectCardProps buradan geliyor
 import MainShowcase from './MainShowcase';
 import SideShowcaseItem from './SideShowcaseItem';
+import { formatDate } from '@/lib/utils'; // formatDate fonksiyonunu import et
 
-// Sahte Veriler (Lütfen kendi verilerinizi ve doğru 'image' yollarını kullanın)
-const topProjectsData = [
-  { id: 'tp1', type: 'Oyun', title: 'PROJE ÜST 1', date: 'GG/AA/YYYY', bannerUrl: '/images/banner-placeholder-1.jpg', coverUrl: '/images/cover-placeholder-1.jpg', slug: 'proje-ust-1' },
-  { id: 'tp2', type: 'Anime', title: 'PROJE ÜST 2', date: 'GG/AA/YYYY', bannerUrl: '/images/banner-placeholder-2.jpg', coverUrl: '/images/cover-placeholder-2.jpg', slug: 'proje-ust-2' },
-  { id: 'tp3', type: 'Oyun', title: 'PROJE ÜST 3', date: 'GG/AA/YYYY', bannerUrl: '/images/banner-placeholder-3.jpg', coverUrl: '/images/cover-placeholder-3.jpg', slug: 'proje-ust-3' },
-];
+const AUTO_SLIDE_DELAY = 5000;
 
-const sideListData = [
-  { index: 0, title: "Oyun A: Yeni Ufuklar", description: "Geniş bir dünyada geçen macera oyunu.", image: "/images/banner-placeholder-1.jpg", banner: "/images/side-banner-1.jpg", cover: "/images/cover-placeholder-1.jpg", type: "Oyun", detailsUrl: "#", cardTitle: "KART A" },
-  { index: 1, title: "Anime B: Yıldız Tozu", description: "Duygusal bir bilim kurgu animesi.", image: "/images/banner-placeholder-2.jpg", banner: "/images/side-banner-2.jpg", cover: "/images/cover-placeholder-2.jpg", type: "Anime", detailsUrl: "#", cardTitle: "KART B" },
-  { index: 2, title: "Oyun C: Son Direniş", description: "Aksiyon dolu bir hayatta kalma mücadelesi.", image: "/images/banner-placeholder-3.jpg", banner: "/images/side-banner-3.jpg", cover: "/images/cover-placeholder-3.jpg", type: "Oyun", detailsUrl: "#", cardTitle: "KART C" },
-  { index: 3, title: "Anime D: Kayıp Melodi", description: "Müzik ve gizem dolu bir hikaye.", image: "/images/main-hero-placeholder.jpg", banner: "/images/side-banner-1.jpg", cover: "/images/main-cover-placeholder.jpg", type: "Anime", detailsUrl: "#", cardTitle: "KART D" },
-];
+interface ApiBaseProject {
+  id: string | number;
+  slug: string;
+  title: string;
+  type: string;
+  bannerImagePublicId?: string | null;
+  coverImagePublicId?: string | null;
+  releaseDate?: string | Date | null; // Bu alan zaten vardı
+  description?: string | null;
+}
 
-const AUTO_SLIDE_DELAY = 5000; 
+async function fetchTopFavoriteProjects(): Promise<ApiBaseProject[]> {
+  try {
+    const res = await fetch('/api/projects/top-favorites');
+    if (!res.ok) { console.error("Top favoriler yüklenemedi"); return []; }
+    return await res.json();
+  } catch (e) { console.error("API Error fetchTopFavoriteProjects:", e); return []; }
+}
+
+async function fetchLatestProjectsForSideList(): Promise<ApiBaseProject[]> {
+  try {
+    const res = await fetch('/api/projects?limit=4&orderBy=createdAt');
+    if (!res.ok) { console.error("Yan liste projeleri yüklenemedi"); return []; }
+    return await res.json();
+  } catch (e) { console.error("API Error fetchLatestProjectsForSideList:", e); return []; }
+}
 
 const HeroSection = () => {
+  const [topProjects, setTopProjects] = useState<ApiBaseProject[]>([]);
+  const [sideListApiData, setSideListApiData] = useState<ApiBaseProject[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const autoSlideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const currentCardData = sideListData[currentIndex];
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      const [topData, sideData] = await Promise.all([
+        fetchTopFavoriteProjects(),
+        fetchLatestProjectsForSideList()
+      ]);
+      setTopProjects(topData);
+      setSideListApiData(sideData);
+      // console.log("HeroSection: sideListApiData loaded:", sideData);
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
+
+  const sideListData = sideListApiData.map((p, index) => ({
+    index: index,
+    id: p.id.toString(),
+    title: p.title,
+    description: p.description || "Bu proje için açıklama yakında eklenecektir.",
+    image: p.bannerImagePublicId,
+    banner: p.bannerImagePublicId,
+    cover: p.coverImagePublicId,
+    type: p.type.toLowerCase() === 'oyun' ? 'Oyun' : p.type.toLowerCase() === 'anime' ? 'Anime' : p.type,
+    detailsUrl: `/${p.type.toLowerCase() === 'oyun' ? 'oyunlar' : 'animeler'}/${p.slug}`,
+    cardTitle: p.title,
+    slug: p.slug,
+    releaseDate: p.releaseDate, // << Tarih bilgisini buraya ekliyoruz/teyit ediyoruz
+  }));
+
+  // sideListData.forEach((item, idx) => console.log(`HeroSection: sideListData[${idx}]:`, {id: item.id, title: item.title, releaseDate: item.releaseDate }));
+
+  const currentCardData = sideListData.length > 0 ? sideListData[currentIndex] : null;
+  // console.log("HeroSection: currentCardData updated.", { id: currentCardData?.id, currentIndex: currentIndex, title: currentCardData?.title, releaseDate: currentCardData?.releaseDate });
+
 
   const changeShowcaseItem = useCallback((newIndex: number) => {
-    if (newIndex === currentIndex || newIndex < 0 || newIndex >= sideListData.length) {
+    // console.log("HeroSection: changeShowcaseItem called with newIndex:", newIndex, "Current currentIndex:", currentIndex);
+    if (newIndex < 0 || newIndex >= sideListData.length) return;
+    if (newIndex === currentIndex && sideListData.length > 1) {
         if (autoSlideTimerRef.current) clearTimeout(autoSlideTimerRef.current);
-        if (sideListData.length > 1) {
-            autoSlideTimerRef.current = setTimeout(() => {
-                const nextAutoIndex = (newIndex + 1) % sideListData.length;
-                changeShowcaseItem(nextAutoIndex);
-            }, AUTO_SLIDE_DELAY);
-        }
+        autoSlideTimerRef.current = setTimeout(() => {
+            const nextAutoIndex = (newIndex + 1) % sideListData.length;
+            changeShowcaseItem(nextAutoIndex);
+        }, AUTO_SLIDE_DELAY);
         return;
     }
     setCurrentIndex(newIndex);
   }, [currentIndex, sideListData.length]);
 
-
   useEffect(() => {
-    if (sideListData.length <= 1) return;
+    if (sideListData.length <= 1) {
+        if (autoSlideTimerRef.current) clearTimeout(autoSlideTimerRef.current);
+        return;
+    }
     if (autoSlideTimerRef.current) clearTimeout(autoSlideTimerRef.current);
-    
+
     autoSlideTimerRef.current = setTimeout(() => {
       const nextIndex = (currentIndex + 1) % sideListData.length;
       changeShowcaseItem(nextIndex);
@@ -56,53 +109,88 @@ const HeroSection = () => {
     };
   }, [currentIndex, changeShowcaseItem, sideListData.length]);
 
+
   const handleSideItemClick = (index: number) => {
+    // console.log("HeroSection: handleSideItemClick called with index:", index);
     changeShowcaseItem(index);
   };
 
-  if (!currentCardData) { // Veri yüklenirken veya boşsa bir fallback
-    return <div className="container mx-auto min-h-[500px] flex justify-center items-center"><p>Yükleniyor...</p></div>;
+  if (isLoading) {
+    return (
+      <section className="hero-section bg-prestij-bg-dark-3 py-8 mb-12">
+        <div className="container mx-auto px-4 min-h-[600px] flex justify-center items-center">
+            <p className="text-prestij-text-dark">Hero Alanı Yükleniyor...</p>
+        </div>
+      </section>
+    );
   }
 
   return (
-    <section className="hero-section bg-hero-bg py-8 mb-12 overflow-hidden">
-      <div className="container mx-auto">
-        <div className="top-projects-row flex flex-col md:flex-row justify-between gap-5 mb-8">
-          {topProjectsData.map((project) => ( <TopProjectCard key={project.id} type={project.type as 'Oyun' | 'Anime'} title={project.title} date={project.date} bannerUrl={project.bannerUrl} coverUrl={project.coverUrl} slug={project.slug}/>))}
-        </div>
-        <div className="main-hero-content flex flex-col lg:flex-row gap-5 items-stretch relative 
-     min-h-[300px] // Mobil için daha küçük minimum yükseklik
-     sm:min-h-[400px] 
-     md:min-h-[380px] 
-     lg:min-h-[480px] 
-     xl:min-h-[500px]
-     w-full // Tam genişlik
-">
-          <div className="relative flex-grow lg:min-w-0">
-            <MainShowcase
-              key={`${currentCardData.index}-${currentCardData.title}`} 
-              category={currentCardData.type as 'Oyun' | 'Anime' | 'Öne Çıkan'}
-              title={currentCardData.title}
-              description={currentCardData.description}
-              imageUrl={currentCardData.image}
-              coverUrl={currentCardData.cover}
-              detailsUrl={currentCardData.detailsUrl}
-            />
-          </div>
-          <aside className="hero-side-list w-full lg:w-[280px] lg:flex-shrink-0 flex flex-col gap-2.5">
-            {sideListData.map((item, index) => (
-              <SideShowcaseItem
-                key={item.index}
-                cardTitle={item.cardTitle}
-                type={item.type as 'Oyun' | 'Anime'}
-                coverUrl={item.cover}
-                bannerUrl={item.banner}
-                isActive={index === currentIndex}
-                onClick={() => handleSideItemClick(index)}
+    <section className="hero-section bg-prestij-bg-dark-3 py-8 overflow-hidden">
+      <div className="container mx-auto px-4">
+      {topProjects.length > 0 && (
+          <div className="top-projects-row flex flex-col md:flex-row justify-center md:justify-between gap-5 mb-8">
+          {topProjects.map((project) => {
+            const projectType = project.type.toLowerCase() === 'oyun' ? 'Oyun' : project.type.toLowerCase() === 'anime' ? 'Anime' : project.type;
+            return (
+              <TopProjectCard
+                  key={project.id.toString()}
+                  type={projectType as 'Oyun' | 'Anime'}
+                  title={project.title}
+                  description={project.description}
+                  date={project.releaseDate} // TopProjectCard'a da Date objesi veya string olarak geçebiliriz
+                  bannerUrl={project.bannerImagePublicId}
+                  coverUrl={project.coverImagePublicId}
+                  slug={project.slug}
               />
-            ))}
-          </aside>
+            );
+          })}
+          </div>
+      )}
+      {!isLoading && topProjects.length === 0 && sideListData.length === 0 && (
+        <div className="min-h-[100px] flex justify-center items-center mb-8">
+            <p className="text-prestij-text-dark">Şu anda öne çıkan proje bulunmuyor.</p>
         </div>
+      )}
+
+        {currentCardData ? (
+            (() => {
+                // console.log(`%cHeroSection RENDERING MainShowcase with showcaseKey: ${currentCardData.id.toString()}`, "color: purple; font-weight: bold;");
+                return (
+                    <div className="hero-section-container flex flex-col lg:flex-row gap-3">
+                      <div className="hero-main flex-grow">
+                        <MainShowcase
+                            showcaseKey={currentCardData.id.toString()}
+                            category={currentCardData.type}
+                            title={currentCardData.title}
+                            description={currentCardData.description || ""}
+                            imageUrl={currentCardData.image}
+                            coverUrl={currentCardData.cover}
+                            detailsUrl={currentCardData.detailsUrl || '#'}
+                            releaseDate={currentCardData.releaseDate} // << Tarihi MainShowcase'e prop olarak geçiyoruz
+                        />
+                      </div>
+                      
+                      <div className="hero-side-list flex flex-col gap-2 lg:w-[300px]">
+                        {sideListData.map((item, index) => (
+                            <SideShowcaseItem
+                                key={item.id}
+                                cardTitle={item.cardTitle || item.title}
+                                type={item.type}
+                                coverUrl={item.cover}
+                                bannerUrl={item.banner}
+                                isActive={index === currentIndex}
+                                onClick={() => handleSideItemClick(index)}
+                                // SideShowcaseItem'a tarih eklemek isterseniz item.releaseDate'i de prop olarak geçebilirsiniz.
+                            />
+                        ))}
+                      </div>
+                    </div>
+                );
+            })()
+        ) : (
+            !isLoading && <div className="min-h-[400px] flex justify-center items-center"><p className="text-prestij-text-dark">Gösterilecek ana içerik bulunamadı.</p></div>
+        )}
       </div>
     </section>
   );

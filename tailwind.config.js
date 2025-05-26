@@ -27,42 +27,57 @@ module.exports = {
     },
     extend: {
       colors: {
+        'site-bg-main': '#050409',
         'prestij-purple': '#8B4EFF',
         'prestij-purple-light': '#A47EFF',
         'prestij-purple-darker': '#7A3EFF',
-        'prestij-bg-dark-1': '#0C0E0F',     // Ana Header BG, Footer BG
-        'prestij-bg-dark-2': '#101014',     // Ana Sayfa Body BG
-        'prestij-bg-dark-3': '#1A1A1D',     // Arama kutusu, Header dropdown BG
-        'prestij-bg-dark-4': '#202024',     // Arama kutusu focus BG
-        'prestij-bg-button': '#231B36',     // Login/Download buton BG
+        'prestij-bg-dark-1': '#0C0E0F',
+        'prestij-bg-dark-2': '#101014',
+        'prestij-bg-dark-3': '#08060D',
+        'prestij-bg-dark-4': '#202024',
+        'prestij-bg-button': '#231B36',
+        'prestij-bg-card-1': '#100C1C',
+        'prestij-bg-card-2': '#100C1C',
 
-        'prestij-text-primary': '#E0E0E0',    // Site adı, önemli başlıklar
-        'prestij-text-secondary': '#D1D1D1',  // Buton yazıları
-        'prestij-text-accent': '#B0B0B0',     // Nav linkleri, bildirim ikonu
-        'prestij-text-dropdown': '#C0C0C0',   // Dropdown linkleri, arama input yazısı
-        'prestij-text-placeholder': '#777777',// Input placeholder
-        'prestij-text-muted': '#888888',      // Dropdown title'ları için (hafif soluk)
-        'prestij-text-link-special': '#5c5c5c', // Dropdown "Oyun ekle" linki
+        'prestij-text-primary': '#E0E0E0',
+        'prestij-text-secondary': '#D1D1D1',
+        'prestij-text-accent': '#B0B0B0',
+        'prestij-text-dropdown': '#C0C0C0',
+        'prestij-text-placeholder': '#777777',
+        'prestij-text-muted': '#A0A8B8',
+        'prestij-text-link-special': '#5c5c5c',
+        'prestij-text-online': '#2ECC71',
+        'prestij-text-offline': '#95A5A6',
+        'prestij-text-logout': '#E74C3C',
 
-        'prestij-border-primary': '#1f1f23',  // Header alt çizgisi, mobil panel çizgileri
-        'prestij-border-input-focus': '#8B4EFF', // Arama kutusu focus border
-        // Hero Section için Yeni Renkler
-        'hero-bg': '#08060D', // .hero-section background
-        'hero-top-card-bg': '#100C1C', // .top-project-item background
-        'hero-top-card-banner-bg': '#050308', // .top-project-banner background
-        'hero-top-card-text': '#E8E6F0', // .top-project-item .project-title
-        'hero-top-card-date-text': '#B0A8CC', // .top-project-item .project-date
-        'hero-main-showcase-bg': '#050308', // .hero-main-showcase background
-        'hero-info-category-bg': 'rgba(139, 78, 255, 0.8)', // .info-category background
-        'hero-btn-play-bg-hover': '#7A3EFF', // .btn-play-now:hover
+        'prestij-border-primary': '#1f1f23',
+        'prestij-border-input-focus': '#8B4EFF',
+        'prestij-border-secondary': '#28282C',
+        'prestij-dropdown-border-alt': '#3E266E',
+        'prestij-dropdown-border': '#31323B',
+        'prestij-divider-short': '#141414',
+        'prestij-dropdown-bg': '#0D0D0D',
+        'prestij-type-anime': '#E76F51',
+
+        // Hero Section renkleri
+        'hero-bg': '#08060D',
+        'hero-top-card-bg': '#100C1C',
+        'hero-top-card-banner-bg': '#050308',
+        'hero-top-card-text': '#E8E6F0',
+        'hero-top-card-date-text': '#B0A8CC',
+        'hero-main-showcase-bg': '#050308',
+        'hero-info-category-bg': 'rgba(139, 78, 255, 0.8)',
+        'hero-btn-play-bg-hover': '#7A3EFF',
         'hero-btn-details-bg': 'rgba(255,255,255,0.15)',
         'hero-btn-details-bg-hover': 'rgba(255,255,255,0.25)',
         'hero-btn-details-border': 'rgba(255,255,255,0.2)',
-        'hero-side-list-item-bg': '#100C1C', // .side-list-item-link background
+        'hero-side-list-item-bg': '#100C1C',
         'hero-side-list-item-bg-hover': '#140F22',
         'hero-side-list-item-active-bg': '#181428',
         'hero-side-list-item-text': '#D0C9E8',
+
         // Tür etiketleri için (orijinal CSS'den)
+        'prestij-type-game-popular': '#2A9D8F',
         'project-type-oyun': '#2A9D8F',
         'project-type-anime': '#E76F51',
         'slider-card-bg': '#100C1C', // .slider-card background (hero-top-card-bg ile aynı görünüyor)
@@ -148,10 +163,6 @@ module.exports = {
     'footer-bottom-bar-text': '#808898', // (footer-contact-label-text ile aynı)
     'footer-chimiya-link': '#A0A8B8',
     'footer-chimiya-link-hover': '#FFFFFF',
-    'prestij-purple': '#8B4EFF',
-'prestij-purple-darker': '#7A3EFF', // Hover için
-'prestij-bg-dark-1': '#0C0E0F', // focus:ring-offset- için
-'prestij-bg-dark-3': '#1A1A1D', // Input arka planı için
 'prestij-border-secondary': '#28282C', // Input border
 'prestij-text-online': '#2ECC71', // Örnek bir yeşil (Çevrim içi için)
     'prestij-text-offline': '#95A5A6', // Örnek bir gri (Çevrim dışı için)
@@ -160,9 +171,54 @@ module.exports = {
     'prestij-dropdown-bg': '#0D0D0D',      // Yeni arka plan rengi
     'prestij-divider-short': '#141414',     // Yeni kısa çizgi rengi
     'prestij-dropdown-border': '#31323B', // Dropdown ayraç çizgisi
+    'site-bg-main': '#050409', // YENİ ANA ARKA PLAN RENGİ
+        
+        // MainShowcase için (orijinal CSS'e göre tahmin)
+        'hero-main-visual-overlay': 'linear-gradient(to top, rgba(12, 14, 15, 0.95) 0%, rgba(12, 14, 15, 0.5) 40%, transparent 70%)', // Bunu doğrudan class ile uygulamak zor, inline style veya custom utility gerekebilir. Şimdilik basit bir karartı yapacağız.
+        'hero-info-category-bg': 'rgba(139, 78, 255, 0.8)', // Veya prestij-purple/80
+
+        // SideShowcaseItem için (orijinal CSS'e göre tahmin)
+        'hero-side-list-fade': 'linear-gradient(to left, rgba(16, 12, 28, 0) 5%, rgba(16, 12, 28, 0.4) 35%, #100C1C 85%)', // Direkt class ile zor, inline style veya custom utility
+        'hero-main-showcase-bg': '#050308', // Ana büyük kartın arka planı
+  'hero-category-tag-bg': 'rgba(139, 78, 255, 0.8)', // Veya prestij-purple/80
+  'hero-btn-play-bg': '#8B4EFF', // prestij-purple
+
+  'hero-side-list-item-active-shadow': '0 0 0 2.5px #8B4EFF, 0 8px 25px rgba(139, 78, 255, 0.4)', // Özel shadow
+
+          'prestij-type-game': '#2A9D8F', // Örnek
+          'prestij-bg-dark-section': '#101014',
+
+          'prestij-header-bg': '#1A1625', // Header arkaplanı
+        'prestij-text-logo': '#E0E0E0',
+        'prestij-icon-nav': '#A0AEC0',
+        'prestij-icon-nav-hover-bg': '#2D3748',
+        'prestij-bg-dark-2': '#100C1C', // SearchOverlay arkaplanı
+        'prestij-border-soft': '#2A253C', // SearchOverlay border
+        'prestij-text-primary': '#F7FAFC', // Genel ana metin (açık)
+        'prestij-text-muted': '#A0AEC0',
+        'prestij-text-bright': '#FFFFFF',
+        'prestij-bg-light-interactive': '#2D3748', // Buton hover arkaplanı
+        'prestij-bg-input': '#161320', // Arama input arkaplanı
+        'prestij-border-input': '#3A3F4B',
+        'prestij-text-input': '#E0E0E0',
+        'prestij-text-placeholder': '#718096',
+        'profile-page-bg': '#101014',
+        'profile-banner-gradient-start': '#101014', // Gradyan başlangıç (arka planla aynı)
+        'profile-hr-color': '#252525',
       },
       fontFamily: {
         sans: ['Inter', 'var(--font-inter)', 'sans-serif'],
+      },
+      transitionTimingFunction: {
+        'hero-visual-ease': 'cubic-bezier(0.25, 0.1, 0.25, 1)', // Banner için
+        'hero-info-ease': 'ease-in-out', // Bilgi alanı için
+        'hero-cover-ease': 'ease-in-out', // Kapak için
+      },
+      transitionDuration: {
+        '250': '250ms',
+        '400': '400ms', // Kapak animasyonu için
+        '500': '500ms', // Bilgi ve görsel fade out/in için
+        '800': '800ms', // Banner scale animasyonu için
       },
       fontSize: { // Orijinal CSS'deki bazı özel font boyutları için
         '2xs': '0.65rem', // Örnek: .side-item-type
@@ -203,6 +259,10 @@ module.exports = {
       
         'stats-icon-glow-main': '0 0 25px 10px rgb(255, 255, 255)',
         'discord-banner-hover': '0 5px 20px rgba(0,0,0,0.2), 0 0 25px rgba(139, 78, 255, 0.3)',
+        'profile-image-glow': '0 0 15px 2px rgba(255, 255, 255, 0.5)',
+        'profile-image-glow': '0 0 15px 3px rgba(255, 255, 255, 0.35)', // Biraz daha belirgin bir glow
+        'profile-image-backdrop-glow': '0 0 20px 5px rgba(255, 255, 255, 0.2)', // Arka plan resminin glow'u
+        'profile-image-glow-white': '0 0 15px 4px rgba(255, 255, 255, 0.4)', // Beyaz glow
       },
       keyframes: { // Özel animasyonlar için
     noticeableWobble: { // .animated-icon için
@@ -219,8 +279,45 @@ module.exports = {
         'dropdown-close': {
         '0%': { opacity: '1', marginTop: '10px'},
         '100%': { opacity: '0', marginTop: '0px'},
-      }
+      },
+      fadeIn: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+  fadeOut: {
+    '0%': { opacity: '1' },
+    '100%': { opacity: '0' },
   },
+  slideInFromRight: { // Sağdaki kartlardan gelme efekti için (basit)
+    '0%': { opacity: '0', transform: 'translateX(50px)' },
+    '100%': { opacity: '1', transform: 'translateX(0)' },
+  },
+  slideOutToLeft: {
+    '0%': { opacity: '1', transform: 'translateX(0)' },
+    '100%': { opacity: '0', transform: 'translateX(-50px)' },
+  },
+  // MainShowcase içindeki elemanların animasyonları için
+  mainShowcaseBgIn: {
+    '0%': { opacity: '0', transform: 'scale(1.05)' },
+    '100%': { opacity: '1', transform: 'scale(1)' },
+  },
+  mainShowcaseBgOut: { // Gerekirse
+    '0%': { opacity: '1', transform: 'scale(1)' },
+    '100%': { opacity: '0', transform: 'scale(1.1)' },
+  },
+  mainShowcaseCoverIn: {
+    '0%': { opacity: '0', transform: 'scale(0.9)' },
+    '100%': { opacity: '1', transform: 'scale(1)' },
+  },
+  mainShowcaseTextIn: {
+    '0%': { opacity: '0', transform: 'translateY(20px)' },
+    '100%': { opacity: '1', transform: 'translateY(0)' },
+  }
+  },
+  blur: { // Özel blur değerleri ekleyebiliriz
+        'xs': '2px',
+        'xxs': '1px',
+      },
       animation: {
     'wobble-noticeable': 'noticeableWobble 3s ease-in-out infinite alternate',
     // Farklı süre ve gecikmeler için ayrı class'lar veya inline style kullanılabilir
@@ -230,6 +327,15 @@ module.exports = {
     'wobble-4': 'noticeableWobble 3.9s ease-in-out 0.2s infinite alternate',
     'dropdown-open': 'dropdown-open 0.2s ease-out forwards',
       'dropdown-close': 'dropdown-close 0.2s ease-in forwards',
+
+      fadeIn: 'fadeIn 0.5s ease-out forwards',
+  fadeOut: 'fadeOut 0.3s ease-in forwards',
+  slideInFromRight: 'slideInFromRight 0.5s ease-out forwards',
+  slideOutToLeft: 'slideOutToLeft 0.3s ease-in forwards',
+  mainShowcaseBgIn: 'mainShowcaseBgIn 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards',
+  mainShowcaseCoverIn: 'mainShowcaseCoverIn 0.4s ease-in-out 0.1s forwards', // 0.1s delay
+  mainShowcaseTextIn: 'mainShowcaseTextIn 0.5s ease-in-out 0.2s forwards', // 0.2s delay
+  'fade-in': 'fadeIn 0.3s ease-out forwards',
   },
       transitionProperty: { // Daha fazla transition özelliği eklenebilir
         'height': 'height',
@@ -239,11 +345,24 @@ module.exports = {
     // ... (mevcut textShadow'larınız) ...
     'suggest-title': '2px 3px 10px rgba(0,0,0,0.5)', // .suggest-main-title-right için
     'discord-title': '0 0 8px rgba(220, 200, 255, 0.3)',
+    'sm': '1px 1px 2px rgba(0,0,0,0.6)',
+        'xs': '1px 1px 1px rgba(0,0,0,0.5)',
   },
       spacing: {
-    // ... (mevcut spacing'leriniz) ...
+    '1/2-screen': '50vh',
+        '60vh': '60vh',
+        '70vh': '70vh',
     'section-padding-y-feather': '250px', // .suggest-game-section.feather-video-layout padding
   },
+  grayscale: { // Siyah beyaz efekti için
+        '50': '50%',
+        '80': '80%',
+        '100': '100%',
+      },
+      borderRadius: { // Özel border-radius değerleri
+        'xl-2': '1rem', // 16px
+        'xl-3': '1.5rem', // 24px
+      },
 
     },
     aspectRatio: { // @tailwindcss/aspect-ratio plugin'i için
@@ -258,11 +377,14 @@ module.exports = {
         'hero-side-list-fade': 'linear-gradient(to left, rgba(16, 12, 28, 0) 5%, rgba(16, 12, 28, 0.4) 35%, #100C1C 85%)', // #100C1C = hero-side-list-item-bg
         'slider-card-banner-fade': 'linear-gradient(to bottom, rgba(16, 12, 28, 0.7) 0%, rgba(16, 12, 28, 0.3) 50%, transparent 100%)', // .banner-top-to-bottom-fade
         'slider-card-content-overlay': 'linear-gradient(to top, rgb(0, 0, 0) 0%, transparent 100%)', // .slider-card::after (hover'da gelen karartı)
+        'gradient-radial': 'radial-gradient(ellipse at center, var(--tw-gradient-stops))',
+        'radial-gradient-purple': 'radial-gradient(ellipse at center, rgba(139, 78, 255, 0.15) 0%, transparent 60%)',
       }
   },
   plugins: [
-    // require('@tailwindcss/typography'),
+    require('@tailwindcss/typography'),
     require('@tailwindcss/aspect-ratio'), // Eğer banner'larda kullanacaksak
-    // require('tailwindcss-textshadow'), // Kullanıyorsanız
+    require('tailwindcss-textshadow'), // Kullanıyorsanız
+    require('@tailwindcss/line-clamp'),
   ],
 };

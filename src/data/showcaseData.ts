@@ -1,20 +1,29 @@
-// Örnek sahte veri (örn: src/data/showcaseData.ts)
-export const dubbedGamesDataSample = [
-  { slug: 'cyberhero-2088', title: 'CyberHero 2088', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-1.jpg', bannerImageUrl: '/images/game-banner-1.jpg', description: 'Türkçe dublajlı bir siberpunk macerası.' },
-  { slug: 'strateji-kralligi', title: 'Strateji Krallığı', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-3.jpg', bannerImageUrl: '/images/game-banner-3.jpg', description: 'İmparatorluğunu kur ve yönet.' },
-  { slug: 'pixel-macera', title: 'Pixel Macera', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-4.jpg', bannerImageUrl: '/images/game-banner-4.jpg', description: 'Renkli piksellerle dolu bir dünya.' },
-  // ... (en az 10-15 tane ekleyin ki slider düzgün görünsün) ...
-  { slug: 'oyun-x', title: 'Oyun X', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-2.jpg', bannerImageUrl: '/images/game-banner-2.jpg', description: 'Gizemli bir oyun.' },
-  { slug: 'oyun-y', title: 'Oyun Y', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-5.jpg', bannerImageUrl: '/images/game-banner-5.jpg', description: 'Aksiyon dolu anlar.' },
-  { slug: 'oyun-z', title: 'Oyun Z', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-1.jpg', bannerImageUrl: '/images/game-banner-1.jpg', description: 'Yeni bir deneyim.' },
-  { slug: 'oyun-w', title: 'Oyun W', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-3.jpg', bannerImageUrl: '/images/game-banner-3.jpg', description: 'Stratejini konuştur.' },
-  { slug: 'oyun-q', title: 'Oyun Q', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-4.jpg', bannerImageUrl: '/images/game-banner-4.jpg', description: 'Eğlenceli ve bağımlılık yapıcı.' },
-  { slug: 'oyun-r', title: 'Oyun R', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-2.jpg', bannerImageUrl: '/images/game-banner-2.jpg', description: 'Keşfedilmeyi bekliyor.' },
-  { slug: 'oyun-s', title: 'Oyun S', type: 'Oyun' as 'Oyun' | 'Anime', coverImageUrl: '/images/game-cover-5.jpg', bannerImageUrl: '/images/game-banner-5.jpg', description: 'Efsane geri döndü.' },
+// src/data/showcaseData.ts (GÜNCELLENMİŞ)
+import type { ShowcaseCardData, CategoryInfo } from '@/types/showcase'; // Merkezi tipleri import et
+
+// Örnek kategoriler (bu veriyi API'den de alabilirsiniz veya sabit tutabilirsiniz)
+const sampleCategories: CategoryInfo[] = [
+  { id: 1, name: 'Aksiyon', slug: 'aksiyon' },
+  { id: 2, name: 'Macera', slug: 'macera' },
+  { id: 3, name: 'Fantastik', slug: 'fantastik' },
 ];
 
-export const dubbedAnimeDataSample = [
-  { slug: 'buyulu-kilic', title: 'Büyülü Kılıç Destanı', type: 'Anime' as 'Oyun' | 'Anime', coverImageUrl: '/images/anime-cover-1.jpg', bannerImageUrl: '/images/anime-banner-1.jpg', description: 'Kadim bir kehanetin peşinde.' },
-  { slug: 'robot-isyani', title: 'Robotların İsyanı', type: 'Anime' as 'Oyun' | 'Anime', coverImageUrl: '/images/anime-cover-2.jpg', bannerImageUrl: '/images/anime-banner-2.jpg', description: 'Gelecekte yapay zeka tehlikesi.' },
-  // ... (en az 10-15 tane ekleyin) ...
+export const dubbedAnimeDataSample: ShowcaseCardData[] = [ // Tipi ShowcaseCardData[] yapın
+  {
+    slug: 'anime-1',
+    title: 'Anime Başlık 1',
+    categories: [sampleCategories[0], sampleCategories[1]], // Örnek kategoriler atandı
+    coverImageUrl: '/images/placeholder-cover.jpg', // Veya Cloudinary ID
+    bannerImageUrl: '/images/placeholder-banner.jpg', // Veya Cloudinary ID
+    description: 'Bu birinci animenin açıklamasıdır.'
+  },
+  {
+    slug: 'anime-2',
+    title: 'Anime Başlık 2',
+    categories: [sampleCategories[2]], // Örnek kategori
+    coverImageUrl: '/images/placeholder-cover.jpg',
+    bannerImageUrl: '/images/placeholder-banner.jpg',
+    description: 'Bu ikinci animenin açıklamasıdır.'
+  },
+  // ... diğer animeler
 ];

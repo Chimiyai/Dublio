@@ -10,6 +10,7 @@ import {
   BellIcon,
   XMarkIcon,
   ChevronDownIcon,
+  MagnifyingGlassIcon,
   ChevronLeftIcon,
   ChatBubbleOvalLeftEllipsisIcon, // Mesajlar ikonu için
   UserCircleIcon, // Avatar için placeholder
@@ -17,7 +18,15 @@ import {
   UserIcon as ProfileIcon, // Profil ikonu
   UsersIcon, // Arkadaşlar ikonu
 } from '@heroicons/react/24/outline';
+import SearchOverlay from './SearchOverlay';
+import { cn } from '@/lib/utils';
 
+// Stats için tip tanımı
+interface HeaderStats {
+  totalDubbedGames: number;
+  totalDubbedAnime: number;
+  recentGames: number; // Son eklenen oyunlar için
+}
 // Sahte veri
 const navLinksData = [
   { label: 'Oyunlar', href: '#', dropdownId: 'oyunlarDropdown' },
@@ -25,26 +34,6 @@ const navLinksData = [
   { label: 'Kadromuz', href: '#' },
   { label: 'Bize Katıl!', href: '#' },
 ];
-
-const oyunlarDropdownContent = {
-  main: [
-    { label: 'Tüm Oyunlar (3,704)', href: '#' },
-    { label: 'Yeni Eklenenler (80)', href: '#' },
-  ],
-  favorites: [
-    { label: 'Oyun Adı 1', href: '#', icon: '/images/game-icon-placeholder1.png' }, // public/images altında olmalı
-    { label: 'Oyun Ekle +', href: '#', isAction: true },
-  ],
-};
-
-const animelerDropdownContent = {
-  main: [
-    { label: 'Tüm Animeler (1,250)', href: '#' },
-  ],
-  watchlist: [
-    { label: 'Liste Oluştur +', href: '#', isAction: true },
-  ],
-};
 
 // Tip tanımlamalarını ekleyelim (isteğe bağlı ama iyi pratik)
 interface NavLinkItem {
@@ -76,6 +65,7 @@ type MobileMenuItem = MobileMenuLinkItem | MobileMenuSubmenuItem;
 
 
 const Header = () => {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
   const isLoadingSession = status === "loading";
 
@@ -89,11 +79,77 @@ const Header = () => {
   const dropdownContainerRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null); // Profil dropdown için ref
   const mobilePanelRef = useRef<HTMLDivElement>(null);
+  const [stats, setStats] = useState<HeaderStats>({
+    totalDubbedGames: 0,
+    totalDubbedAnime: 0,
+    recentGames: 0
+  });
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Stats verilerini çek
+  useEffect(() => {
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/stats');
+      if (!res.ok) throw new Error('Stats fetch failed');
+      const data = await res.json();
+      setStats({
+        totalDubbedGames: data.totalDubbedGames,
+        totalDubbedAnime: data.totalDubbedAnime,
+        recentGames: data.recentGames || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+  
+  fetchStats();
+}, []);
+
+const oyunlarDropdownContent = {
+    main: [
+      { label: `Tüm Oyunlar (${stats.totalDubbedGames})`, href: '/oyunlar' },
+      { label: `Yeni Eklenenler (${stats.recentGames})`, href: '/oyunlar/yeni' },
+    ],
+    favorites: [
+      { label: 'Oyun Ekle +', href: '/oyunlar/ekle', isAction: true },
+    ],
+  };
+
+  const animelerDropdownContent = {
+    main: [
+      { label: `Tüm Animeler (${stats.totalDubbedAnime})`, href: '/animeler' },
+    ],
+    watchlist: [
+      { label: 'Liste Oluştur +', href: '/animeler/liste-olustur', isAction: true },
+    ],
+  };
 
   const navLinks: NavLinkItem[] = [ // Tip ataması eklendi
     ...navLinksData,
     ...(session?.user?.role === 'admin' && !isLoadingSession ? [{ label: 'Admin Paneli', href: '/admin' }] : [])
   ];
+
+  const openSearchOverlay = () => {
+    setIsSearchOpen(true);
+    // Opsiyonel: Body scroll'u engelle
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeSearchOverlay = () => {
+    setIsSearchOpen(false);
+    document.body.style.overflow = '';
+    if (searchInputRef.current) { // Overlay kapanınca header'daki input'un focus'unu kaldır
+        searchInputRef.current.blur();
+    }
+  };
+
+  // Header'daki input'a focus olunca (tıklanınca) overlay'i aç
+  const handleHeaderSearchFocus = () => {
+    if (!isSearchOpen) { // Eğer zaten açıksa tekrar açma
+        openSearchOverlay();
+    }
+  };
 
   useEffect(() => {
   const handleClickOutside = (event: MouseEvent) => {
@@ -231,24 +287,33 @@ const Header = () => {
 
 
 return (
-    <header ref={headerRef} id="mainHeader" className="bg-prestij-bg-dark-1 sticky top-0 z-[1000] border-b border-prestij-border-primary min-h-header">
+    <header ref={headerRef} id="mainHeader" className="bg-prestij-bg-dark-1/60 sticky top-0 z-[1000] border-b border-prestij-border-primary min-h-header">
       {/* Ana sarmalayıcı DIV tam genişlikte, iç padding'i o kontrol edecek */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 h-full">
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-full backdrop-brightness-[0.9] backdrop-blur-md">
           <div className="flex items-center justify-between h-full relative min-h-header py-1.5">
             {/* max-w-screen-xl (veya sizin 1250px'e denk gelen bir max-width sınıfı) içeriği ortalar ama kenarlara padding ana div'den gelir */}
             {/* VEYA max-w-screen-xl mx-auto kullanmayıp direkt justify-between ile elemanları kenarlara yaslayabilirsiniz */}
 
-            {/* Mobil Menü Toggle */}
-            <div className="flex items-center lg:hidden"> {/* Mobil toggle için bir sarmalayıcı */}
-              <button
-                  id="mobileMenuToggle"
-                  data-dropdown-toggle="false"
-                  className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-2 -ml-2" // -ml-2 padding'i dengeler
-                  onClick={toggleMobileMenu}
-              >
-                  {isMobileMenuOpen ? <XMarkIcon className="h-7 w-7" /> : <Bars3Icon className="h-7 w-7" />}
-              </button>
-            </div>
+            {/* Mobil Menü ve Arama Butonları */}
+<div className="flex items-center lg:hidden gap-2">
+  {/* Mevcut menü butonu */}
+  <button
+    id="mobileMenuToggle"
+    data-dropdown-toggle="false"
+    className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-2 -ml-2"
+    onClick={toggleMobileMenu}
+  >
+    {isMobileMenuOpen ? <XMarkIcon className="h-7 w-7" /> : <Bars3Icon className="h-7 w-7" />}
+  </button>
+
+  {/* Yeni arama butonu */}
+  <button
+    className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-2 -ml-2"
+    onClick={openSearchOverlay}
+  >
+    <MagnifyingGlassIcon className="h-6 w-6" />
+  </button>
+</div>
 
             {/* Logo (Mobil için ortada, Desktop için solda) */}
             {/* Mobil'de logonun ortalanması için düzenleme */}
@@ -287,11 +352,31 @@ return (
                     </ul>
                 </nav>
                 <div className="search-area">
-                    <input
-                        type="text"
-                        placeholder="İçerik Ara..."
-                        className="search-input bg-prestij-bg-dark-4 text-prestij-text-dropdown border border-prestij-border-secondary rounded-md py-1.5 px-3 text-xs w-48 focus:border-prestij-purple focus:bg-prestij-bg-dark-1/[0.7] outline-none transition-colors placeholder-prestij-text-placeholder"
-                    />
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* Arama Input'u */}
+              <div className="relative group"> {/* Arama ikonunu input içine yerleştirmek için */}
+                <input
+  ref={searchInputRef}
+  type="text"
+  placeholder="İçerik Ara..."
+  onFocus={handleHeaderSearchFocus}
+  readOnly
+  className="w-32 sm:w-48 md:w-40 py-2 pl-10 pr-4 
+             text-sm text-prestij-text-input bg-prestij-bg-input/40 
+             border border-prestij-border-input/60 rounded-full 
+             focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple 
+             outline-none transition-all duration-300 ease-in-out
+             cursor-pointer group-hover:border-prestij-purple/70
+             backdrop-blur-sm"
+/>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-prestij-text-placeholder group-hover:text-prestij-purple/80 transition-colors">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                  </svg>
+                </div>
+              </div>
+
+              </div>
                 </div>
             </div>
 
@@ -448,14 +533,23 @@ return (
           </div>
       </div>
 
-      {/* Dropdown'lar */}
-      <div ref={dropdownContainerRef} className="relative"> {/* Dropdown'ların pozisyonu için relative */}
+      {/* Dropdown Overlay - Aktif dropdown varsa göster */}
+      {activeDropdown && (
+        <div 
+          className="fixed inset-0 bg-black/50 transition-opacity duration-300 z-[900]"
+          onClick={() => setActiveDropdown(null)}
+        />
+      )}
+
+      {/* Dropdown Container */}
+      <div ref={dropdownContainerRef} className="relative z-[901]"> {/* z-index arttırıldı */}
         {['oyunlarDropdown', 'animelerDropdown'].map(dropdownId => (
           <div
-              key={dropdownId}
-              id={dropdownId}
-              className={`header-dropdown absolute top-0 left-0 w-full bg-prestij-bg-dark-4 shadow-header-dropdown transition-all duration-300 ease-out ${activeDropdown === dropdownId ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2 pointer-events-none'}`}
-              // style={{top: headerRef.current ? headerRef.current.offsetHeight : '60px'}} // Dinamik top pozisyonu, eğer header yüksekliği değişebiliyorsa
+            key={dropdownId}
+            id={dropdownId}
+            className={`header-dropdown absolute top-0 left-0 w-full bg-prestij-bg-dark-4 shadow-header-dropdown 
+                       transition-all duration-300 ease-out 
+                       ${activeDropdown === dropdownId ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2 pointer-events-none'}`}
           >
               {/* Dropdown içeriği container ile sarmalanabilir veya direkt tam genişlikte olabilir */}
               <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8"> {/* Dropdown içeriği için padding */}
@@ -631,6 +725,11 @@ return (
                     </nav>
                 </div>
             </div>
+            <SearchOverlay 
+        isOpen={isSearchOpen} 
+        onClose={closeSearchOverlay} 
+        // initialSearchTerm={searchInputRef.current?.value} // İsteğe bağlı: Header'daki terimi overlay'e aktar
+      />
         </>
     </header>
   );

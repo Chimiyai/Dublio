@@ -36,6 +36,10 @@ model User {
   sentMessages           Message[] @relation("SentMessages")     
   receivedMessages       Message[] @relation("ReceivedMessages")
   emailChangeRequests    EmailChangeRequest[]
+  projectLikes     ProjectLike[]
+  projectDislikes  ProjectDislike[]
+  projectFavorites ProjectFavorite[]
+  projectRatings   ProjectRating[]
 
   @@map("users")
 }
@@ -55,20 +59,118 @@ model EmailChangeRequest {
 }
 
 model Project {
-  id            Int                 @id @default(autoincrement())
-  title         String
-  slug          String              @unique
-  type          String
-  description   String?
-  coverImagePublicId    String?
+  id                  Int      @id @default(autoincrement())
+  title               String
+  slug                String   @unique
+  type                String // "oyun" veya "anime" (filtrelenmiş section başlığı için kalabilir)
+  description         String?
+  coverImagePublicId  String?
   bannerImagePublicId String?
-  releaseDate   DateTime?            @default(now())
-  isPublished   Boolean             @default(true)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  assignments   ProjectAssignment[] // İlişki doğru
+  releaseDate         DateTime? @default(now())
+  isPublished         Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  viewCount           Int      @default(0)
+  likeCount           Int      @default(0)
+  dislikeCount        Int      @default(0)
+  favoriteCount       Int      @default(0)
+  averageRating       Float    @default(0)
+  ratingCount         Int      @default(0)
+
+  assignments         ProjectAssignment[]
+  likes               ProjectLike[]
+  dislikes            ProjectDislike[]
+  favorites           ProjectFavorite[]
+  ratings             ProjectRating[]
+
+  // YENİ: Kategorilerle çoktan çoğa ilişki
+  categories          ProjectCategory[] // Bir projenin birden fazla kategorisi olabilir
 
   @@map("projects")
+}
+
+// YENİ MODEL: Kategori
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // Kategori adı (örn: Aksiyon, Macera, RPG)
+  slug        String   @unique // Kategori slug'ı (URL için)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects    ProjectCategory[] // Bu kategoriye ait projeler
+
+  @@map("categories")
+}
+
+// YENİ ARA TABLO: ProjectCategory (Project ve Category arasında çoktan çoğa ilişki için)
+model ProjectCategory {
+  projectId  Int
+  categoryId Int
+  assignedAt DateTime @default(now())
+  assignedBy String?  // Opsiyonel: Kimin atadığı (admin kullanıcı adı vb.)
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, categoryId]) // Bileşik birincil anahtar
+  @@map("project_categories")
+}
+
+// KULLANICI ETKİLEŞİM MODELLERİ
+
+model ProjectLike {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  projectId Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId]) // Bir kullanıcı bir projeyi sadece bir kere beğenebilir
+  @@map("project_likes")
+}
+
+model ProjectDislike {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  projectId Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId]) // Bir kullanıcı bir projeyi sadece bir kere beğenmeyebilir
+  @@map("project_dislikes")
+}
+
+model ProjectFavorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  projectId Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId]) // Bir kullanıcı bir projeyi sadece bir kere favorileyebilir
+  @@map("project_favorites")
+}
+
+model ProjectRating {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  projectId Int
+  value     Int      // Puan değeri (örn: 1-5 arası)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId]) // Bir kullanıcı bir projeye sadece bir kere puan verebilir
+  @@map("project_ratings")
 }
 
 model Message {

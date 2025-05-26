@@ -1,140 +1,263 @@
 // src/components/home/MainShowcase.tsx
 "use client";
-import Image from 'next/image';
+import React, { useEffect, useState, useRef } from 'react';
+import Image, { StaticImageData } from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary'; // Import et
+import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 
-interface MainShowcaseProps {
-  // ... (proplar aynı)
-  category: 'Oyun' | 'Anime' | 'Öne Çıkan';
+export interface MainShowcaseProps {
+  category: 'Oyun' | 'Anime' | 'Öne Çıkan' | string;
   title: string;
   description: string;
-  imageUrl: string;
-  coverUrl: string;
+  imageUrl?: string | null | undefined; // API'den gelen bannerImagePublicId veya placeholder
+  coverUrl?: string | null | undefined; // API'den gelen coverImagePublicId veya placeholder
   detailsUrl: string;
+  releaseDate?: string | Date | null;
+  showcaseKey: string;
 }
 
-const MainShowcase: React.FC<MainShowcaseProps> = ({ 
-  category, title, description, imageUrl, coverUrl, detailsUrl 
-}) => {
-  let categoryClass = 'bg-hero-info-category-bg';
-  if (category === 'Oyun') categoryClass = 'bg-project-type-oyun';
-  else if (category === 'Anime') categoryClass = 'bg-project-type-anime';
+// Animasyon Süreleri (tailwind.config.ts'deki durationlarla eşleşmeli)
+const VISUAL_FADE_DURATION = 500; // ms (duration-500) - opacity ve transform için
+const VISUAL_SCALE_DURATION = 800; // ms (duration-800) - sadece görselin scale'i için
+const INFO_FADE_DURATION = 500;    // ms (duration-500)
+const COVER_FADE_DURATION = 400;   // ms (duration-400)
+const CONTENT_UPDATE_DELAY = 300;  // ms - fadeOut bittikten sonra içeriğin güncellenme gecikmesi
 
+const MainShowcase: React.FC<MainShowcaseProps> = (props) => {
+  const {
+    category: newCategory,
+    title: newTitle,
+    description: newDescription,
+    imageUrl: newImageUrl, // Bu prop artık Cloudinary ID'si veya placeholder yolu alacak
+    coverUrl: newCoverUrl,   // Bu prop artık Cloudinary ID'si veya placeholder yolu alacak
+    detailsUrl: newDetailsUrl,
+    releaseDate: newReleaseDate,
+    showcaseKey: newShowcaseKey,
+  } = props;
 
-  const [animateIn, setAnimateIn] = useState(false);
+  const [displayData, setDisplayData] = useState({
+    category: newCategory,
+    title: newTitle,
+    description: newDescription,
+    imageUrl: newImageUrl, // State'e ID veya yolu ata
+    coverUrl: newCoverUrl,   // State'e ID veya yolu ata
+    detailsUrl: newDetailsUrl,
+    releaseDate: newReleaseDate,
+    key: newShowcaseKey,
+  });
+
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isContentLoaded, setIsContentLoaded] = useState(true); // Başlangıçta içerik yüklü
+
+  const prevShowcaseKeyRef = useRef<string | undefined>(undefined); // Başlangıçta undefined
+  const isInitialMountRef = useRef(true); // İlk mount kontrolü için
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   useEffect(() => {
-    // Key değişimiyle component yeniden mount olduğunda bu direkt çalışacak.
-    // Giriş animasyonunu başlatmak için animateIn'i true yap.
-    // Çok kısa bir gecikme, stillerin ilk render'da uygulanıp sonra değişmesi için.
-    const timer = setTimeout(() => {
-      setAnimateIn(true);
-    }, 20); // 20ms veya 50ms gibi küçük bir değer.
-    return () => clearTimeout(timer);
-  }, [title, imageUrl]); // Her yeni kart geldiğinde (proplar değiştiğinde) tetiklenir.
 
-  const transitionBase = "transition-all duration-500 ease-out";
-  
-  // Giriş Stilleri
-  // Başlangıçta görünür ama transform ile dışarıda olabilir, sonra içeri kayar.
-  // Ya da opacity ile başlar. Şimdiki opacity-0 iyi.
-  const initialStyles = "opacity-0 translate-x-8"; 
-  const finalStyles = "opacity-100 translate-x-0";
-  
-  const bgImageInitial = "opacity-0 scale-105"; 
-  const bgImageFinal = "opacity-100 scale-100";
-  const coverImageInitial = "opacity-0 scale-90"; 
-  const coverImageFinal = "opacity-100 scale-100";
-  const textBlockInitial = "opacity-0 translate-x-6";
-  const textBlockFinal = "opacity-100 translate-x-0";
+    if (isInitialMountRef.current) {
+      // İlk mount'ta, prevShowcaseKey'i set et ve çık. Animasyon yok.
+      // displayData zaten başlangıç props'larıyla set edildi.
+      prevShowcaseKeyRef.current = newShowcaseKey;
+      isInitialMountRef.current = false;
+      return;
+    }
+
+    // İlk mount değilse ve key gerçekten değiştiyse animasyonu başlat
+    // (ve prevShowcaseKeyRef.current undefined değilse, ki ilk mount sonrası olmayacak)
+    if (prevShowcaseKeyRef.current !== newShowcaseKey && prevShowcaseKeyRef.current !== undefined) {
+      // console.log(`%cKey changed! From ${prevShowcaseKeyRef.current} to ${newShowcaseKey}. Starting fade out.`, "color: orange; font-weight: bold;");
+      setIsFadingOut(true);
+      setIsContentLoaded(false);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        // console.log(`%cTimeout: Updating displayData with new props (key: ${newShowcaseKey}). Starting fade in.`, "color: green; font-weight: bold;");
+        setDisplayData({
+          category: newCategory, title: newTitle, description: newDescription,
+          imageUrl: newImageUrl, // YENİ ID VEYA YOLU ATA
+          coverUrl: newCoverUrl,   // YENİ ID VEYA YOLU ATA
+          detailsUrl: newDetailsUrl, releaseDate: newReleaseDate, key: newShowcaseKey,
+        });
+        setIsFadingOut(false);
+        requestAnimationFrame(() => { setIsContentLoaded(true); });
+      }, 300); // CONTENT_UPDATE_DELAY
+    }
+
+    // Her useEffect çalışmasından sonra (key değişse de değişmese de) prev key'i güncelle
+    // Bu, bir sonraki key değişimini doğru algılamak için önemli.
+    prevShowcaseKeyRef.current = newShowcaseKey;
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, [newShowcaseKey, newCategory, newTitle, newDescription, newImageUrl, newCoverUrl, newDetailsUrl, newReleaseDate]);
+
+
+  let categoryTypeClass = 'bg-gray-700';
+  const normalizedCategory = displayData.category.toLowerCase();
+  if (normalizedCategory === 'oyun') categoryTypeClass = 'bg-prestij-type-game';
+  else if (normalizedCategory === 'anime') categoryTypeClass = 'bg-prestij-type-anime';
+  else if (normalizedCategory === 'öne çıkan') categoryTypeClass = 'bg-prestij-purple';
+
+  const visualWrapperClasses = cn(
+    "hero-main-visual-wrapper absolute inset-0 overflow-hidden z-[1]",
+    "transition-all duration-1000 ease-linear", // Şimdilik bu kalsın
+    {
+      "opacity-30 scale-110": isFadingOut, // Wrapper'ın kendi opaklığı ve scale'i
+      "opacity-100 scale-100": !isFadingOut && isContentLoaded,
+      "opacity-0 scale-105": !isFadingOut && !isContentLoaded,
+    }
+  );
+
+  const fadeOutOverlayClasses = cn(
+    "absolute inset-0 z-[3] bg-black transition-opacity duration-500 ease-in-out", // duration-500 veya CONTENT_UPDATE_DELAY'e yakın
+    {
+      "opacity-60": isFadingOut, // Fade out sırasında %60 siyah overlay (ayarlayabilirsiniz)
+      "opacity-0": !isFadingOut, // Normalde görünmez
+    }
+  );
+  // Cloudinary ID'lerini veya placeholder yollarını URL'ye çevir
+  const finalImageSrc = getCloudinaryImageUrlOptimized(
+    displayData.imageUrl, // displayData'dan ID veya yolu al
+    { width: 1200, height: 675, crop: 'fill', quality: 'auto', format: 'auto' },
+    'banner'
+  );
+  const finalCoverSrc = getCloudinaryImageUrlOptimized(
+  displayData.coverUrl,
+  { width: 100, height: 100 }, // SADECE width ve height
+  'cover'
+);
+
+
+  const formattedDisplayDate = formatDate(displayData.releaseDate);
 
   return (
-    <div className={`w-full h-full ${transitionBase} ${animateIn ? finalStyles : initialStyles}`}>
-      <Link href={detailsUrl} className="hero-main-showcase-link block rounded-xl overflow-hidden relative shadow-hero-main-showcase group w-full h-full">
-        <div className="hero-main-showcase w-full h-full relative flex 
-                         bg-hero-main-showcase-bg 
-                         aspect-[4/3] // Mobil için daha uygun aspect ratio
-                         sm:aspect-video 
-                         lg:aspect-16/7.5 
-                         overflow-hidden">
-          {/* Arka Plan Resmi */}
-          <div className={`hero-main-visual-wrapper absolute inset-0 overflow-hidden z-[1] 
-                           ${transitionBase} delay-100
-                           ${animateIn ? bgImageFinal : bgImageInitial}`}>
-            <Image src={imageUrl} alt={title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-            <div className="hero-main-visual-overlay absolute inset-0 bg-hero-main-visual-overlay z-[2]"></div>
-          </div>
-
-          {/* Kapak Resmi */}
+    <Link
+      href={displayData.detailsUrl}
+      className="hero-main-showcase-link group block rounded-lg sm:rounded-xl overflow-hidden relative shadow-lg w-full h-full
+                 transition-transform duration-300 ease-out hover:-translate-y-1 sm:hover:-translate-y-1.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)] sm:hover:shadow-[0_12px_35px_rgba(0,0,0,0.2)]
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-prestij-purple focus-visible:ring-offset-2 focus-visible:ring-offset-prestij-bg-dark-3"
+    >
+      <div className="hero-main-showcase w-full h-full relative flex bg-prestij-bg-dark-2 aspect-[4/3] xs:aspect-[16/9] sm:aspect-video lg:aspect-[16/7.5] overflow-hidden">
+        <div className={visualWrapperClasses}>
           <Image
-            src={coverUrl} 
-            alt={`${title} Kapak`} 
-            width={60} height={60} 
-            className={`main-showcase-cover-image absolute 
-                        top-2 left-2 // Mobil için daha küçük padding
-                        sm:top-3 sm:left-3
-                        lg:top-6 lg:left-7
-                        w-[50px] h-[50px] // Mobil için daha küçük
-                        sm:w-[60px] sm:h-[60px] 
-                        lg:w-[80px] lg:h-[80px] 
-                        xl:w-[100px] xl:h-[100px]
-                        object-cover rounded-md sm:rounded-lg shadow-lg z-[30] 
-                        border-2 border-white/10
-                        ${transitionBase} delay-200
-                        ${animateIn ? coverImageFinal : coverImageInitial}`}
+            key={`banner-${displayData.key}`} // Bu key önemli, src değişince Image'ın yeniden render olmasını sağlar
+            src={finalImageSrc} // DÖNÜŞTÜRÜLMÜŞ URL
+            alt={displayData.title || 'Ana Proje Görseli'}
+            fill
+            className="object-cover w-full h-full transition-transform duration-800 ease-hero-visual-ease group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 70vw" // Responsive sizes
+            priority // LCP elementi olabilir
           />
+          <div
+            className="hero-main-visual-overlay absolute inset-0 z-[2]"
+            style={{ background: 'linear-gradient(to top, rgba(12, 14, 15, 0.95) 0%, rgba(12, 14, 15, 0.6) 35%, transparent 65%)' }}
+          />
+          <div className={fadeOutOverlayClasses} />
+        </div>
 
-          {/* Yazı Alanı */}
-          <div className={`hero-main-info-container absolute bottom-0 left-0 w-full p-3 pt-[70px] sm:pt-4 sm:p-4 md:p-6 lg:p-7 z-[20] /* Mobil için pt-[70px] (kapak+boşluk) */
-                           ${transitionBase} delay-150 
-                           ${animateIn ? textBlockFinal : textBlockInitial}`}>
-            <div className="hero-main-info text-white w-full 
-                            lg:max-w-[calc(100%-120px)] xl:max-w-[calc(100%-150px)] 
-                            flex flex-col">
-                <div className="mb-2 sm:mb-3">
-                    <span className={`info-category ${categoryClass} text-white inline-block text-[0.6rem] sm:text-xs font-semibold rounded uppercase tracking-wider px-1.5 py-0.5 sm:px-2 sm:py-1 mb-1.5 sm:mb-2`}>{category}</span>
-                    <h2 className="text-base // Mobil için daha küçük
-                        sm:text-lg 
-                        md:text-xl 
-                        lg:text-2xl 
-                        xl:text-3xl 
-                        font-bold leading-tight 
-                        text-shadow-md">
-                      {title}
-                    </h2>
-                </div>
-                <p className="text-xs 
-    sm:text-sm 
-    lg:text-base 
-    leading-relaxed 
-    text-prestij-text-primary 
-    mb-2 sm:mb-3 
-    w-full 
-    line-clamp-2 
-    md:line-clamp-3 
-    text-shadow-sm">
-  {description}
-</p>
-                <div className="hero-main-actions flex flex-col items-start gap-2 sm:flex-row sm:gap-2.5 md:gap-3.5">
-                    <button className="btn btn-primary btn-play-now bg-prestij-purple text-white border-none 
-                                     text-[0.7rem] sm:text-xs md:text-sm font-medium 
-                                     py-1.5 px-3 sm:py-2 sm:px-4 md:py-2.5 md:px-6 rounded-md uppercase tracking-wider 
-                                     hover:bg-hero-btn-play-bg-hover hover:-translate-y-0.5 hover:shadow-lg-purple transition-all duration-200">
-                      <i className="fas fa-play mr-1 md:mr-2 text-[0.6rem] sm:text-xs"></i> Şimdi Oyna
-                    </button>
-                    <button className="btn btn-secondary btn-details bg-hero-btn-details-bg text-white border border-hero-btn-details-border 
-                                     text-[0.7rem] sm:text-xs md:text-sm font-medium 
-                                     py-1.5 px-3 sm:py-2 sm:px-4 md:py-2.5 md:px-6 rounded-md uppercase tracking-wider 
-                                     hover:bg-hero-btn-details-bg-hover hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200">
-                      Detaylar <i className="fas fa-arrow-right ml-1 md:ml-2 text-[0.6rem] sm:text-xs"></i>
-                    </button>
-                </div>
-            </div>
+        <Image
+    key={`cover-${displayData.key}`}
+    src={finalCoverSrc} // Üretilen URL
+    alt={`${displayData.title} Kapak`}
+    width={100} // Bunlar Image component'inin layout için kullandığı base boyutlar
+    height={100}
+    className={cn(
+                "main-showcase-cover-image absolute object-cover rounded-md sm:rounded-lg shadow-lg z-[3] border-2 border-white/10",
+                "w-[60px] h-[60px] top-3 left-3",
+                "sm:w-[70px] sm:h-[70px] sm:top-4 sm:left-4",
+                "md:w-[80px] md:h-[80px] md:top-5 md:left-5",
+                "lg:w-[100px] lg:h-[100px] lg:top-[25px] lg:left-[30px]",
+                `transition-opacity duration-400 ease-in-out`, // COVER_FADE_DURATION
+                {
+                  "opacity-0": isFadingOut || !isContentLoaded,
+                  "opacity-100": !isFadingOut && isContentLoaded,
+                }
+              )}
+        />
+
+        {/* Yazı Alanı (Responsive) */}
+        <div className={cn(
+            "hero-main-info-container absolute bottom-0 left-0 w-full box-border z-[3]",
+            "px-3 pb-3 pt-[calc(60px+12px+8px)]", 
+            "sm:px-4 sm:pb-4 sm:pt-[calc(70px+16px+10px)]",
+            "md:px-5 md:pb-5 md:pt-[calc(80px+20px+12px)]",
+            "lg:px-[30px] lg:pb-[25px] lg:pt-[calc(100px+25px+15px)]",
+            `transition-all duration-500 ease-in-out`, // INFO_FADE_DURATION
+            {
+              "opacity-0 translate-y-3 sm:translate-y-5": isFadingOut || !isContentLoaded,
+              "opacity-100 translate-y-0": !isFadingOut && isContentLoaded,
+            }
+          )}>
+          <div className="hero-main-info text-white w-full sm:max-w-[calc(100%-100px)] md:max-w-[calc(100%-120px)] lg:max-w-[calc(100%-150px)]">
+            <span
+              className={cn(
+                "info-category inline-block text-white font-semibold rounded uppercase tracking-wider",
+                "text-[0.65em] px-2 py-0.5 mb-2",
+                "sm:text-[0.7em] sm:px-2.5 sm:py-1 sm:mb-2.5",
+                "lg:text-[0.75em] lg:px-[10px] lg:py-1 lg:mb-3",
+                categoryTypeClass,
+              )}
+            >
+              {displayData.category}
+            </span>
+            <h2 className={cn("font-bold leading-tight text-white text-shadow-md",
+                "text-xl mb-1.5", 
+                "sm:text-2xl sm:mb-2",
+                "md:text-3xl md:mb-2.5",
+                "lg:text-[2.8em] lg:leading-[1.1] lg:mb-3 xl:mb-4"
+            )}>
+              {displayData.title}
+            </h2>
+            <p className={cn("leading-normal text-gray-200/80 text-shadow-sm",
+                "text-xs mb-3 line-clamp-2",
+                "sm:text-sm sm:mb-4 sm:line-clamp-2",
+                "md:line-clamp-3",
+                "lg:text-[1.05em] lg:leading-[1.6] lg:mb-5 xl:mb-6 lg:max-w-[90%]"
+            )}>
+              {displayData.description}
+            </p>
+            <div className="hero-main-actions flex flex-row items-center gap-2 sm:gap-3">
+  <button className={cn(
+    "btn btn-primary btn-play-now bg-prestij-purple text-white border-none",
+    "font-medium rounded-md uppercase tracking-wider whitespace-nowrap",
+    "hover:bg-prestij-purple-darker hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(139,78,255,0.3)]",
+    "transition-all duration-200",
+    "text-[0.7em] py-1.5 px-3", // Daha küçük padding ve font
+    "sm:text-[0.75em] sm:py-2 sm:px-4",
+    "lg:text-[0.8em] lg:py-2 lg:px-5",
+    "mb-2"
+  )}>
+    <i className="fas fa-play mr-1.5"></i> Oyna
+  </button>
+
+  <button className={cn(
+    "btn btn-secondary btn-details bg-white/10 hover:bg-white/20 text-white",
+    "border border-white/20 hover:border-white/30",
+    "font-medium rounded-md uppercase tracking-wider whitespace-nowrap",
+    "hover:-translate-y-0.5 transition-all duration-200",
+    "text-[0.7em] py-1.5 px-3", // Daha küçük padding ve font
+    "sm:text-[0.75em] sm:py-2 sm:px-4",
+    "lg:text-[0.8em] lg:py-2 lg:px-5",
+    "mb-2"
+  )}>
+    Detaylar <i className="fas fa-arrow-right ml-1.5"></i>
+  </button>
+</div>
+            {formattedDisplayDate && (
+              <div className={cn("project-release-date text-gray-300/70",
+                "text-[0.7em]", 
+                "sm:text-xs",
+                "lg:text-sm"
+              )}>
+                Yayın Tarihi: {formattedDisplayDate}
+              </div>
+            )}
           </div>
         </div>
-      </Link>
-    </div>
+      </div>
+    </Link>
   );
 };
+
 export default MainShowcase;

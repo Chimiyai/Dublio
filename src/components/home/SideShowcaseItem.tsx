@@ -1,50 +1,83 @@
 // src/components/home/SideShowcaseItem.tsx
 "use client";
-import Image from 'next/image';
-import Link from 'next/link'; // onClick ile çalıştığı için Link gerekmeyebilir, button da olabilir
+import React from 'react';
+import Image, { StaticImageData } from 'next/image';
+import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
+import { cn } from '@/lib/utils';
 
-interface SideShowcaseItemProps {
+export interface SideShowcaseItemProps {
   cardTitle: string;
-  type: 'Oyun' | 'Anime';
-  coverUrl: string;
-  bannerUrl: string; // Mini kartın sağ tarafındaki banner için
+  type: string;
+  coverUrl?: string | null;
+  bannerUrl?: string | null;
   isActive: boolean;
   onClick: () => void;
+  // releaseDate?: string | Date | null; // Eğer buraya da tarih eklemek istersen
 }
 
-const SideShowcaseItem: React.FC<SideShowcaseItemProps> = ({ cardTitle, type, coverUrl, bannerUrl, isActive, onClick }) => {
-  const typeColor = type === 'Oyun' ? 'bg-project-type-oyun' : 'bg-project-type-anime';
-  
+const SideShowcaseItem: React.FC<SideShowcaseItemProps> = ({
+  cardTitle,
+  type,
+  coverUrl,
+  bannerUrl,
+  isActive,
+  onClick,
+  // releaseDate // Eğer prop olarak alırsan
+}) => {
+  const typeNormalized = type.toLowerCase();
+  const typeBgClass = typeNormalized === 'oyun' ? 'bg-prestij-type-game' : typeNormalized === 'anime' ? 'bg-prestij-type-anime' : 'bg-gray-500';
+
+  const finalCoverUrl: string | StaticImageData = getCloudinaryImageUrlOptimized(coverUrl, { width: 65, height: 65, crop: 'thumb' }, 'cover');
+  const finalBannerUrl: string | StaticImageData = getCloudinaryImageUrlOptimized(bannerUrl, { width: 196, height: 65, crop: 'fill' }, 'banner');
+
   return (
-    <button // Link yerine button, çünkü tıklama state değiştiriyor
+    <button
       onClick={onClick}
-      className={`side-list-item-link block rounded-lg transition-all duration-300 ease-out relative overflow-hidden bg-hero-side-list-item-bg flex-grow flex group
-                  hover:-translate-y-1 hover:scale-[1.04] hover:shadow-hero-side-list-item-hover hover:bg-hero-side-list-item-bg-hover hover:z-10
-                  ${isActive ? 'shadow-hero-side-list-item-active bg-hero-side-list-item-active z-[15]' : 'shadow-sm'}`}
+      className={cn(
+        "side-list-item-link block w-full rounded-lg relative overflow-hidden bg-prestij-bg-card-2 group h-full",
+        "transition-all duration-300 ease-out",
+        "hover:-translate-y-1 hover:shadow-xl",
+        isActive && "ring-2 ring-prestij-purple shadow-lg z-10"
+      )}
+      style={{ minHeight: '65px' }}
     >
-      <div className="side-list-item flex items-center w-full p-2 relative z-[1]">
-        <Image src={coverUrl} alt={`${cardTitle} Kapak`} width={50} height={50} className="side-item-cover w-[50px] h-[50px] object-cover rounded-md mr-2.5 flex-shrink-0 border border-white/10" />
+      <div className={cn(
+          "absolute -inset-2 opacity-0 transition-opacity duration-300 ease-out pointer-events-none rounded-xl",
+          "bg-gradient-radial from-prestij-purple/20 via-prestij-purple/5 to-transparent",
+          isActive ? "opacity-60 scale-105" : "group-hover:opacity-40"
+      )}></div>
+      
+      <div className="side-list-item flex items-center w-full p-[8px] relative z-[1] h-full z">
+        <Image
+          src={finalCoverUrl}
+          alt={`${cardTitle} Kapak`}
+          width={65}
+          height={65}
+          className="side-item-cover w-[65px] h-[65px] object-cover rounded-md mr-[10px] flex-shrink-0 border border-white/10 z-[2] transition-transform duration-300 ease-out group-hover:scale-110"
+          unoptimized={typeof finalCoverUrl === 'string' && finalCoverUrl.startsWith('/images/')}
+        />
         <div className="side-item-main-content flex-grow relative z-[2] flex flex-col justify-center overflow-hidden text-left">
-          <span className={`project-type ${typeColor} text-white inline-block self-start text-2xs font-semibold rounded uppercase tracking-wider px-1.5 py-0.5 leading-none mb-0.5`}>{type}</span>
-          <span className="side-item-title text-hero-side-list-item-text text-sm font-medium truncate text-shadow-sm leading-tight">{cardTitle}</span>
+          <span className={`${typeBgClass} text-white inline-block self-start text-[0.65em] font-semibold rounded px-[6px] py-[2px] leading-none mb-0.5`}>
+            {type}
+          </span>
+          <span className="side-item-title text-prestij-text-secondary text-[0.9em] font-medium truncate text-shadow-sm leading-tight" title={cardTitle}>
+            {cardTitle}
+          </span>
+          {/* Eğer buraya tarih eklenecekse: */}
+          {/* {releaseDate && <span className="text-xs text-gray-400">{formatDate(releaseDate, { month: 'short', day: 'numeric'})}</span>} */}
         </div>
-        {/* Sağdaki banner arka planı */}
-        <div className="side-item-banner-background absolute top-0 right-0 w-[70%] h-full bg-cover bg-right z-[1] rounded-r-lg overflow-hidden">
-          <Image src={bannerUrl} alt="" fill className="object-cover" />
-          <div className="side-item-banner-fade-to-left absolute inset-0 bg-hero-side-list-fade"></div>
+        <div className="side-item-banner-background absolute top-0 right-0 w-[100%] h-full bg-cover bg-center z-0 rounded-r-lg overflow-hidden">
+          <Image
+            src={finalBannerUrl}
+            alt=""
+            fill
+            className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05]"
+            unoptimized={typeof finalBannerUrl === 'string' && finalBannerUrl.startsWith('/images/')}
+          />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to left, rgba(16,12,28,0) 5%, rgba(16,12,28,0.4) 35%, #100C1C 85%)' }}></div>
         </div>
       </div>
-      {/* Glow efekti için (isteğe bağlı) */}
-      <div className={`absolute -inset-2.5 bg-gradient-radial from-prestij-purple/30 via-prestij-purple/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out rounded-xl pointer-events-none ${isActive ? 'opacity-85 scale-105' : ''}`}></div>
     </button>
   );
 };
-
-// CSS'e eklenmesi gerekebilecek bir gradient (veya tailwind.config.js'e)
-// .bg-gradient-radial { background-image: radial-gradient(ellipse at center, var(--tw-gradient-stops)); }
-// tailwind.config.js'e eklemek daha iyi:
-// backgroundImage: {
-//   'gradient-radial': 'radial-gradient(ellipse at center, var(--tw-gradient-stops))',
-// }
-
 export default SideShowcaseItem;

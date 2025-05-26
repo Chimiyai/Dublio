@@ -22,13 +22,13 @@ interface UserProfileFormProps {
   user: { 
     id: number; 
     username: string;
-    bio: string;
+    bio: string | null; // bio null olabilir
     email: string;
     role: string;
     profileImagePublicId: string | null;
     bannerImagePublicId: string | null;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: Date; // veya string, API'den nasıl geldiğine bağlı
+    updatedAt: Date; // veya string
   };
 }
 
@@ -36,6 +36,8 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
   const router = useRouter();
   // isPending, startTransition'dan gelen boolean değer
   const [isPending, startTransition] = useTransition(); 
+  const [profileImageIdToDisplay, setProfileImageIdToDisplay] = useState<string | null>(initialUser.profileImagePublicId);
+  const [bannerImageIdToDisplay, setBannerImageIdToDisplay] = useState<string | null>(initialUser.bannerImagePublicId);
 
   const [selectedProfileFile, setSelectedProfileFile] = useState<File | null>(null);
   const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(null);
@@ -44,14 +46,9 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
   const [bannerPublicId, setBannerPublicId] = useState<string | null>(initialUser.bannerImagePublicId);
 
   useEffect(() => {
-    // Eğer kullanıcı yeni bir dosya seçmemişse, prop'tan gelen ID'lerle state'i senkronize et
-    if (!selectedProfileFile && initialUser.profileImagePublicId !== profilePublicId) {
-        setProfilePublicId(initialUser.profileImagePublicId);
-    }
-    if (!selectedBannerFile && initialUser.bannerImagePublicId !== bannerPublicId) {
-        setBannerPublicId(initialUser.bannerImagePublicId);
-    }
-  }, [initialUser, selectedProfileFile, selectedBannerFile, profilePublicId, bannerPublicId]);
+    setProfileImageIdToDisplay(initialUser.profileImagePublicId);
+    setBannerImageIdToDisplay(initialUser.bannerImagePublicId);
+  }, [initialUser.profileImagePublicId, initialUser.bannerImagePublicId]);
 
 
   const handleImageSave = async (imageType: 'profile' | 'banner') => {
@@ -64,17 +61,20 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
       return;
     }
 
-    const loadingToastId = toast.loading(`${imageType === 'profile' ? 'Profil resmi' : 'Banner'} yükleniyor ve kaydediliyor...`);
+    const loadingToastId = toast.loading(`${imageType === 'profile' ? 'Profil resmi' : 'Banner'} yükleniyor...`);
     
-    startTransition(async () => { // Asenkron işlemi startTransition içine al
+    startTransition(async () => {
         let newPublicId: string | null = null;
         try {
             const formData = new FormData();
             formData.append('imageFile', fileToUpload);
-            formData.append('uploadContext', imageType === 'profile' ? 'userProfile' : 'userBanner');
-            formData.append('identifier', initialUser.id.toString());
+            // ImageUploader'a gönderilen endpoint'e göre bu identifier ve folder'ı ayarlayın
+            // veya ImageUploader içinde bu mantık varsa ona bırakın.
+            // formData.append('uploadContext', imageType === 'profile' ? 'userProfile' : 'userBanner');
+            formData.append('identifier', initialUser.id.toString()); 
+            formData.append('folder', imageType === 'profile' ? 'user_profiles' : 'user_banners'); // Örnek folder
 
-            const uploadResponse = await fetch('/api/image-upload', {
+            const uploadResponse = await fetch('/api/profile/image-upload', { // Kendi resim yükleme API endpoint'iniz
                 method: 'POST',
                 body: formData,
             });
@@ -84,8 +84,9 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
                 throw new Error(uploadData.message || 'Resim Cloudinary\'ye yüklenemedi.');
             }
             newPublicId = uploadData.publicId;
-            toast.success(`Resim başarıyla Cloudinary\'ye yüklendi.`);
+            // toast.success(`Resim başarıyla Cloudinary\'ye yüklendi.`); // DB kaydından sonra genel başarı mesajı
 
+            // Eski resmi arşivleme/silme mantığı (Cloudinary'de)
             if (currentPublicIdInDb && currentPublicIdInDb !== newPublicId) {
                 console.log(`Eski ${imageType} resmi (${currentPublicIdInDb}) için arşivleme/silme API'si çağrılacak.`);
                 // Arşivleme API çağrısı (henüz implemente edilmedi)
@@ -103,33 +104,38 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
                 ? { profileImagePublicId: newPublicId } 
                 : { bannerImagePublicId: newPublicId };
 
-            const dbResponse = await fetch('/api/profile', {
-                method: 'PATCH',
+            const dbResponse = await fetch('/api/profile/update-details', { // Kullanıcı detaylarını güncelleyen API endpoint'i
+                method: 'PATCH', // VEYA PUT
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dbUpdateData),
             });
             const dbData = await dbResponse.json();
 
             if (!dbResponse.ok) {
+                if (newPublicId) {
+                    console.warn("DB güncellemesi başarısız, Cloudinary'ye yüklenen resim silinmeli:", newPublicId);
+                    // ... (Cloudinary silme API çağrısı) ...
+                }
                 throw new Error(dbData.message || 'Resim bilgisi veritabanına kaydedilemedi.');
             }
             
             toast.success(`${imageType === 'profile' ? 'Profil resmi' : 'Banner'} başarıyla güncellendi!`);
+// State'i hemen güncellemek yerine router.refresh() sonrası useEffect'in güncellemesini bekleyebiliriz.
+            // Veya anlık UI için:
             if (imageType === 'profile') {
-                setProfilePublicId(newPublicId); // Form state'ini güncelle (CldImage'in yenilenmesi için)
+                setProfileImageIdToDisplay(newPublicId);
                 setSelectedProfileFile(null);
             } else {
-                setBannerPublicId(newPublicId); // Form state'ini güncelle
+                setBannerImageIdToDisplay(newPublicId);
                 setSelectedBannerFile(null);
             }
-            router.refresh();
+            router.refresh(); // Sayfayı yenileyerek sunucudan güncel initialUser'ı alır
 
         } catch (error: any) {
             toast.error(error.message || 'Bir hata oluştu.');
             console.error("Resim kaydetme hatası:", error);
         } finally {
             toast.dismiss(loadingToastId);
-            // setIsPending(false); // Artık startTransition yönetiyor
         }
     });
   };
@@ -137,35 +143,43 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Banner */}
       <div className="w-full h-48 sm:h-64 md:h-80 bg-gray-300 dark:bg-gray-700 relative">
-        {bannerPublicId ? (
+        {bannerImageIdToDisplay ? (
           <CldImage
-          src={bannerPublicId}
-          alt={`${initialUser.username} banner resmi`}
-          width={1500} // Banner'ın olası maksimum genişliği (örnek)
-          height={500} // width'e göre oran (1500 / 3 = 500)
-          crop="fill" // Cloudinary crop parametresi
-          gravity="auto"
-          format="auto"
-          quality="auto"
-          className="absolute inset-0 w-full h-full object-cover" // Absolute konumlandırma ve tam kaplama
-          priority
-        />
+            src={bannerImageIdToDisplay} // State'ten gelen ID
+            alt={`${initialUser.username} banner resmi`}
+            fill // fill={true} kullanmak genellikle daha iyi responsive sonuç verir
+            className="object-cover" // fill ile object-cover iyi gider
+            // width ve height propları fill varken gerekli değil, ama `sizes` eklemek iyi olur
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1500px" // Örnek sizes
+            priority
+            // Cloudinary'ye özel dönüşümler CldImage proplarıyla da verilebilir:
+            // crop="fill" gravity="auto" format="auto" quality="auto"
+            // veya getCloudinaryImageUrlOptimized'daki gibi URL'ye eklenebilir
+            // next-cloudinary genellikle bunları sizin için optimize eder.
+          />
         ) : (
-          <div className="flex items-center justify-center h-full"><PhotoIcon className="h-16 w-16 text-gray-500" /></div>
+          <div className="flex items-center justify-center h-full bg-gray-400/30"> {/* Placeholder için hafif bir arkaplan */}
+            <PhotoIcon className="h-16 w-16 text-gray-500 opacity-50" />
+          </div>
         )}
+        {/* Profil Resmi Overlay'i */}
         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-10">
-          <div className="relative h-24 w-24 md:h-32 md:w-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg overflow-hidden bg-gray-200 dark:bg-gray-600">
-            {profilePublicId ? (
+          <div className="relative h-24 w-24 md:h-32 md:w-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg overflow-hidden bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+            {profileImageIdToDisplay ? (
               <CldImage 
-              src={profilePublicId} 
-              alt={`${initialUser.username} profil fotoğrafı`} 
-              width="500" // Banner'ın olası maksimum genişliği (örnek)
-              height="500" // width'e göre oran (1500 / 3 = 500)              className="object-cover" 
-              crop="fill"
-            />
+                src={profileImageIdToDisplay} // State'ten gelen ID
+                alt={`${initialUser.username} profil fotoğrafı`} 
+                fill // fill={true} kullan
+                className="object-cover"
+                sizes="(max-width: 128px) 128px, 128px" // Örnek sizes
+                // width={128} // fill varken bunlar gerekli değil
+                // height={128}
+                // crop="fill" // CldImage prop'u olarak da verilebilir
+              />
             ) : (
-                <UserCircleIcon className="h-full w-full text-gray-400 dark:text-gray-500 p-1" />
+                <UserCircleIcon className="h-20 w-20 md:h-28 md:w-28 text-gray-400 dark:text-gray-500" />
             )}
           </div>
         </div>
@@ -194,7 +208,7 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
             <div className="space-y-8">
                 <div className="p-6 md:p-0 border-t md:border-0 border-gray-200 dark:border-gray-700 md:pt-0">
                     <ProfileImageUploader 
-                        currentImagePublicId={profilePublicId} // Formun state'inden gelen publicId
+                        currentImagePublicId={profileImageIdToDisplay} // Güncel state'i ver
                         onFileSelect={setSelectedProfileFile}
                     />
                     {selectedProfileFile && (
@@ -210,7 +224,7 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
                 
                 <div className="p-6 md:p-0 border-t border-gray-200 dark:border-gray-700">
                     <BannerImageUploader 
-                        currentImagePublicId={bannerPublicId} // Formun state'inden gelen publicId
+                        currentImagePublicId={bannerImageIdToDisplay} // Güncel state'i ver
                         onFileSelect={setSelectedBannerFile}
                     />
                      {selectedBannerFile && (

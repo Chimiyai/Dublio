@@ -3,47 +3,33 @@
 
 import React, { useEffect, useState } from 'react';
 
+// StatIcon component'i aynı kalabilir
 interface StatIconProps {
-  iconClass: string; // Örn: "fas fa-users"
-  sizeClasses: string; // Örn: "w-16 h-16 text-2xl"
-  animationClass: string; // Örn: "animate-wobble-1"
-  wrapperClass?: string; // Ek pozisyonlama için
+  iconClass: string;
+  sizeClasses: string;
+  animationClass: string;
+  wrapperClass?: string;
 }
 
 const StatIcon: React.FC<StatIconProps> = ({ iconClass, sizeClasses, animationClass, wrapperClass }) => {
   const [isGlowing, setIsGlowing] = useState(false);
-
   useEffect(() => {
-    const minDelay = 2000; // Minimum bekleme süresi
-    const maxDelay = 8000; // Maksimum bekleme süresi
-    const glowInDuration = 1000;  // Parlarken geçecek süre
-    const glowStayDuration = 1000; // Parlak kalma süresi
-    const glowOutDuration = 1000;  // Sönerken geçecek süre
-
+    const minDelay = 2000; const maxDelay = 8000;
+    const glowInDuration = 1000; const glowStayDuration = 1000; const glowOutDuration = 1000;
+    let glowTimeoutId: NodeJS.Timeout; let splayTimeoutId: NodeJS.Timeout; let resetTimeoutId: NodeJS.Timeout;
     const startRandomGlow = () => {
       const randomDelay = Math.random() * (maxDelay - minDelay) + minDelay;
-      
-      setTimeout(() => {
-        // Parlama başlangıcı
+      glowTimeoutId = setTimeout(() => {
         setIsGlowing(true);
-        
-        // Sönme başlangıcı (parlama + kalma süresinden sonra)
-        setTimeout(() => {
+        splayTimeoutId = setTimeout(() => {
           setIsGlowing(false);
-          
-          // Yeni döngü (sönme bittikten sonra)
-          setTimeout(() => {
-            startRandomGlow();
-          }, glowOutDuration);
-          
+          resetTimeoutId = setTimeout(startRandomGlow, glowOutDuration);
         }, glowInDuration + glowStayDuration);
-        
       }, randomDelay);
     };
-
     startRandomGlow();
-
     return () => {
+      clearTimeout(glowTimeoutId); clearTimeout(splayTimeoutId); clearTimeout(resetTimeoutId);
       setIsGlowing(false);
     };
   }, []);
@@ -51,17 +37,9 @@ const StatIcon: React.FC<StatIconProps> = ({ iconClass, sizeClasses, animationCl
   return (
     <div className={`stat-icon-wrapper ${wrapperClass || ''}`}>
       <div
-        className={`
-          stat-icon 
-          bg-stats-icon-bg 
-          border border-stats-icon-border 
-          rounded-full 
-          flex items-center justify-center 
-          transition-all duration-1000 ease-in-out
-          ${sizeClasses} 
-          ${animationClass}
-          ${isGlowing ? 'shadow-stats-icon-glow-main' : ''}
-        `}
+        className={`stat-icon bg-stats-icon-bg border border-stats-icon-border rounded-full 
+                    flex items-center justify-center transition-all duration-1000 ease-in-out
+                    ${sizeClasses} ${animationClass} ${isGlowing ? 'shadow-stats-icon-glow-main' : ''}`}
       >
         <i className={`${iconClass} text-stats-icon-text`}></i>
       </div>
@@ -70,54 +48,113 @@ const StatIcon: React.FC<StatIconProps> = ({ iconClass, sizeClasses, animationCl
 };
 
 
+// API'den dönecek istatistik verisi için tip
+interface SiteStatistics {
+  totalUsers: number;
+  totalDubbedGames: number;
+  totalDubbedAnime: number;
+  totalTeamMembers: number;
+  totalGameRequests: number;
+  // totalAnimeRequests?: number; // Eğer API'den geliyorsa
+}
+
+// API'den istatistikleri çekme fonksiyonu
+async function fetchSiteStats(): Promise<SiteStatistics | null> {
+  try {
+    const res = await fetch('/api/stats');
+    if (!res.ok) {
+      console.error(`Site istatistikleri çekilemedi, status: ${res.status}`);
+      return null;
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Site istatistikleri fetch hatası:", error);
+    return null;
+  }
+}
+
 const SiteStatsSection = () => {
-  // İkonlar için veriler
+  const [statsData, setStatsData] = useState<SiteStatistics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      setIsLoading(true);
+      const data = await fetchSiteStats();
+      setStatsData(data);
+      setIsLoading(false);
+    };
+    loadStats();
+  }, []);
+
+  // İkon verileri aynı kalabilir
   const leftIcons = [
-    { id: 'users', iconClass: 'fas fa-users', size: 'w-16 h-16 text-2xl md:w-20 md:h-20 md:text-3xl', anim: 'animate-wobble-1' }, // Orijinal: w:60, font:1.8em
-    { id: 'mic', iconClass: 'fas fa-microphone-alt', size: 'w-[75px] h-[75px] text-3xl md:w-24 md:h-24 md:text-4xl', anim: 'animate-wobble-3' }, // Orijinal: w:75, font:2.2em
+    { id: 'users', iconClass: 'fas fa-users', size: 'w-16 h-16 text-2xl md:w-20 md:h-20 md:text-3xl', anim: 'animate-wobble-1' },
+    { id: 'mic', iconClass: 'fas fa-microphone-alt', size: 'w-[75px] h-[75px] text-3xl md:w-24 md:h-24 md:text-4xl', anim: 'animate-wobble-3' },
   ];
   const rightIcons = [
     { id: 'gamepad', iconClass: 'fas fa-gamepad', size: 'w-24 h-24 text-4xl md:w-28 md:h-28 md:text-5xl', anim: 'animate-wobble-2-main', isMain: true },
-    { id: 'film', iconClass: 'fas fa-film', size: 'w-[65px] h-[65px] text-2xl md:w-[75px] md:h-[75px] md:text-3xl', anim: 'animate-wobble-4' }, // Orijinal: w:65, font:1.9em
+    { id: 'film', iconClass: 'fas fa-film', size: 'w-[65px] h-[65px] text-2xl md:w-[75px] md:h-[75px] md:text-3xl', anim: 'animate-wobble-4' },
   ];
 
-  const stats = [
-    "1,854,165 Adet Kullanıcı",
-    "1,651 Adet Türkçe Dublaj Oyun",
-    "121 Adet Türkçe Dublaj Anime",
-    "1,561 Adet Ekip Üyesi",
-    "12,312 Adet İstek Oyun",
+  // Sayıları formatlamak için yardımcı fonksiyon
+  const formatNumber = (num: number | undefined | null) => {
+    if (num === undefined || num === null) return '0'; // Veya 'N/A'
+    return num.toLocaleString('tr-TR'); // Türkçe formatında binlik ayraçlı
+  };
+
+  // Dinamik istatistik metinleri
+  const statsListItems = statsData ? [
+    `${formatNumber(statsData.totalUsers)} Adet Kullanıcı`,
+    `${formatNumber(statsData.totalDubbedGames)} Adet Türkçe Dublaj Oyun`,
+    `${formatNumber(statsData.totalDubbedAnime)} Adet Türkçe Dublaj Anime`,
+    `${formatNumber(statsData.totalTeamMembers)} Adet Ekip Üyesi`,
+    `${formatNumber(statsData.totalGameRequests)} Adet İstek Oyun`,
+  ] : [
+    "Veriler yükleniyor...", // Yüklenirken gösterilecek metinler
+    "Veriler yükleniyor...",
+    "Veriler yükleniyor...",
+    "Veriler yükleniyor...",
+    "Veriler yükleniyor...",
   ];
+
+
+  // tailwind.config.js'de bu renklerin tanımlı olması beklenir:
+  // bg-section-bg-alt, text-prestij-text-primary, text-prestij-text-secondary,
+  // bg-stats-icon-bg, border-stats-icon-border, text-stats-icon-text,
+  // shadow-stats-icon-glow-main, bg-stats-divider-color, text-stats-footer-text-color
 
   return (
     <section className="site-stats-section bg-section-bg-alt py-16 md:py-20 relative">
-      {/* Üst Ayraç (Opsiyonel) */}
-      {/* <div className="section-divider top-divider absolute top-0 left-1/2 -translate-x-1/2 w-4/5 max-w-screen-xl h-px bg-stats-divider-color opacity-50"></div> */}
-      
       <div className="container mx-auto stats-container flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 px-4">
-        {/* Sol İkon Sütunu */}
         <div className="stats-icon-column flex flex-row lg:flex-col items-center justify-center gap-5 md:gap-8">
           {leftIcons.map(icon => (
             <StatIcon key={icon.id} iconClass={icon.iconClass} sizeClasses={icon.size} animationClass={icon.anim} />
           ))}
         </div>
 
-        {/* Orta Metin İçeriği */}
         <div className="stats-info-content text-center lg:max-w-md xl:max-w-lg">
           <h2 className="section-title stats-title text-2xl sm:text-3xl md:text-4xl font-semibold text-prestij-text-primary mb-5 md:mb-6">
-            Sitemizde Şuan;
+            Sitemizde Şu An;
           </h2>
-          <ul className="stats-list space-y-2 text-base sm:text-lg text-prestij-text-secondary mb-5 md:mb-6">
-            {stats.map((stat, index) => (
-              <li key={index}>{stat}</li>
-            ))}
-          </ul>
+          {isLoading ? (
+            <ul className="stats-list space-y-2 text-base sm:text-lg text-prestij-text-secondary mb-5 md:mb-6">
+                {[...Array(5)].map((_, i) => <li key={i} className="h-6 bg-gray-700/50 rounded animate-pulse w-3/4 mx-auto"></li>)}
+            </ul>
+          ) : statsData ? (
+            <ul className="stats-list space-y-2 text-base sm:text-lg text-prestij-text-secondary mb-5 md:mb-6">
+              {statsListItems.map((stat, index) => (
+                <li key={index}>{stat}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-prestij-text-dark">İstatistikler yüklenemedi.</p>
+          )}
           <p className="stats-footer-text text-sm sm:text-base text-stats-footer-text-color">
             Bulunmaktadır.
           </p>
         </div>
 
-        {/* Sağ İkon Sütunu */}
         <div className="stats-icon-column flex flex-row lg:flex-col items-center justify-center gap-5 md:gap-8">
           {rightIcons.map(icon => (
             <StatIcon 
@@ -125,18 +162,13 @@ const SiteStatsSection = () => {
               iconClass={icon.iconClass} 
               sizeClasses={icon.size}
               animationClass={icon.anim} 
-              wrapperClass={icon.isMain ? '' : ''} // Ana ikon için sürekli glow efekti
             />
           ))}
         </div>
       </div>
-
-      {/* Alt Ayraç */}
       <div className="section-divider bottom-divider absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 max-w-screen-xl h-px bg-stats-divider-color opacity-50"></div>
     </section>
   );
 };
-
-
 
 export default SiteStatsSection;
