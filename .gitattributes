@@ -1,6 +1,5 @@
 # Auto detect text files and ensure they use LF line endings on commit
 * text=auto eol=lf
-
 # Explicitly declare certain file types as text and ensure LF
 *.js text eol=lf
 *.jsx text eol=lf
@@ -15,10 +14,8 @@
 *.env text eol=lf
 *.env.* text eol=lf
 .gitignore text eol=lf
-
 # Declare files that will always have CRLF line endings (e.g. Windows batch files)
 # *.bat text eol=crlf
-
 # Denote all files that are truly binary and should not be modified.
 *.png binary
 *.jpg binary
@@ -33,3 +30,4 @@
 *.eot binary
 *.otf binary
 *.pdf binary
+*.mp4 filter=lfs diff=lfs merge=lfs -text
