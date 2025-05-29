@@ -35,12 +35,18 @@
                 cloudinary-utils/
                     delete-image/
                         route.ts
+                project-characters/
+                    route.ts
+                    [characterId]/
+                        route.ts
                 projects/
                     route.ts
                     cover-image/
                         route.ts
                     [slug]/
                         route.ts
+                        characters/
+                            route.ts
                 sanatcilar/
                     route.ts
                     profile-image/
@@ -52,6 +58,14 @@
                         route.ts
             auth/
                 [...nextauth]/
+                    route.ts
+            categories/
+                route.ts
+            comments/
+                [commentId]/
+                    route.ts
+            games/
+                add-to-library/
                     route.ts
             image-upload/
                 route.ts
@@ -70,11 +84,39 @@
                         route.ts
                 password/
                     route.ts
+            projects/
+                route.ts
+                top-favorites/
+                    route.ts
+                [projectId]/
+                    comments/
+                        route.ts
+                        [commentId]/
+                            route.ts
+                    dislike/
+                        route.ts
+                    favorite/
+                        route.ts
+                    like/
+                        route.ts
             register/
                 route.ts
+            stats/
+                route.ts
+            users/
+                [userId]/
+                    activity/
+                        route.ts
+                    favorite-artists/
+                        route.ts
+                    overview-stats/
+                        route.ts
         mesajlar/
             page.tsx
             [userId]/
+                page.tsx
+        oyunlar/
+            [slug]/
                 page.tsx
         profil/
             page.tsx
@@ -100,9 +142,11 @@
         Providers.tsx
         admin/
             AddArtistForm.tsx
+            AddCharacterForm.tsx
             AddProjectClientForm.tsx
             AddProjectForm.tsx
             AdminArtistAvatar.tsx
+            AdminPageLayout.tsx
             CoverImageUploader.tsx
             DeleteArtistButton.tsx
             DeleteProjectButton.tsx
@@ -110,29 +154,62 @@
             EditArtistForm.tsx
             EditProjectForm.tsx
             ImageUploader.tsx
+            ProjectsTable.tsx
             UpdateUserRole.tsx
+        game/
+            GameTabs.tsx
         home/
             DubbedAnimeSection.tsx
             DubbedGamesSection.tsx
             HeroSection.tsx
             JoinDiscordSection.tsx
+            MainShowcase.tsx
+            MainShowcasePlaceholder.tsx
             PopularContentSection.tsx
+            ShowcaseSection.tsx
+            SideShowcaseItem.tsx
+            SideShowcaseItemPlaceholder.tsx
             SiteStatsSection.tsx
             SuggestGameSection.tsx
+            SuggestOptionCard.tsx
+            TopProjectCard.tsx
+            TopProjectCardPlaceholder.tsx
         layout/
             Footer.tsx
+            Header.tsx
+            SearchOverlay.tsx
         profile/
+            ActivityContent.tsx
             BannerImageUploader.tsx
+            FavoriteArtistCard.tsx
+            LibraryContent.tsx
+            OverviewContent.tsx
             ProfileImageUploader.tsx
             UpdateBioForm.tsx
             UpdateEmailForm.tsx
             UpdatePasswordForm.tsx
             UpdateUsernameForm.tsx
+            UserProfileBanner.tsx
             UserProfileForm.tsx
+            UserProfileInfo.tsx
+            UserProfileStatsBar.tsx
+            UserProfileTabs.tsx
+        project/
+            CommentsSection.tsx
+            ProjectInteractionButtons.tsx
         ui/
             card.tsx
+            DropdownControl.tsx
+            PopularContentCard.tsx
+            PopularContentCardPlaceholder.tsx
+            SliderCard.tsx
+    data/
+        showcaseData.ts
     lib/
+        cloudinary.ts
         prisma.ts
         utils.ts
     types/
+        hero.ts
         next-auth.d.ts
+        showcase.ts

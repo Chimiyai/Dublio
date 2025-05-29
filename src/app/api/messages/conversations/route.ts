@@ -1,23 +1,18 @@
 // src/app/api/messages/conversations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-
-  if (!session || !session.user?.id) {
+  if (!session?.user?.id) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
   }
-
-  const currentUserId = parseInt(session.user.id, 10);
-  if (isNaN(currentUserId)) {
-    return NextResponse.json({ message: 'Geçersiz kullanıcı ID.' }, { status: 400 });
-  }
+  const currentUserId = parseInt(session.user.id);
 
   try {
-    // 1. Kullanıcının gönderdiği veya aldığı tüm mesajları çek
+    // Kullanıcının dahil olduğu tüm mesajları çek
     const messages = await prisma.message.findMany({
       where: {
         OR: [
@@ -26,7 +21,7 @@ export async function GET(request: NextRequest) {
         ],
       },
       orderBy: {
-        createdAt: 'desc', // En yeni mesajlar önemli
+        createdAt: 'desc', // Her sohbet için en son mesajı bulmak üzere
       },
       include: {
         sender: { select: { id: true, username: true, profileImagePublicId: true } },
@@ -34,47 +29,37 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // 2. Bu mesajlardan benzersiz konuşma partnerlerini ve her bir partnerle olan son mesajı çıkar
-    const conversationsMap = new Map<
-      number, 
-      { 
-        partner: { id: number; username: string; profileImagePublicId: string | null }; 
-        lastMessage: { content: string; createdAt: Date; isSender: boolean };
-      }
-    >();
+    // Mesajları diğer kullanıcıya göre grupla ve her gruptan son mesajı al
+    const conversationsMap = new Map<number, any>();
 
-    for (const message of messages) {
-      const partner = message.senderId === currentUserId ? message.receiver : message.sender;
-      
-      // Eğer bu partnerle bir konuşma zaten map'te yoksa veya bu mesaj daha yeniyse ekle/güncelle
-      if (!conversationsMap.has(partner.id)) {
-        conversationsMap.set(partner.id, {
-          partner: {
-            id: partner.id,
-            username: partner.username,
-            profileImagePublicId: partner.profileImagePublicId,
+    messages.forEach(message => {
+      const otherUserId = message.senderId === currentUserId ? message.receiverId : message.senderId;
+      const otherUser = message.senderId === currentUserId ? message.receiver : message.sender;
+
+      if (!conversationsMap.has(otherUserId)) {
+        conversationsMap.set(otherUserId, {
+          user: { // Diğer kullanıcı bilgileri
+            id: otherUser.id,
+            username: otherUser.username,
+            profileImagePublicId: otherUser.profileImagePublicId,
+            // onlineStatus: 'Çevrim içi' // Bu bilgi için ayrı bir sistem gerekir
           },
-          lastMessage: {
-            content: message.content,
-            createdAt: message.createdAt,
-            isSender: message.senderId === currentUserId, // Bu mesajı ben mi gönderdim?
-          },
+          lastMessage: message.content,
+          lastMessageAt: message.createdAt,
+          // unreadCount: 0, // Okunmamış mesaj sayısı için ek mantık gerekir
         });
       }
-      // Not: `orderBy: { createdAt: 'desc' }` sayesinde ilk karşılaşılan mesaj zaten son mesaj olacak.
-      // Eğer aynı kullanıcıyla birden fazla mesaj varsa, ilk bulunan (en yeni) map'e eklenecek
-      // ve sonrakiler (daha eski olanlar) map.has(partner.id) true döneceği için atlanacak.
-    }
+      // İsteğe bağlı: Okunmamış mesaj sayısını da hesaplayabiliriz
+      // (e.g., if (!message.isRead && message.receiverId === currentUserId) conversationsMap.get(otherUserId).unreadCount++)
+    });
+    
+    const conversations = Array.from(conversationsMap.values())
+      .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
 
-    const conversations = Array.from(conversationsMap.values());
-
-    // İsteğe bağlı: Son mesaja göre sırala
-    // conversations.sort((a, b) => b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime());
-
-    return NextResponse.json(conversations, { status: 200 });
+    return NextResponse.json(conversations);
 
   } catch (error) {
-    console.error('Konuşmaları getirme hatası:', error);
-    return NextResponse.json({ message: 'Konuşmalar getirilirken bir hata oluştu.' }, { status: 500 });
+    console.error('Sohbet listesi getirme hatası:', error);
+    return NextResponse.json({ message: 'Sohbetler getirilirken bir hata oluştu.' }, { status: 500 });
   }
 }

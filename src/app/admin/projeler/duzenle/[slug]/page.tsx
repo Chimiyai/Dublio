@@ -1,6 +1,6 @@
 // src/app/admin/projeler/duzenle/[slug]/page.tsx
 import prisma from '@/lib/prisma';
-import EditProjectForm, { ProjectFormData, ProjectTypeEnum } from '@/components/admin/EditProjectForm'; // ProjectTypeEnum import edildi
+import EditProjectForm, { InitialProjectData, ProjectTypeEnum } from '@/components/admin/EditProjectForm'; // ProjectTypeEnum import edildi
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { RoleInProject } from '@prisma/client';
 import { notFound } from 'next/navigation';
@@ -13,12 +13,17 @@ interface EditPageProps {
 }
 
 async function getProjectDataForEdit(slug: string) {
-  const projectFromDb = await prisma.project.findUnique({ // Değişken adını değiştirdim karışmaması için
+  const projectFromDb = await prisma.project.findUnique({
     where: { slug },
     include: {
       assignments: {
         include: {
-          artist: { select: { id: true, firstName: true, lastName: true } }
+          artist: { select: { id: true, firstName: true, lastName: true } },
+          voiceRoles: {
+            select: {
+              character: { select: { id: true, name: true } }
+            }
+          }
         }
       },
       categories: {
@@ -41,16 +46,11 @@ async function getProjectDataForEdit(slug: string) {
   const projectCategoryIds = projectFromDb.categories.map(pc => pc.category.id);
 
   // ProjectFormData'ya uygun hale getir
-  const formattedProject: ProjectFormData = {
+  const formattedProject: InitialProjectData = { // Bu tip InitialProjectData olmalı
     id: projectFromDb.id,
     title: projectFromDb.title,
     slug: projectFromDb.slug,
-    // DÜZELTME: type alanını ProjectTypeEnum'a cast et veya kontrol et
-    type: projectFromDb.type as ProjectTypeEnum, // En basit çözüm, verinin doğru olduğunu varsayar
-    // Daha güvenli bir yöntem:
-    // type: (projectFromDb.type === 'oyun' || projectFromDb.type === 'anime') 
-    //         ? projectFromDb.type as ProjectTypeEnum 
-    //         : 'oyun', // Veya bir hata fırlat / varsayılan ata
+    type: projectFromDb.type as ProjectTypeEnum,
     description: projectFromDb.description || null,
     coverImagePublicId: projectFromDb.coverImagePublicId || null,
     bannerImagePublicId: projectFromDb.bannerImagePublicId || null,
@@ -58,19 +58,17 @@ async function getProjectDataForEdit(slug: string) {
     isPublished: projectFromDb.isPublished,
     price: projectFromDb.price === null ? null : Number(projectFromDb.price),
     currency: projectFromDb.currency || null,
-    assignments: projectFromDb.assignments.map(a => ({
+    assignments: projectFromDb.assignments.map((a, index) => ({ // index eklendi
+      tempId: `${Date.now()}-server-${a.artistId}-${index}`, // YENİ: Sunucu tarafında geçici ID ata
       artistId: a.artistId,
       role: a.role,
-      artistName: `${a.artist.firstName} ${a.artist.lastName}`
+      artistName: `${a.artist.firstName} ${a.artist.lastName}`,
+      characterIds: a.role === RoleInProject.VOICE_ACTOR && a.voiceRoles
+        ? a.voiceRoles.map(vr => vr.character.id)
+        : undefined,
     })),
-    categoryIds: projectCategoryIds,
-    // API'den gelen ve ProjectFormData'da olmayan ekstra alanları buraya eklemeyin
-    // veya ProjectFormData'yı buna göre güncelleyin.
-    // Örneğin, Prisma'dan gelen 'createdAt', 'updatedAt' gibi alanlar ProjectFormData'da yoksa,
-    // bunları ...projectFromDb ile yayarken dikkatli olun.
-    // Şimdilik manuel olarak atama yapıyoruz, bu yüzden sorun olmamalı.
+    categoryIds: projectFromDb.categories.map(pc => pc.category.id),
   };
-
   return {
     project: formattedProject,
     allArtists: allArtists.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` })),
@@ -80,7 +78,8 @@ async function getProjectDataForEdit(slug: string) {
 }
 
 export async function generateMetadata({ params }: EditPageProps): Promise<Metadata> {
-  const projectData = await getProjectDataForEdit(params.slug);
+  const pageSlug = params.slug; // Değişkene ata
+  const projectData = await getProjectDataForEdit(pageSlug); // Değişkeni kullan
   if (!projectData?.project) {
     return { title: 'Proje Bulunamadı | Admin' };
   }
@@ -90,7 +89,8 @@ export async function generateMetadata({ params }: EditPageProps): Promise<Metad
 }
 
 export default async function EditExistingProjectPage({ params }: EditPageProps) {
-  const data = await getProjectDataForEdit(params.slug);
+  const pageSlug = params.slug; // Değişkene ata
+  const data = await getProjectDataForEdit(pageSlug); // Değişkeni kullan
 
   if (!data || !data.project) {
     notFound();
@@ -102,16 +102,16 @@ export default async function EditExistingProjectPage({ params }: EditPageProps)
       backLink={{ href: '/admin/projeler', label: 'Proje Listesine Dön' }}
       breadcrumbs={[
         { label: "Proje Yönetimi", href: "/admin/projeler" },
-        { label: data.project.title, href: `/admin/projeler/duzenle/${data.project.slug}` } // Mevcut sayfa
+        // pageSlug'ı burada da kullanabilirsin veya data.project.slug'ı (eğer değişmediyse)
+        { label: data.project.title, href: `/admin/projeler/duzenle/${data.project.slug}` } 
       ]}
     >
-      {/* Form için ek bir padding ve max-width */}
       <div className="p-6 sm:p-8 max-w-3xl mx-auto"> 
         <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-6">
           Proje: <span className='font-semibold text-indigo-600 dark:text-indigo-400'>{data.project.title}</span>
         </p>
         <EditProjectForm
-          project={data.project}
+          project={data.project} // data.project ProjectFormData tipine uygun olmalı
           allArtists={data.allArtists}
           allCategories={data.allCategories}
           availableRoles={data.availableRoles}

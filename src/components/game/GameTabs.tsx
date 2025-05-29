@@ -2,107 +2,224 @@
 'use client';
 
 import { useState } from 'react';
-import CommentsSection from '@/components/project/CommentsSection'; // Yorumlar
-// import ContributorsSection from './ContributorsSection'; // Gelecekte
-// import GallerySection from './GallerySection'; // Gelecekte
+import CommentsSection from '@/components/project/CommentsSection';
 import { cn } from '@/lib/utils';
-import { Project, DubbingArtist, RoleInProject } from '@prisma/client'; // Tipler için
-import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary'; // YENİ: Cloudinary fonksiyonunu import et
-import { UserCircleIcon } from '@heroicons/react/24/outline'; // YENİ: İkonu import et
+import { 
+    Project as PrismaProject, 
+    DubbingArtist as PrismaDubbingArtist, 
+    RoleInProject as PrismaRoleInProject, 
+    ProjectAssignment as PrismaProjectAssignment, // ProjectAssignment tipini de alalım
+    // ProjectCharacter as PrismaProjectCharacter, // Gerekirse
+    // VoiceAssignment as PrismaVoiceAssignment // Gerekirse
+} from '@prisma/client';
+import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
 import NextImage from 'next/image';
+import { formatProjectRole } from '@/lib/utils';
 
-// Katkıda Bulunanlar için tip (ArtistAvatar ve ProjectDetailCover gibi componentler kullanıyorduk)
-type ArtistForProjectDetail = Pick<DubbingArtist, "id" | "firstName" | "lastName" | "imagePublicId">;
-type GameDataForTabs = Project & { // gameData prop'u için tip
-    assignments: Array<{
-        role: RoleInProject;
-        artist: ArtistForProjectDetail;
-    }>;
-    // categories: Array<{ category: { name: string; slug: string } }>; // gerekirse
-};
+// --- TİP TANIMLARI ---
+// Bu tipler, getGameDetails'ten gelen verinin yapısını yansıtmalı
+
+interface ArtistForCard { // Sanatçı kartında gösterilecek temel bilgiler
+  id: number;
+  firstName: string;
+  lastName: string;
+  imagePublicId: string | null;
+}
+
+export interface CharacterInfoForCard { // Karakter bilgisi
+  id: number;
+  name: string;
+}
+
+export interface VoiceRoleForCard { // Bir seslendirme rolünün detayı
+  character: CharacterInfoForCard;
+  // VoiceAssignment'tan başka notlar vb. eklenebilir
+}
+
+// Bir proje atamasının tüm detayları (sanatçı, rol ve seslendirme rolleri)
+export interface AssignmentWithDetails {
+  id: number; // ProjectAssignment ID
+  role: PrismaRoleInProject;
+  artist: ArtistForCard;
+  voiceRoles: VoiceRoleForCard[]; // Bu atamaya bağlı seslendirilmiş karakterler
+}
+
+export interface CategoryForGamePage { // game.categories için tip
+    category: {
+        name: string;
+        slug: string; // slug da geliyordu sanırım
+    }
+}
+// GameTabs component'ine prop olarak geçecek ana veri tipi
+// Bu tip, `getGameDetails` fonksiyonundan dönen `project` objesinin yapısıyla eşleşmeli.
+export interface GameDataForTabs {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  // YENİ EKLENEN ALANLAR:
+  bannerImagePublicId: string | null;
+  coverImagePublicId: string | null;
+  releaseDate: Date | string | null; // Prisma'dan Date, format sonrası string olabilir
+  price: number | null;
+  currency: string | null;
+  likeCount: number; // Varsayılan olarak 0 olabilir, Prisma şemasında default(0)
+  dislikeCount: number;
+  favoriteCount: number;
+  // type: string; // 'oyun' veya 'anime', eğer gerekliyse eklenebilir
+  categories: CategoryForGamePage[]; // Güncellenmiş kategori tipi
+  
+  assignments: AssignmentWithDetails[];
+  _count?: { comments?: number | null } | null;
+}
 
 
-function ContributorsSection({ assignments }: { assignments: GameDataForTabs['assignments'] }) {
+// --- COMPONENTLER ---
+
+function ContributorsSection({ assignments }: { assignments: AssignmentWithDetails[] }) {
   if (!assignments || assignments.length === 0) {
-    return <p className="text-gray-400">Bu projeye henüz kimse atanmamış.</p>;
+    return <p className="text-gray-400 py-4">Bu projeye henüz kimse atanmamış.</p>;
   }
 
-  const formatRole = (role: RoleInProject | string) => {
+  const formatRole = (role: PrismaRoleInProject): string => {
     return role.toString().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  // Atamaları role göre grupla
   const groupedAssignments = assignments.reduce((acc, assignment) => {
-    const roleKey = assignment.role.toString();
+    const roleKey = assignment.role;
     if (!acc[roleKey]) {
       acc[roleKey] = [];
     }
-    acc[roleKey].push(assignment.artist);
+    acc[roleKey].push(assignment); // Tüm assignment objesini ekle
     return acc;
-  }, {} as Record<string, ArtistForProjectDetail[]>);
+  }, {} as Record<PrismaRoleInProject, AssignmentWithDetails[]>);
+
+  // Rollerin gösterim sırasını belirleyebiliriz (isteğe bağlı)
+  const roleOrder: PrismaRoleInProject[] = [
+    PrismaRoleInProject.DIRECTOR,
+    PrismaRoleInProject.VOICE_ACTOR,
+    PrismaRoleInProject.SCRIPT_WRITER,
+    PrismaRoleInProject.TRANSLATOR,
+    PrismaRoleInProject.MIX_MASTER,
+    PrismaRoleInProject.MODDER,
+  ];
+  
+  const sortedRoles = Object.keys(groupedAssignments)
+    .sort((a, b) => {
+        const indexA = roleOrder.indexOf(a as PrismaRoleInProject);
+        const indexB = roleOrder.indexOf(b as PrismaRoleInProject);
+        // Eğer rol roleOrder'da yoksa sona at
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+    }) as PrismaRoleInProject[];
+
 
   return (
-    <div className="space-y-6">
-      {Object.entries(groupedAssignments).map(([role, artistsArray]) => (
-        <div key={role}>
-          <h4 className="text-md font-semibold mb-3 text-indigo-400">
-            {formatRole(role)}
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {artistsArray.map((artist) => (
-              <a key={artist.id} href={`/sanatcilar/${artist.id}`} className="block group text-center p-2 bg-gray-800/50 rounded-lg hover:bg-gray-700/70 transition-colors">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-2 rounded-full overflow-hidden border border-gray-700 group-hover:border-indigo-500 flex items-center justify-center bg-gray-700 relative"> {/* relative eklendi */}
-                  {artist.imagePublicId ? (
-                     <NextImage // Alias'ı kullan
-                        src={getCloudinaryImageUrlOptimized(artist.imagePublicId, {width: 80, height: 80, crop: 'fill', gravity: 'face'}, 'avatar')}
-                        alt={`${artist.firstName} ${artist.lastName}`}
-                        fill
-                        className="object-cover rounded-full"
-                        sizes="(max-width: 640px) 64px, 80px" // Örnek sizes prop'u
-                     />
-                  ) : <UserCircleIcon className="w-10 h-10 text-gray-500"/>}
-                </div>
-                <p className="text-xs sm:text-sm font-medium text-gray-200 group-hover:text-indigo-300 truncate">
-                  {artist.firstName} {artist.lastName}
-                </p>
-              </a>
-            ))}
+    <div className="space-y-10">
+      {sortedRoles.map((role) => {
+        const assignmentsInRole = groupedAssignments[role];
+        if (!assignmentsInRole || assignmentsInRole.length === 0) return null;
+
+        return (
+          <div key={role}>
+            <h3 className="text-xl font-semibold mb-5 border-b border-gray-700 pb-2 text-indigo-400">
+              {formatProjectRole(role)}
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-6">
+              {assignmentsInRole.map((assignment) => {
+                const artist = assignment.artist;
+                const charactersPlayed =
+                  assignment.role === PrismaRoleInProject.VOICE_ACTOR && assignment.voiceRoles && assignment.voiceRoles.length > 0
+                    ? assignment.voiceRoles.map(vr => vr.character.name).join(', ')
+                    : null;
+
+                return (
+                  <a
+                    key={`${assignment.id}-${artist.id}`} // assignment.id daha unique olur
+                    href={`/sanatcilar/${artist.id}`} // Sanatçı profil sayfasına link
+                    className="group flex flex-col items-center text-center p-3 bg-gray-800/60 dark:bg-gray-800/40 rounded-lg shadow-md hover:shadow-xl transition-all duration-200 ease-in-out transform hover:-translate-y-1"
+                  >
+                    <div className="w-24 h-24 mb-3 rounded-full overflow-hidden border-2 border-gray-700 dark:border-gray-600 group-hover:border-indigo-500 transition-colors duration-200 flex-shrink-0 relative">
+                      {artist.imagePublicId ? (
+                        <NextImage
+                          src={getCloudinaryImageUrlOptimized(artist.imagePublicId, { width: 96, height: 96, crop: 'fill', gravity: 'face' }, 'avatar')}
+                          alt={`${artist.firstName} ${artist.lastName}`}
+                          fill
+                          className="object-cover" // rounded-full parent'ta zaten var
+                          sizes="96px"
+                        />
+                      ) : (
+                        <UserCircleIcon className="w-full h-full text-gray-500 p-1" />
+                      )}
+                    </div>
+                    <p className="w-full text-sm font-semibold text-gray-100 dark:text-gray-50 group-hover:text-indigo-400 dark:group-hover:text-indigo-300 transition-colors duration-200 truncate">
+                      {artist.firstName} {artist.lastName}
+                    </p>
+                    {charactersPlayed && (
+                      <div className="w-full mt-1">
+                        <p className="text-xs text-purple-400 dark:text-purple-300 truncate px-1" title={charactersPlayed}>
+                          <span className="font-medium">Karakter:</span> {charactersPlayed}
+                        </p>
+                      </div>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 function GallerySectionPlaceholder() {
-    return <p className="text-gray-400">Resim galerisi yakında eklenecek.</p>;
+  return <p className="text-gray-400 py-4">Resim galerisi bu proje için henüz mevcut değil.</p>;
 }
-
 
 interface GameTabsProps {
   gameId: number;
   initialCommentCount: number;
-  gameData: GameDataForTabs; // Katkıda bulunanlar için tüm game objesini alalım
+  gameData: GameDataForTabs; // Güncellenmiş tip
 }
 
-type TabKey = 'comments' | 'contributors' | 'gallery';
+type TabKey = 'contributors' | 'comments' | 'gallery'; // Sıra değiştirildi
 
 export default function GameTabs({ gameId, initialCommentCount, gameData }: GameTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>('comments');
+  // Varsayılan aktif sekme "Katkıda Bulunanlar"
+  const [activeTab, setActiveTab] = useState<TabKey>('contributors');
 
-  const tabs: { key: TabKey; label: string; icon?: React.ElementType }[] = [
-    { key: 'comments', label: 'Yorumlar' },
+  const tabs: { key: TabKey; label: string }[] = [
     { key: 'contributors', label: 'Katkıda Bulunanlar' },
+    { key: 'comments', label: 'Yorumlar' },
     { key: 'gallery', label: 'Resimler' },
   ];
 
-  const tabButtonBaseClass = "whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm transition-colors";
-  const tabButtonInactiveClass = "text-gray-400 hover:text-gray-200 hover:border-gray-400 border-transparent";
-  const tabButtonActiveClass = "text-purple-400 border-purple-500";
+  const tabButtonBaseClass = "whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm transition-colors duration-150 ease-in-out";
+  const tabButtonInactiveClass = "text-gray-400 hover:text-gray-200 hover:border-gray-500 dark:hover:border-gray-400 border-transparent";
+  const tabButtonActiveClass = "text-purple-400 dark:text-purple-300 border-purple-500 dark:border-purple-400";
 
   return (
-    <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-      <div className="border-b border-gray-700 mb-6">
-        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+    <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+      {/* Oyun Açıklaması */}
+      {gameData.description && (
+        <div className="mb-10 md:mb-12 p-6 bg-gray-800/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl shadow-lg">
+          <h2 className="text-2xl font-bold text-white mb-4 border-b-2 border-gray-700 pb-3">
+            Oyun Açıklaması
+          </h2>
+          <div 
+            dangerouslySetInnerHTML={{ __html: gameData.description.replace(/\n/g, '<br />') }} 
+            className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-gray-300 dark:text-gray-300 leading-relaxed" 
+          />
+        </div>
+      )}
+
+      {/* Sekme Başlıkları */}
+      <div className="border-b border-gray-700 dark:border-gray-600 mb-8">
+        <nav className="-mb-px flex space-x-6 sm:space-x-8" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -118,6 +235,7 @@ export default function GameTabs({ gameId, initialCommentCount, gameData }: Game
         </nav>
       </div>
 
+      {/* Aktif Sekme İçeriği */}
       <div className="mt-2">
         {activeTab === 'comments' && <CommentsSection projectId={gameId} initialTotalComments={initialCommentCount} />}
         {activeTab === 'contributors' && <ContributorsSection assignments={gameData.assignments} />}

@@ -1,68 +1,148 @@
 // src/app/api/messages/[userId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
+import { z } from 'zod';
 
-interface RouteContext {
-  params: {
-    userId: string; // URL'den gelen partnerin ID'si
-  };
+interface RouteParams {
+  params: { userId: string }; // Sohbet edilen diğer kullanıcının ID'si
 }
 
-export async function GET(request: NextRequest, { params }: RouteContext) {
-  const session = await getServerSession(authOptions);
+const getMessagesQuerySchema = z.object({
+  page: z.string().optional().default('1').transform(Number),
+  limit: z.string().optional().default('20').transform(Number), // Sayfa başına mesaj sayısı
+});
 
-  if (!session || !session.user?.id) {
+// GET: Belirli bir kullanıcıyla olan mesajları listele
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
   }
+  const currentUserId = parseInt(session.user.id);
+  const otherUserId = parseInt(params.userId);
 
-  const currentUserId = parseInt(session.user.id, 10);
-  const partnerId = parseInt(params.userId, 10);
-
-  if (isNaN(currentUserId) || isNaN(partnerId)) {
-    return NextResponse.json({ message: 'Geçersiz kullanıcı IDleri.' }, { status: 400 });
+  if (isNaN(otherUserId)) {
+    return NextResponse.json({ message: 'Geçersiz kullanıcı ID.' }, { status: 400 });
   }
 
-  if (currentUserId === partnerId) {
-    return NextResponse.json({ message: 'Kendinizle olan mesajları bu şekilde getiremezsiniz.' }, { status: 400 });
+  const { searchParams } = new URL(request.url);
+  const queryParse = getMessagesQuerySchema.safeParse(Object.fromEntries(searchParams));
+
+  if (!queryParse.success) {
+    return NextResponse.json({ message: 'Geçersiz sorgu parametreleri.', errors: queryParse.error.issues }, { status: 400 });
   }
+  const { page, limit } = queryParse.data;
+  const skip = (page - 1) * limit;
 
   try {
-    // İki kullanıcı arasındaki tüm mesajları çek
-    // Gönderen ben, alıcı partner VEYA gönderen partner, alıcı ben
     const messages = await prisma.message.findMany({
       where: {
         OR: [
-          { senderId: currentUserId, receiverId: partnerId },
-          { senderId: partnerId, receiverId: currentUserId },
+          { senderId: currentUserId, receiverId: otherUserId },
+          { senderId: otherUserId, receiverId: currentUserId },
         ],
       },
       include: {
         sender: { select: { id: true, username: true, profileImagePublicId: true } },
-        // receiver'a genellikle gerek yok çünkü kiminle konuştuğumuzu zaten biliyoruz (partnerId)
-        // ama istersen eklenebilir.
+        // receiver bilgisi de eklenebilir ama genellikle gerekmeyebilir mesaj listesinde
       },
-      orderBy: {
-        createdAt: 'asc', // Mesajları en eskiden en yeniye doğru sırala
-      },
+      orderBy: { createdAt: 'asc' }, // En eski mesajdan en yeniye doğru
+      skip,
+      take: limit,
     });
 
-    // İsteğe bağlı: Partner kullanıcının varlığını ve bilgilerini de çekebiliriz.
-    // Bu, konuşma sayfasının başında partnerin adını vb. göstermek için kullanışlı olur.
-    const partnerUser = await prisma.user.findUnique({
-        where: { id: partnerId },
-        select: { id: true, username: true, profileImagePublicId: true }
+    const totalMessages = await prisma.message.count({
+      where: {
+        OR: [
+          { senderId: currentUserId, receiverId: otherUserId },
+          { senderId: otherUserId, receiverId: currentUserId },
+        ],
+      },
     });
+    
+    // Okunmamış mesajları okundu olarak işaretleme (opsiyonel)
+    // await prisma.message.updateMany({
+    //   where: {
+    //     senderId: otherUserId,
+    //     receiverId: currentUserId,
+    //     isRead: false,
+    //   },
+    //   data: { isRead: true, readAt: new Date() },
+    // });
 
-    if (!partnerUser) {
-        return NextResponse.json({ message: "Konuşma partneri bulunamadı." }, { status: 404 });
-    }
-
-    return NextResponse.json({ messages, partnerUser }, { status: 200 });
+    return NextResponse.json({
+      messages: messages.reverse(), // En son mesajlar sonda olacak şekilde (veya client'ta reverse)
+                                  // ya da orderBy: 'desc' ve client'ta reverse
+      totalPages: Math.ceil(totalMessages / limit),
+      currentPage: page,
+      totalMessages,
+    });
 
   } catch (error) {
-    console.error(`Kullanıcı ${currentUserId} ve ${partnerId} arasındaki mesajları getirme hatası:`, error);
+    console.error('Mesajları getirme hatası:', error);
     return NextResponse.json({ message: 'Mesajlar getirilirken bir hata oluştu.' }, { status: 500 });
+  }
+}
+
+
+// POST: Belirli bir kullanıcıya yeni mesaj gönderme
+const createMessageSchema = z.object({
+  content: z.string().min(1, "Mesaj boş olamaz.").max(2000, "Mesaj en fazla 2000 karakter olabilir."),
+});
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: 'Mesaj göndermek için giriş yapmalısınız.' }, { status: 401 });
+  }
+
+  const senderId = parseInt(session.user.id);
+  const receiverId = parseInt(params.userId);
+
+  if (isNaN(receiverId)) {
+    return NextResponse.json({ message: 'Geçersiz alıcı ID.' }, { status: 400 });
+  }
+  if (senderId === receiverId) {
+    return NextResponse.json({ message: 'Kendinize mesaj gönderemezsiniz.' }, { status: 400 });
+  }
+
+  try {
+    const body = await request.json();
+    const validation = createMessageSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json({ message: 'Geçersiz mesaj verisi.', errors: validation.error.issues }, { status: 400 });
+    }
+    const { content } = validation.data;
+
+    // Alıcının var olup olmadığını kontrol et (opsiyonel ama iyi bir pratik)
+    const receiverExists = await prisma.user.findUnique({ where: { id: receiverId } });
+    if (!receiverExists) {
+      return NextResponse.json({ message: 'Mesaj gönderilecek kullanıcı bulunamadı.' }, { status: 404 });
+    }
+
+    const newMessage = await prisma.message.create({
+      data: {
+        content,
+        senderId,
+        receiverId,
+      },
+      include: { // Gönderilen mesajı, gönderen bilgisiyle döndür
+        sender: {
+          select: { id: true, username: true, profileImagePublicId: true },
+        },
+      },
+    });
+
+    // Burada bir event yayınlanabilir (Pusher, Socket.io vb. için)
+    // veya alıcıya bir bildirim gönderilebilir. Şimdilik bu kısmı atlıyoruz.
+
+    return NextResponse.json(newMessage, { status: 201 });
+
+  } catch (error) {
+    console.error('Mesaj gönderme hatası:', error);
+    return NextResponse.json({ message: 'Mesaj gönderilirken bir hata oluştu.' }, { status: 500 });
   }
 }
