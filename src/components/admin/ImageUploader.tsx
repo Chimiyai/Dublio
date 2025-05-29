@@ -5,12 +5,14 @@ import { useState, ChangeEvent, useRef, useEffect } from 'react';
 import { PhotoIcon } from '@heroicons/react/24/outline'; // Sadece PhotoIcon lazım
 import { CldImage } from 'next-cloudinary';
 
-interface ImageUploaderProps {
+export interface ImageUploaderProps { // <<<< "export" EKLENDİ
   currentImagePublicId: string | null;
-  onFileSelect: (file: File | null) => void; // Sadece bu callback
+  onFileSelect: (file: File | null) => void;
   aspectRatio?: string;
-  maxFileSizeMB?: number;
   label?: string;
+  maxFileSizeMB?: number;
+  // folder?: string; // Bu proplar handleSubmit'e taşındı
+  // identifier?: string;
 }
 
 export default function ImageUploader({

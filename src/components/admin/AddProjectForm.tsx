@@ -26,10 +26,11 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
-  const [type, setType] = useState<'game' | 'anime'>('game');
+  const [type, setType] = useState<'oyun' | 'anime'>('oyun');
   const [description, setDescription] = useState('');
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [coverImagePublicId, setCoverImagePublicId] = useState<string | null>(null);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
   const [releaseDate, setReleaseDate] = useState('');
   const [isPublished, setIsPublished] = useState(true);
 
@@ -178,8 +179,8 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
         </div>
         <div>
           <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tür <span className="text-red-500">*</span></label>
-          <select id="type" name="type" value={type} onChange={(e) => setType(e.target.value as 'game' | 'anime')} required className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-gray-200">
-            <option value="game">Oyun</option>
+          <select id="type" name="type" value={type} onChange={(e) => setType(e.target.value as 'oyun' | 'anime')} required className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-gray-200">
+            <option value="oyun">Oyun</option>
             <option value="anime">Anime</option>
           </select>
           {formErrors.type && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.type) ? formErrors.type.join(', ') : formErrors.type}</p>}
@@ -191,18 +192,16 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
         </div>
         
         <ImageUploader
-          currentImageUrl={null} // Yeni proje için
-          currentImagePublicId={null} // Yeni proje için
-          onUploadComplete={({ imageUrl, publicId }) => {
-            setCoverImage(imageUrl);
-            setCoverImagePublicId(publicId);
-          }}
-          uploadApiEndpoint="/api/admin/projects/cover-image" // Proje kapak resmi API'si
-          folder="project_covers" // Cloudinary klasörü
-          identifier={slug || title || 'yeni-proje'} // Dosya adı için
-          aspectRatio="aspect-[16/9]" // Kapak resmi için en-boy oranı
-          label="Kapak Resmi"
-        />
+  currentImagePublicId={coverImagePublicId} // Mevcut resmi göster (yeni projede null olacak)
+  onFileSelect={(file) => {                 // Sadece dosyayı seç
+      setSelectedCoverFile(file);
+      if (file) setCoverImagePublicId(URL.createObjectURL(file)); // Önizleme
+      else setCoverImagePublicId(null);
+  }}
+  aspectRatio="aspect-[16/9]"
+  label="Kapak Resmi Yükle"
+  // onUploadComplete prop'u kaldırıldı, yükleme handleSubmit'te
+/>
         {formErrors.coverImage && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.coverImage) ? formErrors.coverImage.join(', ') : formErrors.coverImage}</p>}
         
         <div>

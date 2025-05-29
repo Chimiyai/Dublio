@@ -34,7 +34,7 @@ export default function AddProjectClientForm({ allArtists, availableRoles }: Add
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
-  const [type, setType] = useState<'game' | 'anime'>('game');
+  const [type, setType] = useState<'oyun' | 'anime'>('oyun');
   const [description, setDescription] = useState('');
   const [releaseDate, setReleaseDate] = useState('');
   const [isPublished, setIsPublished] = useState(true);
@@ -176,8 +176,8 @@ export default function AddProjectClientForm({ allArtists, availableRoles }: Add
       </div>
       <div>
         <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Tür <span className="text-red-500">*</span></label>
-        <select id="type" name="type" value={type} onChange={(e) => setType(e.target.value as 'game' | 'anime')} required className="mt-1 block w-full ...">
-          <option value="game">Oyun</option>
+        <select id="type" name="type" value={type} onChange={(e) => setType(e.target.value as 'oyun' | 'anime')} required className="mt-1 block w-full ...">
+          <option value="oyun">Oyun</option>
           <option value="anime">Anime</option>
         </select>
         {errors.type && <p className="mt-1 text-xs text-red-600">{Array.isArray(errors.type) ? errors.type.join(', ') : errors.type}</p>}

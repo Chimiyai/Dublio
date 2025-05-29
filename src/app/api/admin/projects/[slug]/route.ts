@@ -21,17 +21,24 @@ interface RouteContext {
 }
 
 const updateProjectSchema = z.object({
-  title: z.string().min(1, "Başlık boş olamaz").max(191, "Başlık çok uzun.").optional(),
-  slug: z.string().min(1, "Slug boş olamaz.").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug sadece küçük harf, rakam ve tire içerebilir.").max(191, "Slug çok uzun.").optional(),
-  type: z.enum(['game', 'anime'], { message: "Tür 'game' veya 'anime' olmalıdır."}).optional(),
-  description: z.string().max(5000, "Açıklama çok uzun.").nullable().optional(),
-  coverImagePublicId: z.string().max(255, "Resim ID'si çok uzun.").nullable().optional(),
-  releaseDate: z.coerce.date({errorMap: () => ({ message: 'Geçersiz yayın tarihi formatı.' })}).optional(),
+  title: z.string().min(1).max(191).optional(),
+  slug: z.string().min(1).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(191).optional(),
+  type: z.enum(['oyun', 'anime']).optional(), // 'game' yerine 'oyun'
+  description: z.string().max(5000).nullable().optional(),
+  coverImagePublicId: z.string().max(255).nullable().optional(),
+  bannerImagePublicId: z.string().max(255).nullable().optional(), // <<<< YENİ ALAN
+  releaseDate: z.coerce.date().nullable().optional(), // coerce.date string'i Date'e çevirir
   isPublished: z.boolean().optional(),
+  // Oyunlar için fiyatlandırma
+  price: z.number().min(0, "Fiyat 0 veya pozitif olmalı.").nullable().optional(), // <<<< YENİ ALAN
+  currency: z.string().length(3,"Para birimi 3 karakter olmalı.").nullable().optional(), // <<<< YENİ ALAN
+
   assignments: z.array(z.object({
-    artistId: z.number().int({ message: "Sanatçı ID'si bir sayı olmalı." }),
-    role: z.nativeEnum(RoleInProject, { message: "Geçersiz rol." })
+    artistId: z.number().int(),
+    role: z.nativeEnum(RoleInProject)
   })).optional(),
+  // Kategori ID'lerini de alabiliriz
+  categoryIds: z.array(z.number().int()).optional(), // <<<< KATEGORİLER İÇİN
 });
 
 const getArchivePublicId = (oldPublicId: string, typePrefix: string) => {
@@ -86,10 +93,7 @@ export async function GET(
 
 
 // --- PUT (Projeyi güncelle) ---
-export async function PUT(
-  request: NextRequest,
-  { params }: RouteContext
-) {
+export async function PUT(request: NextRequest, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 403 });
@@ -97,19 +101,21 @@ export async function PUT(
 
   try {
     const currentProject = await prisma.project.findUnique({
-      where: { slug: params.slug },
-      // Karşılaştırma için tüm temel alanları ve eski public ID'yi al
-      select: { 
-        id: true, 
-        title: true,
-        slug: true,
-        type: true,
-        description: true,
-        coverImagePublicId: true, 
-        releaseDate: true,
-        isPublished: true,
-      } 
-    });
+  where: { slug: params.slug },
+  select: { 
+    id: true, 
+    title: true,
+    slug: true,
+    type: true,
+    description: true,
+    coverImagePublicId: true, 
+    bannerImagePublicId: true, // << EKLENDİ
+    releaseDate: true,
+    isPublished: true,
+    price: true,               // << EKLENDİ
+    currency: true,            // << EKLENDİ
+  } 
+});
 
     if (!currentProject) {
       return NextResponse.json({ message: 'Güncellenecek proje bulunamadı' }, { status: 404 });
@@ -119,10 +125,19 @@ export async function PUT(
     const parsedBody = updateProjectSchema.safeParse(body);
 
     if (!parsedBody.success) {
+      console.error("Zod validation errors (PUT):", parsedBody.error.flatten());
       return NextResponse.json({ message: "Geçersiz veri.", errors: parsedBody.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { assignments, coverImagePublicId: newCoverImagePublicId, ...projectBasicData } = parsedBody.data;
+    const { 
+        assignments, 
+        categoryIds,
+        coverImagePublicId: newCoverImagePublicId, 
+        bannerImagePublicId: newBannerImagePublicId, // <<<< YENİ
+        price: newPrice, // <<<< YENİ
+        currency: newCurrency, // <<<< YENİ
+        ...projectBasicData 
+    } = parsedBody.data;
     
     const projectUpdateData: Prisma.ProjectUpdateInput = {};
     let hasProjectDetailChanges = false;
@@ -138,7 +153,13 @@ export async function PUT(
         projectUpdateData.slug = projectBasicData.slug; hasProjectDetailChanges = true;
     }
     if (projectBasicData.type !== undefined && projectBasicData.type !== currentProject.type) { 
-        projectUpdateData.type = projectBasicData.type; hasProjectDetailChanges = true; 
+        projectUpdateData.type = projectBasicData.type; 
+        hasProjectDetailChanges = true; 
+        // Eğer yeni tip 'anime' ise ve bir fiyat varsa, fiyatı null yap
+        if (projectBasicData.type === 'anime') {
+            projectUpdateData.price = null;
+            projectUpdateData.currency = null;
+        }
     }
     if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'description')) { 
         if (projectBasicData.description !== (currentProject.description || null)) {
@@ -172,6 +193,44 @@ export async function PUT(
             }
         }
     }
+    // BANNER Image güncellemesi (Cover ile aynı mantık)
+    const oldBannerImagePublicId = currentProject.bannerImagePublicId; // Şemada bu alan olmalı
+    if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'bannerImagePublicId')) {
+        if (newBannerImagePublicId !== oldBannerImagePublicId) {
+            projectUpdateData.bannerImagePublicId = newBannerImagePublicId;
+            hasProjectDetailChanges = true;
+            if (oldBannerImagePublicId) {
+                const archivePublicId = getArchivePublicId(oldBannerImagePublicId, 'projeler_banner'); // Farklı prefix
+                if (archivePublicId) {
+                    try {
+                        await cloudinary.uploader.rename(oldBannerImagePublicId, archivePublicId, { resource_type: 'image', overwrite: false });
+                        console.log(`Eski proje banner resmi arşivlendi: ${oldBannerImagePublicId} -> ${archivePublicId}`);
+                    } catch (renameError: any) { console.error("Banner arşivleme hatası:", renameError); }
+                }
+            }
+        }
+    }
+
+    // FİYAT ve PARA BİRİMİ güncellemesi
+    // Sadece oyunlar için fiyat set edilebilir
+    if (currentProject.type === 'oyun' || (projectUpdateData.type && projectUpdateData.type === 'oyun')) {
+        if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'price')) {
+            if (newPrice !== (currentProject.price || null)) { // Prisma'dan gelen null olabilir
+                projectUpdateData.price = newPrice;
+                hasProjectDetailChanges = true;
+            }
+        }
+        if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'currency')) {
+             if (newCurrency !== (currentProject.currency || null)) {
+                projectUpdateData.currency = newCurrency;
+                hasProjectDetailChanges = true;
+            }
+        }
+    } else if (projectUpdateData.type === 'anime') { // Eğer tip anime'ye çevriliyorsa fiyatı sıfırla
+        projectUpdateData.price = null;
+        projectUpdateData.currency = null;
+        if (currentProject.price !== null) hasProjectDetailChanges = true; // Fiyat değişmiş sayılır
+    }
     
     let assignmentsHaveChanged = false;
     if (assignments !== undefined) {
@@ -189,6 +248,22 @@ export async function PUT(
         }
     }
     
+    // KATEGORİ güncelleme mantığı
+    let categoriesHaveChanged = false;
+    if (categoryIds !== undefined) {
+        const currentDbCategories = await prisma.projectCategory.findMany({
+            where: { projectId: currentProject.id },
+            select: { categoryId: true },
+            orderBy: { categoryId: 'asc' }
+        });
+        const currentDbCategoryIds = currentDbCategories.map(pc => pc.categoryId);
+        const newClientCategoryIds = [...new Set(categoryIds)].sort((a,b) => a - b); // Benzersiz ve sıralı
+
+        if (JSON.stringify(currentDbCategoryIds) !== JSON.stringify(newClientCategoryIds)) {
+            categoriesHaveChanged = true;
+        }
+    }
+
     if (!hasProjectDetailChanges && !assignmentsHaveChanged) {
       return NextResponse.json(currentProject, { status: 200 }); 
     }
@@ -216,6 +291,19 @@ export async function PUT(
           });
         }
       }
+
+      if (categoriesHaveChanged && categoryIds !== undefined) {
+          await tx.projectCategory.deleteMany({ where: { projectId: currentProject.id } });
+          if (categoryIds.length > 0) {
+              await tx.projectCategory.createMany({
+                  data: categoryIds.map(catId => ({
+                      projectId: currentProject.id,
+                      categoryId: catId,
+                  }))
+              });
+          }
+      }
+
       // Güncellenmiş projeyi atamalarıyla birlikte döndür
       return await tx.project.findUniqueOrThrow({
         where: { id: finalProjectDetails.id },

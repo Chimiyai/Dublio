@@ -1,104 +1,123 @@
 // src/app/admin/projeler/duzenle/[slug]/page.tsx
 import prisma from '@/lib/prisma';
-import Link from 'next/link';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import EditProjectForm, { ProjectFormData, ProjectTypeEnum } from '@/components/admin/EditProjectForm'; // ProjectTypeEnum import edildi
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
+import { RoleInProject } from '@prisma/client';
 import { notFound } from 'next/navigation';
-import { DubbingArtist, RoleInProject } from '@prisma/client'; // Project'i buradan kaldırdık, ProjectFormData kullanacağız
-import EditProjectForm, { ProjectFormData, ProjectTypeEnum } from '@/components/admin/EditProjectForm'; // ProjectFormData ve ProjectTypeEnum'u import et
-import { Metadata, ResolvingMetadata } from 'next';
+import type { Metadata, ResolvingMetadata } from 'next';
 
-interface EditProjectPageProps {
-  params: {
-    slug: string;
-  };
+interface EditPageProps { params: { slug: string }; }
+
+interface EditPageProps {
+  params: { slug: string };
 }
 
-export async function generateMetadata(
-  { params: { slug } }: EditProjectPageProps,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const project = await prisma.project.findUnique({
-    where: { slug: slug },
-    select: { title: true },
+async function getProjectDataForEdit(slug: string) {
+  const projectFromDb = await prisma.project.findUnique({ // Değişken adını değiştirdim karışmaması için
+    where: { slug },
+    include: {
+      assignments: {
+        include: {
+          artist: { select: { id: true, firstName: true, lastName: true } }
+        }
+      },
+      categories: {
+        select: {
+          category: { select: { id: true, name: true } }
+        }
+      }
+    }
   });
 
-  if (!project) {
-    return { title: 'Proje Bulunamadı | Admin Paneli' };
-  }
-  return {
-    title: `Düzenle: ${project.title} | Admin Paneli`,
-  };
-}
+  if (!projectFromDb) return null;
 
-export default async function EditProjectPage({ params: { slug } }: EditProjectPageProps) {
-  const [projectFromDb, allArtistsFromDb] = await Promise.all([
-    prisma.project.findUnique({
-      where: { slug: slug },
-      include: {
-         assignments: { // Bu kısım zaten doğru görünüyor, artistName EditProjectForm içinde eklenecek
-           select: {
-              artistId: true,
-              role: true
-           }
-         }
-      }
-    }),
-    prisma.dubbingArtist.findMany({
-      orderBy: { firstName: 'asc' },
-      select: { id: true, firstName: true, lastName: true } // Sadece gerekli alanları seç
-    })
-  ]);
+  const allArtists = await prisma.dubbingArtist.findMany({
+    select: { id: true, firstName: true, lastName: true }
+  });
+  const allCategories = await prisma.category.findMany({
+    select: { id: true, name: true }
+  });
 
-  if (!projectFromDb) {
-    notFound();
-  }
+  const projectCategoryIds = projectFromDb.categories.map(pc => pc.category.id);
 
-  const availableRoles = Object.values(RoleInProject);
-
-  // Veritabanından gelen projectFromDb'yi ProjectFormData tipine dönüştür
-  const projectForForm: ProjectFormData = {
+  // ProjectFormData'ya uygun hale getir
+  const formattedProject: ProjectFormData = {
     id: projectFromDb.id,
     title: projectFromDb.title,
     slug: projectFromDb.slug,
-    type: projectFromDb.type as ProjectTypeEnum, // <<=== ÖNEMLİ DEĞİŞİKLİK BURADA
-    description: projectFromDb.description, // null olabilir, ProjectFormData'da öyle tanımlı
-    coverImagePublicId: projectFromDb.coverImagePublicId, // null olabilir
-    bannerImagePublicId: projectFromDb.bannerImagePublicId, // null olabilir, ProjectFormData'da opsiyonel olmalı
-    releaseDate: projectFromDb.releaseDate, // Date | null, ProjectFormData'da Date | string | null demiştik, bu uyumlu
+    // DÜZELTME: type alanını ProjectTypeEnum'a cast et veya kontrol et
+    type: projectFromDb.type as ProjectTypeEnum, // En basit çözüm, verinin doğru olduğunu varsayar
+    // Daha güvenli bir yöntem:
+    // type: (projectFromDb.type === 'oyun' || projectFromDb.type === 'anime') 
+    //         ? projectFromDb.type as ProjectTypeEnum 
+    //         : 'oyun', // Veya bir hata fırlat / varsayılan ata
+    description: projectFromDb.description || null,
+    coverImagePublicId: projectFromDb.coverImagePublicId || null,
+    bannerImagePublicId: projectFromDb.bannerImagePublicId || null,
+    releaseDate: projectFromDb.releaseDate ? new Date(projectFromDb.releaseDate).toISOString().split('T')[0] : '',
     isPublished: projectFromDb.isPublished,
-    // assignments objeleri { artistId: number, role: RoleInProject, artistName?: string } bekliyor
-    // artistName'i EditProjectForm kendi içinde allArtists listesinden ekleyecek
+    price: projectFromDb.price === null ? null : Number(projectFromDb.price),
+    currency: projectFromDb.currency || null,
     assignments: projectFromDb.assignments.map(a => ({
       artistId: a.artistId,
       role: a.role,
-      // artistName burada eklenmeyecek, EditProjectForm içinde allArtists kullanılarak eklenecek
+      artistName: `${a.artist.firstName} ${a.artist.lastName}`
     })),
-    createdAt: projectFromDb.createdAt, // ProjectFormData'da opsiyonel
-    updatedAt: projectFromDb.updatedAt, // ProjectFormData'da opsiyonel
+    categoryIds: projectCategoryIds,
+    // API'den gelen ve ProjectFormData'da olmayan ekstra alanları buraya eklemeyin
+    // veya ProjectFormData'yı buna göre güncelleyin.
+    // Örneğin, Prisma'dan gelen 'createdAt', 'updatedAt' gibi alanlar ProjectFormData'da yoksa,
+    // bunları ...projectFromDb ile yayarken dikkatli olun.
+    // Şimdilik manuel olarak atama yapıyoruz, bu yüzden sorun olmamalı.
   };
 
-  // allArtists'ı da EditProjectForm'un beklediği tipe map'leyelim (eğer farklıysa)
-  // Şu anki allArtistsFromDb zaten { id, firstName, lastName }[] formatında, bu EditProjectForm'un beklediğiyle aynı.
+  return {
+    project: formattedProject,
+    allArtists: allArtists.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` })),
+    allCategories: allCategories.map(c => ({ value: c.id, label: c.name })),
+    availableRoles: Object.values(RoleInProject),
+  };
+}
+
+export async function generateMetadata({ params }: EditPageProps): Promise<Metadata> {
+  const projectData = await getProjectDataForEdit(params.slug);
+  if (!projectData?.project) {
+    return { title: 'Proje Bulunamadı | Admin' };
+  }
+  return {
+    title: `Düzenle: ${projectData.project.title} | Proje Yönetimi`,
+  };
+}
+
+export default async function EditExistingProjectPage({ params }: EditPageProps) {
+  const data = await getProjectDataForEdit(params.slug);
+
+  if (!data || !data.project) {
+    notFound();
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <Link href="/admin/projeler" className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200">
-          <ArrowLeftIcon className="h-5 w-5 mr-2" />
-          Geri Dön (Proje Listesi)
-        </Link>
-      </div>
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8 text-center">
-        Proje Düzenle: <span className="text-indigo-600">{projectFromDb.title}</span>
-      </h1>
-      <div className="max-w-4xl mx-auto">
+    <AdminPageLayout 
+      pageTitle={`Projeyi Düzenle`}
+      backLink={{ href: '/admin/projeler', label: 'Proje Listesine Dön' }}
+      breadcrumbs={[
+        { label: "Proje Yönetimi", href: "/admin/projeler" },
+        { label: data.project.title, href: `/admin/projeler/duzenle/${data.project.slug}` } // Mevcut sayfa
+      ]}
+    >
+      {/* Form için ek bir padding ve max-width */}
+      <div className="p-6 sm:p-8 max-w-3xl mx-auto"> 
+        <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-6">
+          Proje: <span className='font-semibold text-indigo-600 dark:text-indigo-400'>{data.project.title}</span>
+        </p>
         <EditProjectForm
-          project={projectForForm} // <<=== DÖNÜŞTÜRÜLMÜŞ VERİYİ KULLAN
-          allArtists={allArtistsFromDb}
-          availableRoles={availableRoles}
-          isEditing={true} // isEditing prop'unu ekledik EditProjectForm'a
+          project={data.project}
+          allArtists={data.allArtists}
+          allCategories={data.allCategories}
+          availableRoles={data.availableRoles}
+          isEditing={true}
         />
       </div>
-    </div>
+    </AdminPageLayout>
   );
 }

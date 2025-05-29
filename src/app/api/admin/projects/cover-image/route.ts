@@ -1,4 +1,4 @@
-// src/app/api/admin/projeler/cover-image/route.ts
+// src/app/api/admin/projects/cover-image/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
@@ -20,7 +20,7 @@ const generateUniqueFilename = (originalName: string, identifier?: string | null
   // Dosya adında geçersiz karakterler olmadığından emin ol
   const cleanOriginalNameBase = originalName.substring(0, originalName.lastIndexOf('.'))
                                       .toLowerCase().replace(/[^a-z0-9_]+/g, '_');
-  return `${safeIdentifier}_${cleanOriginalNameBase}_${Date.now()}.${extension}`.substring(0, 100); // Public ID uzunluk sınırını aşmamak için kısalt
+  return `${safeIdentifier}_${cleanOriginalNameBase}_${Date.now()}`.substring(0, 100); // YENİ (uzantısız)
 };
 
 export async function POST(request: NextRequest) {

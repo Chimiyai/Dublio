@@ -147,7 +147,7 @@ const placeholderCount = searchTerm.trim() === '' ? 9 : 6; // Başlangıçta 9, 
 {!isLoading && !error && results.length > 0 && (
   <div className="flex flex-wrap gap-2">
     <span className="text-sm text-prestij-text-muted">
-      {searchTerm.trim() !== '' ? 'Arama sonuçları:' : 'Popüler içerikler:'}
+      {searchTerm.trim() !== '' ? 'Arama sonuçları:' : 'Sonuçlar:'}
     </span>
     <div className="flex flex-wrap gap-2">
       {/* Oyun sonuç sayısı */}

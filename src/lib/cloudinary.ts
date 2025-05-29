@@ -12,6 +12,7 @@ interface CloudinaryTransformations {
   gravity?: string;
   quality?: string | number;
   format?: 'auto' | 'webp' | 'png' | 'jpg';
+  radius?: string | number;
 }
 
 export function getCloudinaryImageUrlOptimized(
@@ -27,7 +28,7 @@ export function getCloudinaryImageUrlOptimized(
   }
 
   if (publicIdOrPath.startsWith('http://') || publicIdOrPath.startsWith('https://') || publicIdOrPath.startsWith('/')) {
-    return publicIdOrPath; // Zaten tam URL veya yerel yol ise direkt döndür
+    return publicIdOrPath;
   }
 
   // Cloudinary Public ID ise URL oluştur
@@ -43,10 +44,13 @@ export function getCloudinaryImageUrlOptimized(
   if (transformations.height) transParts.push(`h_${transformations.height}`);
   if (transformations.crop) transParts.push(`c_${transformations.crop}`);
   if (transformations.gravity) transParts.push(`g_${transformations.gravity}`);
-  if (transformations.quality) transParts.push(`q_${transformations.quality || 'auto'}`);
-  if (transformations.format) transParts.push(`f_${transformations.format || 'auto'}`);
+  // Kaliteyi her zaman ekle, formatı da
+  transParts.push(`q_${transformations.quality || 'auto'}`);
+  transParts.push(`f_${transformations.format || 'auto'}`); // << FORMAT EKLE (örn: f_auto)
+  if (transformations.radius) transParts.push(`r_${transformations.radius}`);
   
   const transformString = transParts.join(',');
 
+  // publicIdOrPath uzantısız olduğu için, Cloudinary f_auto ile doğru uzantıyı ekleyecektir.
   return `${CLOUDINARY_BASE_URL}/${transformString ? transformString + '/' : ''}${publicIdOrPath}`;
 }

@@ -15,11 +15,14 @@ import {
   ChatBubbleOvalLeftEllipsisIcon, // Mesajlar ikonu için
   UserCircleIcon, // Avatar için placeholder
   ArrowRightOnRectangleIcon, // Çıkış ikonu
+  
   UserIcon as ProfileIcon, // Profil ikonu
   UsersIcon, // Arkadaşlar ikonu
+  ShoppingBagIcon as LibraryIconOutline
 } from '@heroicons/react/24/outline';
 import SearchOverlay from './SearchOverlay';
 import { cn } from '@/lib/utils';
+import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
 
 // Stats için tip tanımı
 interface HeaderStats {
@@ -258,13 +261,39 @@ const oyunlarDropdownContent = {
   setMobileSubMenu(targetMenuKey);
 };
 
+  const navLinksForDesktop: NavLinkItem[] = [ // İsmi değiştirdim, çakışmayı önlemek için
+    { label: 'Oyunlar', href: '/oyunlar', dropdownId: 'oyunlarDropdown' },
+    { label: 'Animeler', href: '/animeler', dropdownId: 'animelerDropdown' },
+    { label: 'Kadromuz', href: '/kadromuz' },
+    { label: 'Bize Katıl!', href: '/bize-katil' },
+  ];
+
+  if (session?.user) {
+    navLinksForDesktop.splice(2, 0, {
+        label: 'Kütüphanem', 
+        href: `/profil/${session.user.username || session.user.id}?tab=library` 
+    });
+  }
+  if (session?.user?.role === 'admin' && !isLoadingSession) {
+    navLinksForDesktop.push({ label: 'Admin Paneli', href: '/admin' });
+  }
+
+  // Mobil Menü Ana Elemanları
   const getMobileMenuMainItems = (): MobileMenuItem[] => {
     const mainItems: MobileMenuItem[] = [
       { label: 'Oyunlar', action: 'submenu', target: 'gamesSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-prestij-text-muted" /> },
       { label: 'Animeler', action: 'submenu', target: 'animeSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-prestij-text-muted" /> },
-      { label: 'Kadromuz', action: 'link', href: '#' },
-      { label: 'Bize Katıl!', action: 'link', href: '#' },
     ];
+    if (session?.user) {
+      mainItems.push({ 
+        label: 'Kütüphanem', 
+        action: 'link', 
+        href: `/profil/${session.user.username || session.user.id}?tab=library` 
+      });
+    }
+    mainItems.push({ label: 'Kadromuz', action: 'link', href: '/kadromuz' });
+    mainItems.push({ label: 'Bize Katıl!', action: 'link', href: '/bize-katil' });
+
     if (session?.user?.role === 'admin' && !isLoadingSession) {
       mainItems.push({ label: 'Admin Paneli', action: 'link', href: '/admin' });
     }
@@ -282,8 +311,19 @@ const oyunlarDropdownContent = {
         ...(animelerDropdownContent.watchlist.map(item => ({ label: item.label, href: item.href, isAction: item.isAction })) as DropdownItem[])
     ],
   };
-  const userProfileImage = session?.user?.image || '/images/default-avatar.png'; // Varsayılan avatar
-  const userBannerImage = '/images/default-banner.jpg'; // Varsayılan banner
+  const userProfileImageSrc = getCloudinaryImageUrlOptimized(
+    session?.user?.profileImagePublicId, // Session'dan gelen public ID
+    { width: 64, height: 64, crop: 'thumb', gravity: 'face', quality: 'auto' }, // Avatar için boyutlar
+    'avatar' // Placeholder tipi (eğer ID yoksa /images/default-avatar.png döner)
+  );
+  console.log("Profile Image Public ID:", session?.user?.profileImagePublicId);
+console.log("Final Profile Image URL:", userProfileImageSrc);
+
+  const userBannerImageSrc = getCloudinaryImageUrlOptimized(
+    session?.user?.bannerImagePublicId, // Session'dan gelen public ID
+    { width: 300, height: 120, crop: 'fill', gravity: 'auto', quality: 'auto' }, // Dropdown banner için boyutlar
+    'banner' // Placeholder tipi (eğer ID yoksa /images/default-banner.jpg döner)
+  );
 
 
 return (
@@ -340,10 +380,12 @@ return (
                                         className={`nav-link flex items-center gap-1.5 text-sm text-prestij-text-accent hover:text-prestij-purple transition-colors py-1.5 ${activeDropdown === link.dropdownId ? 'text-prestij-purple' : ''}`}
                                     >
                                         {link.label}
+                                        {link.label === 'Kütüphanem' && <LibraryIconOutline className="h-3.5 w-3.5 ml-1" />}
                                         <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform duration-300 ${activeDropdown === link.dropdownId ? 'rotate-180' : ''}`} />
                                     </button>
                                 ) : (
                                     <Link href={link.href} className="nav-link text-sm text-prestij-text-accent hover:text-prestij-purple transition-colors py-1.5">
+                                        {link.label === 'Kütüphanem' && <LibraryIconOutline className="h-3.5 w-3.5 mr-1" />}
                                         {link.label}
                                     </Link>
                                 )}
@@ -408,7 +450,7 @@ return (
     <span className="sr-only">Kullanıcı menüsünü aç</span>
     <Image
       className="h-8 w-8 rounded-full object-cover"
-      src={userProfileImage}
+      src={userProfileImageSrc}
       alt="Profil Fotoğrafı"
       width={32}
       height={32}
@@ -431,7 +473,7 @@ return (
 <div className="relative h-28 bg-gray-700"> 
     {/* Banner */}
     <Image
-        src={userBannerImage}
+        src={userBannerImageSrc}
         alt="Banner"
         layout="fill"
         objectFit="cover"
@@ -463,7 +505,7 @@ return (
 
                                             <Image
                                                 className="h-16 w-16 rounded-full object-cover"
-                                                src={userProfileImage}
+                                                src={userProfileImageSrc}
                                                 alt="Profil"
                                                 width={64}
                                                 height={64}

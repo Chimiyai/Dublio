@@ -1,12 +1,14 @@
 // tailwind.config.js (KAPSAMLI HALİ)
 
 const { MailWarningIcon } = require('lucide-react');
+const colors = require('tailwindcss/colors');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     // Eğer pages dizininiz varsa: "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
@@ -205,6 +207,10 @@ module.exports = {
         'profile-page-bg': '#101014',
         'profile-banner-gradient-start': '#101014', // Gradyan başlangıç (arka planla aynı)
         'profile-hr-color': '#252525',
+        'overview-table-bg': '#08060D',
+      },
+      backgroundImage: {
+        'stat-gradient': 'linear-gradient(to right, #8B4EFF, #5A67D8)',
       },
       fontFamily: {
         sans: ['Inter', 'var(--font-inter)', 'sans-serif'],

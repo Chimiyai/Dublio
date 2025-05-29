@@ -2,100 +2,61 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
-import DeleteProjectButton from '@/components/admin/DeleteProjectButton';
+import AdminPageLayout from '@/components/admin/AdminPageLayout'; // Layout'u import et
+import ProjectsTable from '@/components/admin/ProjectsTable'; // Tabloyu ayrı bir client component'e taşıyacağız
 
-export default async function AdminProjelerPage() {
-  // console.log("--- ADMIN PROJELER SAYFASI (SİLME BUTONLU) RENDER ---"); // Geliştirme sırasında kalsın, sonra silinebilir
-  const projeler = await prisma.project.findMany({
+// Sunucu tarafında tüm projeleri çekiyoruz
+async function getAllProjects() {
+  return prisma.project.findMany({
     orderBy: {
       createdAt: 'desc',
     },
+    // Tablo için gerekli temel alanları seçebiliriz, detaylar düzenleme sayfasında
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      type: true,
+      releaseDate: true,
+      isPublished: true,
+      createdAt: true, // Sıralama veya bilgi için
+    }
   });
+}
+
+export default async function AdminProjelerPage() {
+  const allProjects = await getAllProjects();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-        Proje Yönetimi
-        </h1>
+    <AdminPageLayout
+      pageTitle="Proje Yönetimi"
+      // Breadcrumbs opsiyonel, bu ana sayfa olduğu için gerekmeyebilir
+      // breadcrumbs={[{ label: "Dashboard", href: "/admin" }, { label: "Projeler", href: "/admin/projeler" }]}
+    >
+      {/* Arama ve Yeni Ekle Butonu için bir üst bölüm */}
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 p-6 sm:p-0"> 
+      {/* Formlar AdminPageLayout içindeki beyaz kartta olacağı için buraya padding ekledim,
+          veya bu div'i AdminPageLayout'un child'ı olan ilk div içine taşıyabiliriz.
+          Şimdilik AdminPageLayout children'ına doğrudan ProjectsTable'ı vereceğiz.
+          Bu üst barı ProjectsTable component'inin içine almak daha iyi olabilir.
+      */}
+        <div>
+          {/* ARAMA INPUTU BURAYA GELECEK (ProjectsTable içinde) */}
+        </div>
         <Link
-        href="/admin/projeler/yeni"
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out flex items-center"
+          href="/admin/projeler/yeni"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out flex items-center text-sm w-full sm:w-auto justify-center"
         >
-        <PlusCircleIcon className="h-5 w-5 mr-2" />
-        Yeni Proje Ekle
+          <PlusCircleIcon className="h-5 w-5 mr-2" />
+          Yeni Proje Ekle
         </Link>
       </div>
 
-      {projeler.length === 0 ? (
-        <p className="text-gray-600 dark:text-gray-400">
-          Henüz hiç proje eklenmemiş.
-        </p>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
-          <table className="min-w-full leading-normal">
-            <thead className="bg-gray-100 dark:bg-gray-700">
-                <tr>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 dark:border-gray-600 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                    Başlık
-                    </th>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 dark:border-gray-600 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                    Tür
-                    </th>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 dark:border-gray-600 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                    Yayın Tarihi
-                    </th>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 dark:border-gray-600 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                    Durum
-                    </th>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 dark:border-gray-600 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                    İşlemler
-                    </th>
-                </tr>
-            </thead>
-            <tbody className="text-gray-700 dark:text-gray-200">
-              {projeler.map((proje) => (
-                <tr key={proje.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out">
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <p className="font-medium">{proje.title}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">{proje.slug}</p>
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        proje.type === 'game' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100'
-                                            : 'bg-purple-100 text-purple-800 dark:bg-purple-700 dark:text-purple-100'
-                    }`}>
-                    {proje.type === 'game' ? 'Oyun' : 'Anime'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap text-sm">
-                    {/* <<=== DEĞİŞİKLİK BURADA ===>> */}
-                    {proje.releaseDate
-                      ? new Date(proje.releaseDate).toLocaleDateString('tr-TR', {
-                          year: 'numeric', month: 'long', day: 'numeric'
-                        })
-                      : 'Belirtilmemiş'}
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        proje.isPublished ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-700 dark:text-emerald-100'
-                                        : 'bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100'
-                    }`}>
-                    {proje.isPublished ? 'Yayında' : 'Taslak'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3">
-                    <Link href={`/admin/projeler/duzenle/${proje.slug}`} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
-                      Düzenle
-                    </Link>
-                    <DeleteProjectButton projectSlug={proje.slug} projectTitle={proje.title} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+      {/* Proje tablosunu ayrı bir Client Component'e taşıyoruz */}
+      {/* Bu sayede arama state'i ve filtreleme client'ta yönetilebilir */}
+      <div className="bg-white dark:bg-gray-900 shadow-xl rounded-lg overflow-hidden">
+        <ProjectsTable initialProjects={allProjects} />
+      </div>
+    </AdminPageLayout>
   );
 }

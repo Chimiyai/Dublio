@@ -1,4 +1,5 @@
 // src/app/layout.tsx
+import { Toaster } from "react-hot-toast";
 import type { Metadata } from "next";
 import "./globals.css";
 import { Inter } from "next/font/google";
@@ -25,6 +26,32 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-site-bg-main text-prestij-text-primary min-h-screen`}>
         <Providers>
+          <Toaster 
+            position="top-right" // Bildirimlerin konumu (isteğe bağlı)
+            toastOptions={{
+              // Varsayılan stil ayarları (isteğe bağlı)
+              className: '',
+              duration: 5000,
+              style: {
+                background: '#333', // Dark mode için örnek
+                color: '#fff',
+              },
+              success: {
+                duration: 3000,
+                // theme: {
+                //   primary: 'green',
+                //   secondary: 'black',
+                // },
+              },
+              error: {
+                duration: 4000,
+                // theme: {
+                //   primary: 'red',
+                //   secondary: 'black',
+                // },
+              }
+            }}
+          />
           <Header />
           <main className="flex-grow">
             {children}

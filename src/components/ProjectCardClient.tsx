@@ -45,9 +45,9 @@ export default function ProjectCardClient({ project }: ProjectCardProps) {
           </div>
         )}
         <span className={`absolute top-2 right-2 px-2 py-1 text-xs font-semibold rounded-full text-white ${
-            project.type === 'game' ? 'bg-green-600' : 'bg-purple-600'
+            project.type === 'oyun' ? 'bg-green-600' : 'bg-purple-600'
         }`}>
-            {project.type === 'game' ? 'Oyun' : 'Anime'}
+            {project.type === 'oyun' ? 'Oyun' : 'Anime'}
         </span>
       </div>
       <div className="p-4">

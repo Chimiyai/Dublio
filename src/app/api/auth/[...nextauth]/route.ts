@@ -1,158 +1,154 @@
 // src/app/api/auth/[...nextauth]/route.ts
-import NextAuth, { NextAuthOptions, User as NextAuthUser, Session } from 'next-auth';
-import { JWT } from 'next-auth/jwt'; // JWT tipini import ediyoruz
+import NextAuth, { NextAuthOptions, User as NextAuthUserFromLib, Session } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import prisma from '@/lib/prisma'; // Prisma Client'ımız
-import bcrypt from 'bcrypt'; // Şifre karşılaştırma için
+import prisma from '@/lib/prisma';
+import bcrypt from 'bcrypt';
 
-// NextAuth ayarlarını içeren nesne
+// Bu tip, authorize fonksiyonundan dönecek ve jwt callback'ine user olarak gelecek objenin tipidir.
+// next-auth.d.ts'deki User interface'inizle uyumlu olmalı.
+type AuthorizeReturnType = {
+  id: string;
+  name?: string | null; // NextAuth'un beklediği 'name' alanı
+  email?: string | null;
+  image?: string | null; // NextAuth'un beklediği 'image' alanı
+  // Kendi özel alanlarınız
+  role: string;
+  username?: string | null;
+  profileImagePublicId?: string | null;
+  bannerImagePublicId?: string | null;
+};
+
 export const authOptions: NextAuthOptions = {
-  // Oturum yönetim stratejisi: JWT (JSON Web Token) kullanacağız
-  // JWT, kullanıcı bilgilerini güvenli bir şekilde tarayıcıda saklamamızı sağlar.
-  // 'database' stratejisi de vardır ama JWT genellikle daha esnektir.
   session: {
     strategy: 'jwt',
-    // maxAge: 30 * 24 * 60 * 60, // Opsiyonel: Oturum süresi (örn: 30 gün)
   },
-
-  // Kimlik doğrulama sağlayıcıları (providers)
-  // Farklı giriş yöntemleri (Google, GitHub vb.) buraya eklenebilir.
-  // Biz şimdilik sadece kendi veritabanımızla e-posta/şifre yöntemini kullanacağız.
   providers: [
     CredentialsProvider({
-      // Bu sağlayıcının adı (isteğe bağlı)
       name: 'E-posta ve Şifre',
-      // Giriş sayfasında (NextAuth'un otomatik oluşturduğu veya bizim oluşturacağımız)
-      // hangi alanların isteneceğini belirtir. Biz kendi formumuzu yapacağımız
-      // için burası doğrudan kullanılmayacak ama tanımlamak iyi bir pratiktir.
       credentials: {
-        email: { label: "E-posta", type: "email", placeholder: "kullanici@example.com" },
+        email: { label: "E-posta", type: "email" },
         password: { label: "Şifre", type: "password" }
       },
+      async authorize(credentials, req): Promise<AuthorizeReturnType | null> {
+        console.log('[AUTH] Authorize function started. Credentials:', credentials ? { email: credentials.email, passLength: credentials.password?.length } : null);
 
-      // Kullanıcıyı doğrulama (authorize) fonksiyonu.
-      // Giriş denemesi yapıldığında NextAuth bu fonksiyonu çalıştırır.
-      async authorize(credentials, req): Promise<NextAuthUser | null> {
-        // credentials: Kullanıcının giriş formunda girdiği bilgiler (email, password)
-        // req: Gelen istek hakkında bilgiler
-
-        console.log('Authorize fonksiyonu çalıştı. Credentials:', credentials); // Geliştirme için log
-
-        // Girdi kontrolü: E-posta ve şifre gelmiş mi?
         if (!credentials?.email || !credentials?.password) {
-          console.error('Authorize: E-posta veya şifre eksik');
-          // Hata fırlatmak yerine null döndürmek, NextAuth'a doğrulamayı reddetmesini söyler.
-          // NextAuth bu durumu yakalayıp giriş sayfasına hata mesajıyla yönlendirir.
-          // throw new Error('E-posta ve şifre gereklidir.'); // Veya hata fırlatılabilir
+          console.error('[AUTH] Authorize: Email or password missing.');
           return null;
         }
 
         try {
-          // 1. Kullanıcıyı veritabanında e-posta ile bul (Prisma kullanarak)
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email }
+          const userFromDb = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            // Gerekli tüm alanları seçtiğimizden emin olalım
+            select: { 
+                id: true, 
+                email: true, 
+                username: true, 
+                password: true, 
+                role: true, 
+                profileImagePublicId: true, 
+                bannerImagePublicId: true 
+            }
           });
 
-          // 2. Kullanıcı bulunamadıysa
-          if (!user) {
-            console.log(`Authorize: Kullanıcı bulunamadı - ${credentials.email}`);
-            return null; // Doğrulama başarısız
+          if (!userFromDb) {
+            console.log(`[AUTH] Authorize: User not found with email: ${credentials.email}`);
+            return null;
           }
+          console.log(`[AUTH] Authorize: User found in DB: ${userFromDb.email}`);
+          console.log("[AUTH] Authorize - Raw User from DB:", JSON.stringify(userFromDb, null, 2));
 
-          console.log(`Authorize: Kullanıcı bulundu - ${user.email}. Şifre kontrol ediliyor...`);
 
-          // 3. Şifreleri karşılaştır
-          // bcrypt.compare, kullanıcının girdiği şifre ile veritabanındaki hash'lenmiş şifreyi karşılaştırır.
-          const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+          const passwordMatch = await bcrypt.compare(credentials.password, userFromDb.password);
 
-          // 4. Şifre eşleşmiyorsa
           if (!passwordMatch) {
-            console.log(`Authorize: Şifre eşleşmedi - ${user.email}`);
-            return null; // Doğrulama başarısız
+            console.log(`[AUTH] Authorize: Password mismatch for user: ${userFromDb.email}`);
+            return null;
           }
 
-          // 5. Doğrulama Başarılı!
-          console.log(`Authorize: Başarılı giriş - ${user.email}`);
-          // NextAuth'a kullanıcı bilgilerini döndür. Bu bilgiler JWT ve session'a eklenecek.
-          // DİKKAT: ASLA ŞİFREYİ VEYA HASSAS BİLGİLERİ BURADA DÖNDÜRME!
-          return {
-            id: user.id.toString(), // NextAuth id'yi string bekler
-            email: user.email,
-            name: user.username, // 'name' alanı NextAuth tarafından kullanılır, username'i atayalım
-            role: user.role      // Rol bilgisini de ekleyelim
-            // plan: user.plan // Eğer plan sistemi olsaydı...
-          } as NextAuthUser; // Döndürdüğümüz nesnenin NextAuthUser tipinde olduğunu belirtiyoruz
+          console.log(`[AUTH] Authorize: Login successful for: ${userFromDb.email}`);
+          const userToReturn: AuthorizeReturnType = {
+            id: userFromDb.id.toString(),
+            name: userFromDb.username, // 'name' prop'una username atıyoruz
+            email: userFromDb.email,
+            image: null, // veya userFromDb.profileImagePublicId ile bir URL oluşturabilirsiniz ama client'ta yapacağız
+            role: userFromDb.role,
+            username: userFromDb.username,
+            profileImagePublicId: userFromDb.profileImagePublicId,
+            bannerImagePublicId: userFromDb.bannerImagePublicId,
+          };
+          console.log("[AUTH] Authorize - User object being returned:", JSON.stringify(userToReturn, null, 2));
+          return userToReturn;
 
         } catch (error) {
-          console.error('Authorize: Veritabanı veya bcrypt hatası:', error);
-          return null; // Herhangi bir hata durumunda doğrulamayı reddet
+          console.error('[AUTH] Authorize: Database or bcrypt error:', error);
+          return null;
         }
       }
     })
   ],
-
-  // Özel sayfalar (isteğe bağlı)
-  // NextAuth'un varsayılan sayfaları yerine kendi sayfalarımızı kullanmak için.
   pages: {
-    signIn: '/giris',    // Giriş sayfamızın yolu (bir sonraki adımda oluşturacağız)
-    // signOut: '/auth/cikis', // Özel çıkış sayfası (gerekirse)
-    // error: '/auth/hata',   // Kimlik doğrulama hataları için özel sayfa
-    // verifyRequest: '/auth/dogrulama-iste', // E-posta doğrulama için
-    // newUser: '/kayit' // Yeni kullanıcı kaydı için (Credentials ile pek kullanılmaz)
+    signIn: '/giris',
   },
-
-  // Callback'ler: Belirli olaylar gerçekleştiğinde özel işlemler yapmak için.
   callbacks: {
-    // JWT (JSON Web Token) oluşturulduğunda veya güncellendiğinde çalışır.
-    // Token içinde saklanacak bilgileri burada belirleriz.
-    async jwt({ token, user, trigger, session }): Promise<JWT> {
-      // `user` nesnesi SADECE İLK GİRİŞTE (`authorize` başarılı olduğunda) gelir.
-      // İlk girişte `authorize`dan dönen bilgileri token'a ekleyelim.
-      if (user) {
-        console.log('JWT Callback: İlk giriş, user:', user);
-        token.id = user.id;
-        token.role = user.role; // Rol bilgisini token'a ekle
-        // token.name ve token.email NextAuth tarafından zaten eklenir (eğer user'da varsa)
+    async jwt({ token, user, trigger, session: newSessionData }) { // 'user' parametresi AuthorizeReturnType tipinde olacak
+      console.log("[AUTH] JWT Callback - Trigger:", trigger);
+      if (user) { // Bu blok sadece ilk girişte (sign-in) veya OAuth ile user objesi varsa çalışır
+        const u = user as AuthorizeReturnType; // Gelen user'ı kendi tipimize cast edelim
+        console.log("[AUTH] JWT Callback - User object received (on sign-in/account link):", JSON.stringify(u, null, 2));
+        
+        token.uid = u.id; // NextAuth v4'te id yerine sub kullanılırdı, v5'te id daha yaygın. uid de olabilir.
+                          // next-auth.d.ts'deki JWT tipinde 'id' veya 'uid' olmalı. 'id' kullanalım.
+        token.id = u.id; 
+        token.role = u.role;
+        token.username = u.username;
+        token.profileImagePublicId = u.profileImagePublicId;
+        token.bannerImagePublicId = u.bannerImagePublicId;
+        
+        // DefaultJWT'den gelen alanları da dolduralım (eğer DefaultUser'dan name, email, image geliyorsa)
+        token.name = u.name; 
+        token.email = u.email;
+        token.picture = u.image; // Bu genellikle avatar için kullanılır, biz kendi ID'lerimizi kullanıyoruz
       }
 
-      // Eğer oturum güncellenirse (örneğin Client'tan `useSession().update()`)
-      // ve session içinde yeni rol bilgisi varsa, token'daki rolü de güncelle.
-      // Bu, admin panelinde rol değiştirildiğinde işe yarayabilir.
-      if (trigger === "update" && session?.role) {
-        console.log('JWT Callback: Oturum güncelleme, yeni rol:', session.role);
-        token.role = session.role;
+      // Session update trigger'ı (client'tan useSession().update() çağrıldığında)
+      if (trigger === "update" && newSessionData?.user) {
+        const updatedSessionUser = newSessionData.user as Session['user']; // Session tipindeki user
+        
+        console.log("[AUTH] JWT Callback - Updating token due to session update trigger. New data:", updatedSessionUser);
+        
+        if (updatedSessionUser.username !== undefined) token.username = updatedSessionUser.username;
+        if (updatedSessionUser.name !== undefined) token.name = updatedSessionUser.name;
+        if (updatedSessionUser.profileImagePublicId !== undefined) token.profileImagePublicId = updatedSessionUser.profileImagePublicId;
+        if (updatedSessionUser.bannerImagePublicId !== undefined) token.bannerImagePublicId = updatedSessionUser.bannerImagePublicId;
+        // Diğer güncellenebilecek alanlar
       }
-
-      // console.log('JWT Callback: Oluşturulan/Güncellenen Token:', token);
-      return token; // Güncellenmiş token'ı döndür
+      console.log("[AUTH] JWT Callback - Token being returned:", JSON.stringify(token, null, 2));
+      return token;
     },
-
-    // Oturum (session) bilgisi istendiğinde (örneğin `useSession` hook'u ile) çalışır.
-    // Tarayıcıya gönderilecek session nesnesine hangi bilgilerin ekleneceğini belirleriz.
-    async session({ session, token }): Promise<Session> {
-      // Token içinde sakladığımız ekstra bilgileri (id, role) session nesnesine aktaralım.
-      // Bu sayede Client Component'lerde `useSession` ile bu bilgilere erişebiliriz.
-      if (token) {
-        // session.user normalde sadece name, email, image içerir. Biz genişletiyoruz.
-        session.user.id = token.id as string;
+    async session({ session, token }) { // token objesi JWT tipinde (bizim genişlettiğimiz)
+      console.log("[AUTH] Session Callback - Received token to build session:", JSON.stringify(token, null, 2));
+      if (token && session.user) {
+        // session.user objesini next-auth.d.ts'deki Session['user'] tipine göre doldur
+        session.user.id = token.id as string; // JWT'deki id'yi kullan
         session.user.role = token.role as string;
+        session.user.username = token.username as string | null | undefined;
+        session.user.name = token.name as string | null | undefined; 
+        session.user.email = token.email as string | null | undefined; 
+        // session.user.image = token.picture as string | null | undefined; // Varsayılan image için
+
+        session.user.profileImagePublicId = token.profileImagePublicId as string | null | undefined;
+        session.user.bannerImagePublicId = token.bannerImagePublicId as string | null | undefined;
       }
-      // console.log('Session Callback: Oluşturulan Oturum:', session);
-      return session; // Güncellenmiş session nesnesini döndür
-    }
+      console.log("[AUTH] Session Callback - Session object being returned:", JSON.stringify(session, null, 2));
+      return session;
+    },
   },
-
-  // Gizli Anahtar (Secret)
-  // JWT'leri imzalamak ve doğrulamak için kullanılır. Güvenlik için çok önemlidir.
-  // Bu değeri ASLA doğrudan koda yazma, Environment Variable'dan al.
-  // Terminalde 'openssl rand -base64 32' komutuyla güçlü bir secret üretebilirsin.
   secret: process.env.NEXTAUTH_SECRET,
-
-  // Hata ayıklama (isteğe bağlı)
-  // Geliştirme sırasında NextAuth'un daha fazla log üretmesini sağlar.
-  // debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === 'development', // Geliştirme modunda debug loglarını aç
 };
 
-// NextAuth handler'ını oluştur ve GET/POST istekleri için export et
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

@@ -121,14 +121,24 @@ const SliderCard: React.FC<SliderCardProps> = ({
               </p>
             )}
              {categories && categories.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {categories.slice(0, 2).map(cat => (
-                  <span key={cat.slug} className={`text-[0.65em] px-1.5 py-0.5 rounded-sm ${cat.slug === 'oyun' || cat.name.toLowerCase() === 'oyun' ? 'bg-prestij-type-game' : 'bg-prestij-type-anime'} text-white opacity-80`}>
-                    {cat.name}
-                  </span>
-                ))}
-              </div>
-            )}
+  <div className="mt-1 flex flex-wrap gap-1">
+    {categories.slice(0, 2).map(cat => (
+      // cat objesinin ve slug'ın varlığını kontrol et
+      cat && cat.slug ? (
+        <span 
+          key={cat.slug} // slug varsa key olarak kullan
+          className={`text-[0.65em] px-1.5 py-0.5 rounded-sm ${
+            cat.slug === 'oyun' || cat.name?.toLowerCase() === 'oyun' 
+              ? 'bg-prestij-type-oyun' 
+              : 'bg-prestij-type-anime'
+          } text-white opacity-80`}
+        >
+          {cat.name}
+        </span>
+      ) : null // Eğer cat veya cat.slug yoksa hiçbir şey render etme (veya bir placeholder)
+    ))}
+  </div>
+)}
           </div>
         </div>
 

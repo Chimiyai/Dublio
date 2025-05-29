@@ -5,6 +5,10 @@ import TopProjectCard from './TopProjectCard'; // TopProjectCardProps buradan ge
 import MainShowcase from './MainShowcase';
 import SideShowcaseItem from './SideShowcaseItem';
 import { formatDate } from '@/lib/utils'; // formatDate fonksiyonunu import et
+// Placeholder Component'lerini import et
+import TopProjectCardPlaceholder from './TopProjectCardPlaceholder';
+import MainShowcasePlaceholder from './MainShowcasePlaceholder';
+import SideShowcaseItemPlaceholder from './SideShowcaseItemPlaceholder';
 
 const AUTO_SLIDE_DELAY = 5000;
 
@@ -44,7 +48,6 @@ const HeroSection = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
       const [topData, sideData] = await Promise.all([
         fetchTopFavoriteProjects(),
         fetchLatestProjectsForSideList()
@@ -117,9 +120,26 @@ const HeroSection = () => {
 
   if (isLoading) {
     return (
-      <section className="hero-section bg-prestij-bg-dark-3 py-8 mb-12">
-        <div className="container mx-auto px-4 min-h-[600px] flex justify-center items-center">
-            <p className="text-prestij-text-dark">Hero Alanı Yükleniyor...</p>
+      <section className="hero-section bg-prestij-bg-dark-3 py-8 mb-12 overflow-hidden">
+        <div className="container mx-auto px-4">
+          {/* Üstteki 3 Favori Kart Placeholder */}
+          <div className="top-projects-row flex flex-col md:flex-row justify-center md:justify-between gap-5 mb-8">
+            {[...Array(3)].map((_, i) => (
+              <TopProjectCardPlaceholder key={`top-ph-${i}`} />
+            ))}
+          </div>
+
+          {/* Ana Hero İçeriği Placeholder */}
+          <div className="main-hero-content flex flex-col lg:flex-row gap-5 items-stretch relative w-full">
+            <div className="relative flex-grow lg:min-w-0 lg:w-[calc(100%-300px)] xl:w-[calc(100%-320px)] min-h-[450px] lg:min-h-[500px]">
+              <MainShowcasePlaceholder />
+            </div>
+            <aside className="hero-side-list w-full lg:w-[280px] xl:w-[300px] lg:flex-shrink-0 flex flex-col gap-2.5 lg:h-auto lg:flex-grow">
+              {[...Array(4)].map((_, i) => ( // Genellikle 4-5 tane yan liste öğesi olur
+                <SideShowcaseItemPlaceholder key={`side-ph-${i}`} />
+              ))}
+            </aside>
+          </div>
         </div>
       </section>
     );

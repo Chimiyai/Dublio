@@ -119,7 +119,7 @@ export default async function ArtistDetailPage({ params }: { params: { artistId:
                     {project.title}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    {project.type === 'game' ? 'Oyun' : 'Anime'}
+                    {project.type === 'oyun' ? 'Oyun' : 'Anime'}
                     {/* <<=== DEĞİŞİKLİK BURADA ===>> */}
                     {project.releaseDate
                       ? ` - ${format(new Date(project.releaseDate), 'yyyy', { locale: tr })}`

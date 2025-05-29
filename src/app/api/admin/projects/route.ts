@@ -8,20 +8,27 @@ import { RoleInProject, Prisma } from '@prisma/client';
 
 const createProjectSchema = z.object({
   title: z.string().min(1, "Başlık boş olamaz").max(191),
-  slug: z.string().min(1, "Slug boş olamaz.").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(191)
-    .refine(async (slug) => { // Slug'ın benzersizliğini kontrol et
+  slug: z.string().min(1, "Slug boş olamaz.").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Geçersiz slug formatı.").max(191)
+    .refine(async (slug) => {
         const existing = await prisma.project.findUnique({ where: { slug } });
         return !existing;
     }, { message: "Bu slug zaten kullanılıyor." }),
-  type: z.enum(['game', 'anime']),
+  type: z.enum(['oyun', 'anime']), // 'game' yerine 'oyun' kullandığınızı varsayıyorum
   description: z.string().max(5000).nullable().optional(),
   coverImagePublicId: z.string().max(255).nullable().optional(),
-  releaseDate: z.coerce.date().nullable().optional(), // coerce.date string'i Date'e çevirir
+  bannerImagePublicId: z.string().max(255).nullable().optional(), // <<<< YENİ ALAN
+  releaseDate: z.coerce.date().nullable().optional(),
   isPublished: z.boolean().optional().default(true),
-  assignments: z.array(z.object({ // assignments'ı da alacak şekilde güncelle
+  // Oyunlar için fiyatlandırma
+  price: z.number().min(0, "Fiyat 0 veya pozitif olmalı.").nullable().optional(), // <<<< YENİ ALAN
+  currency: z.string().length(3, "Para birimi 3 karakter olmalı (örn: TRY).").default("TRY").nullable().optional(), // <<<< YENİ ALAN
+  
+  assignments: z.array(z.object({
     artistId: z.number().int(),
     role: z.nativeEnum(RoleInProject)
-  })).optional().default([]), // Varsayılan boş array
+  })).optional().default([]),
+  // Kategori ID'lerini de alabiliriz (opsiyonel)
+  categoryIds: z.array(z.number().int()).optional().default([]), // <<<< KATEGORİLER İÇİN
 });
 
 export async function POST(request: NextRequest) {
@@ -35,26 +42,37 @@ export async function POST(request: NextRequest) {
     const parsedBody = await createProjectSchema.safeParseAsync(body); // Async refine için safeParseAsync
 
     if (!parsedBody.success) {
+      console.error("Zod validation errors (POST):", parsedBody.error.flatten());
       return NextResponse.json({ message: "Geçersiz veri.", errors: parsedBody.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { assignments, ...projectData } = parsedBody.data;
+    const { assignments, categoryIds, price, currency, ...projectData } = parsedBody.data;
+
+    // Eğer tip 'anime' ise ve fiyat girilmişse, fiyatı null yap (ya da hata ver)
+    let finalPrice = projectData.type === 'oyun' ? price : null;
+    let finalCurrency = projectData.type === 'oyun' ? currency : null;
+    if (projectData.type === 'anime' && price !== null && price !== undefined) {
+        console.warn("Anime için fiyat girildi, null olarak ayarlanacak.");
+    }
 
     const newProject = await prisma.project.create({
       data: {
         ...projectData,
-        // releaseDate: projectData.releaseDate ? new Date(projectData.releaseDate) : null, // Zod coerce.date bunu zaten yapıyor
+        price: finalPrice,
+        currency: finalCurrency,
+        // releaseDate zaten Zod ile Date'e çevriliyor
         assignments: assignments && assignments.length > 0 ? {
-          createMany: {
-            data: assignments.map(a => ({
-              artistId: a.artistId,
-              role: a.role,
-            })),
-          },
-        } : undefined, // Eğer assignments yoksa veya boşsa, bu alanı ekleme
+          createMany: { data: assignments.map(a => ({ artistId: a.artistId, role: a.role })) },
+        } : undefined,
+        categories: categoryIds && categoryIds.length > 0 ? {
+          create: categoryIds.map(catId => ({
+            category: { connect: { id: catId } }
+          }))
+        } : undefined,
       },
-      include: { // Dönen veride assignments'ı da görmek isteyebilirsin
-          assignments: { select: { artistId: true, role: true }}
+      include: {
+          assignments: { select: { artistId: true, role: true }},
+          categories: { select: { category: { select: { id: true, name: true}} }}
       }
     });
 
