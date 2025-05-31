@@ -46,6 +46,7 @@ export interface InitialProjectData {
   assignments: AssignmentManagerAssignmentData[]; // Bu artık tempId ve characterIds içermeli
   categoryIds: number[];
   // categories?: { category: { id: number; name: string; } }[]; // categoryIds yeterli
+  externalWatchUrl?: string | null;
 }
 
 
@@ -67,6 +68,7 @@ interface ApiPayload { // Bu tipin doğru tanımlandığından emin ol
   bannerImagePublicId: string | null;
   releaseDate: string | null;
   isPublished: boolean;
+  externalWatchUrl?: string | null;
   price: number | null;
   currency: string | null;
   assignments: { // Bu kısım önemli
@@ -119,6 +121,7 @@ export default function EditProjectForm({
   const [errors, setErrors] = useState<FormErrors>({});
 
   // --- FORM STATE'LERİ (Her bölüm kendi state'ini callback ile buraya yansıtacak) ---
+  const [externalWatchUrl, setExternalWatchUrl] = useState(initialProjectData?.externalWatchUrl || '');
   const [title, setTitle] = useState(initialProjectData?.title || '');
   const [slug, setSlug] = useState(initialProjectData?.slug || '');
   const [projectType, setProjectType] = useState<ProjectTypeEnum>(initialProjectData?.type || 'oyun');
@@ -173,6 +176,7 @@ export default function EditProjectForm({
       // Seçili dosyaları sıfırla, çünkü initialProjectData değişti
       setSelectedCoverFile(null);
       setSelectedBannerFile(null);
+      setExternalWatchUrl(initialProjectData.externalWatchUrl || '');
     }
   }, [initialProjectData]);
 
@@ -289,6 +293,7 @@ export default function EditProjectForm({
       currency: projectType === 'oyun' && price.trim() !== '' && currency.trim() !== '' ? currency.trim().toUpperCase() : null,
       assignments: assignmentsForApi,
       categoryIds: selectedCategoryIds,
+      externalWatchUrl: projectType === 'anime' && externalWatchUrl.trim() !== '' ? externalWatchUrl.trim() : null,
     };
 
     // Sadece yeni proje oluşturulurken assignments gönderme
@@ -370,6 +375,29 @@ export default function EditProjectForm({
         releaseDate={releaseDate} onReleaseDateChange={setReleaseDate}
         errors={errors}
       />
+      {/* Sadece Anime ise göster */}
+      {projectType === 'anime' && (
+        <div className="border-b border-gray-900/10 dark:border-gray-700 pb-10">
+          <h2 className="text-lg font-semibold leading-7 text-gray-900 dark:text-gray-100">Anime İzleme Linki</h2>
+          <div className="mt-6">
+            <label htmlFor="externalWatchUrl" className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
+              Harici İzleme URL'i
+            </label>
+            <div className="mt-2">
+              <input
+                type="url"
+                name="externalWatchUrl"
+                id="externalWatchUrl"
+                value={externalWatchUrl}
+                onChange={(e) => setExternalWatchUrl(e.target.value)}
+                placeholder="https://ornek-anime-sitesi.com/anime-adi"
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800"
+              />
+            </div>
+            {/* errors.externalWatchUrl eklenebilir */}
+          </div>
+        </div>
+      )}
 
       <ProjectImagesManager
         coverImagePublicId={currentCoverPublicId}

@@ -39,7 +39,7 @@ export async function generateMetadata(
   });
 
   if (!project) {
-    return { title: 'Proje Bulunamadı | Prestij Dublaj' };
+    return { title: 'Proje Bulunamadı | PrestiJ Dublaj' };
   }
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -50,11 +50,11 @@ export async function generateMetadata(
   }
 
   return {
-    title: `${project.title} | Prestij Dublaj`,
-    description: project.description?.substring(0, 160) || `Prestij Dublaj ekibinin ${project.title} projesi detayları.`,
+    title: `${project.title} | PrestiJ DublaJ`,
+    description: project.description?.substring(0, 160) || `PrestiJ Dublaj ekibinin ${project.title} projesi detayları.`,
     openGraph: {
-      title: `${project.title} | Prestij Dublaj`,
-      description: project.description?.substring(0, 160) || `Prestij Dublaj ekibinin ${project.title} projesi detayları.`,
+      title: `${project.title} | PrestiJ DublaJ`,
+      description: project.description?.substring(0, 160) || `PrestiJ Dublaj ekibinin ${project.title} projesi detayları.`,
       images: ogImageUrl ? [{ url: ogImageUrl, width: 1200, height: 630, alt: project.title }] : [],
     },
   };

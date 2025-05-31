@@ -19,7 +19,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Canlıda kendi domain'inizi kullanın!
 const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev'; 
 // E-posta konusu
-const emailSubject = "Prestij Dublaj - E-posta Adresi Doğrulama";
+const emailSubject = "PrestiJ Dublaj - E-posta Adresi Doğrulama";
 // Token geçerlilik süresi (örneğin 1 saat)
 const TOKEN_EXPIRATION_MINUTES = 60;
 

@@ -71,6 +71,7 @@ model Project {
   description         String?
   coverImagePublicId  String?
   bannerImagePublicId String?
+  externalWatchUrl    String?
   releaseDate         DateTime? @default(now())
   isPublished         Boolean   @default(true)
   createdAt           DateTime  @default(now())
@@ -256,11 +257,24 @@ model DubbingArtist {
   id            Int                     @id @default(autoincrement())
   firstName     String
   lastName      String
+  slug          String?
   bio           String?
   imagePublicId String? // BU ALANIN VARLIĞI VE DOĞRU YAZILDIĞI ÇOK ÖNEMLİ
+  siteRole      String?
+  websiteUrl    String?
+  twitterUrl    String?
+  instagramUrl  String?
+  youtubeUrl    String?
+  linkedinUrl   String?
+  githubUrl     String?
+  donationLink  String?
+  isTeamMember  Boolean                 @default(false)
+  teamOrder     Int?
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
   assignments   ProjectAssignment[]
+  likeCount     Int     @default(0)
+  favoriteCount Int     @default(0)
   likes         DubbingArtistLike[]
   favoritedBy   DubbingArtistFavorite[]
 

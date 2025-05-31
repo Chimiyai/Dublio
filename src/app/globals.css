@@ -1,3 +1,12 @@
+/* globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root { /* Veya dark tema için .dark scope'u */
+    --color-prestij-chat-bg: #08060D; /* Hex kodunu buraya gir */
+    /* RGB versiyonunu da tanımlayabiliriz (rgba için) */
+    --color-prestij-chat-bg-rgb: 8, 6, 13; /* #08060D'nin RGB karşılığı */
+  }
+}

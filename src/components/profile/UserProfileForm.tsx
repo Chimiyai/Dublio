@@ -18,17 +18,17 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 
-interface UserProfileFormProps {
+export interface UserProfileFormProps { 
   user: { 
     id: number; 
     username: string;
-    bio: string | null; // bio null olabilir
+    bio: string | null;
     email: string;
     role: string;
     profileImagePublicId: string | null;
     bannerImagePublicId: string | null;
-    createdAt: Date; // veya string, API'den nasıl geldiğine bağlı
-    updatedAt: Date; // veya string
+    createdAt: Date; 
+    updatedAt: Date; 
   };
 }
 
@@ -52,38 +52,38 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
 
 
   const handleImageSave = async (imageType: 'profile' | 'banner') => {
-    const fileToUpload = imageType === 'profile' ? selectedProfileFile : selectedBannerFile;
-    // Veritabanındaki mevcut public ID'yi prop'tan (initialUser) alalım, state'ten değil
-    const currentPublicIdInDb = imageType === 'profile' ? initialUser.profileImagePublicId : initialUser.bannerImagePublicId;
+  const fileToUpload = imageType === 'profile' ? selectedProfileFile : selectedBannerFile;
+  const currentPublicIdInDb = imageType === 'profile' ? initialUser.profileImagePublicId : initialUser.bannerImagePublicId;
 
-    if (!fileToUpload) {
-      toast.error("Lütfen önce bir dosya seçin.");
-      return;
-    }
+  if (!fileToUpload) {
+    toast.error("Lütfen önce bir dosya seçin.");
+    return;
+  }
 
-    const loadingToastId = toast.loading(`${imageType === 'profile' ? 'Profil resmi' : 'Banner'} yükleniyor...`);
-    
-    startTransition(async () => {
-        let newPublicId: string | null = null;
-        try {
-            const formData = new FormData();
-            formData.append('imageFile', fileToUpload);
-            // ImageUploader'a gönderilen endpoint'e göre bu identifier ve folder'ı ayarlayın
-            // veya ImageUploader içinde bu mantık varsa ona bırakın.
-            // formData.append('uploadContext', imageType === 'profile' ? 'userProfile' : 'userBanner');
-            formData.append('identifier', initialUser.id.toString()); 
-            formData.append('folder', imageType === 'profile' ? 'user_profiles' : 'user_banners'); // Örnek folder
+  const loadingToastId = toast.loading(`${imageType === 'profile' ? 'Profil resmi' : 'Banner'} yükleniyor...`);
+  
+  startTransition(async () => {
+      let newPublicId: string | null = null;
+      try {
+          const formData = new FormData();
+          formData.append('imageFile', fileToUpload);
+          formData.append('uploadContext', imageType === 'profile' ? 'userProfile' : 'userBanner'); // Bu API'ye gönderiliyor
+          formData.append('identifier', initialUser.id.toString()); 
+          // 'folder' API içinde uploadContext'e göre belirleniyor, buradan göndermeye gerek yok
 
-            const uploadResponse = await fetch('/api/profile/image-upload', { // Kendi resim yükleme API endpoint'iniz
-                method: 'POST',
-                body: formData,
-            });
-            const uploadData = await uploadResponse.json();
+          // YOLU KONTROL ET: Eğer API'niz /api/image-upload ise bunu kullanın
+          const uploadResponse = await fetch('/api/image-upload', { // DÜZELTİLMİŞ OLMALI
+              method: 'POST',
+              body: formData,
+          });
+          // const uploadData = await uploadResponse.json(); // Hata kontrolünden sonra parse et
 
-            if (!uploadResponse.ok) {
-                throw new Error(uploadData.message || 'Resim Cloudinary\'ye yüklenemedi.');
-            }
-            newPublicId = uploadData.publicId;
+          if (!uploadResponse.ok) {
+              const errorData = await uploadResponse.json().catch(() => ({ message: 'Resim Cloudinary\'ye yüklenemedi (yanıt okunamadı).' }));
+              throw new Error(errorData.message || `Resim Cloudinary\'ye yüklenemedi (HTTP ${uploadResponse.status}).`);
+          }
+          const uploadData = await uploadResponse.json(); // Başarılı ise parse et
+          newPublicId = uploadData.publicId;
             // toast.success(`Resim başarıyla Cloudinary\'ye yüklendi.`); // DB kaydından sonra genel başarı mesajı
 
             // Eski resmi arşivleme/silme mantığı (Cloudinary'de)
@@ -101,44 +101,44 @@ export default function UserProfileForm({ user: initialUser }: UserProfileFormPr
             }
 
             const dbUpdateData = imageType === 'profile' 
-                ? { profileImagePublicId: newPublicId } 
-                : { bannerImagePublicId: newPublicId };
+              ? { profileImagePublicId: newPublicId } 
+              : { bannerImagePublicId: newPublicId };
 
-            const dbResponse = await fetch('/api/profile/update-details', { // Kullanıcı detaylarını güncelleyen API endpoint'i
-                method: 'PATCH', // VEYA PUT
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dbUpdateData),
-            });
-            const dbData = await dbResponse.json();
+          const dbResponse = await fetch('/api/profile/update-details', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(dbUpdateData),
+          });
+          // const dbData = await dbResponse.json(); // Hata kontrolünden sonra parse et
 
-            if (!dbResponse.ok) {
-                if (newPublicId) {
-                    console.warn("DB güncellemesi başarısız, Cloudinary'ye yüklenen resim silinmeli:", newPublicId);
+          if (!dbResponse.ok) {
+              const errorDbData = await dbResponse.json().catch(() => ({ message: 'Resim bilgisi veritabanına kaydedilemedi (yanıt okunamadı).' }));
+              if (newPublicId) {
+                  console.warn("DB güncellemesi başarısız, Cloudinary'ye yüklenen resim silinmeli:", newPublicId);
                     // ... (Cloudinary silme API çağrısı) ...
                 }
-                throw new Error(dbData.message || 'Resim bilgisi veritabanına kaydedilemedi.');
+                throw new Error(errorDbData.message || `Resim bilgisi veritabanına kaydedilemedi (HTTP ${dbResponse.status}).`);
             }
             
             toast.success(`${imageType === 'profile' ? 'Profil resmi' : 'Banner'} başarıyla güncellendi!`);
-// State'i hemen güncellemek yerine router.refresh() sonrası useEffect'in güncellemesini bekleyebiliriz.
-            // Veya anlık UI için:
-            if (imageType === 'profile') {
-                setProfileImageIdToDisplay(newPublicId);
-                setSelectedProfileFile(null);
-            } else {
-                setBannerImageIdToDisplay(newPublicId);
-                setSelectedBannerFile(null);
-            }
-            router.refresh(); // Sayfayı yenileyerek sunucudan güncel initialUser'ı alır
 
-        } catch (error: any) {
-            toast.error(error.message || 'Bir hata oluştu.');
-            console.error("Resim kaydetme hatası:", error);
-        } finally {
-            toast.dismiss(loadingToastId);
-        }
-    });
-  };
+          if (imageType === 'profile') {
+              setProfileImageIdToDisplay(newPublicId); // initialUser yerine state'i güncelle
+              setSelectedProfileFile(null);
+          } else {
+              setBannerImageIdToDisplay(newPublicId); // initialUser yerine state'i güncelle
+              setSelectedBannerFile(null);
+          }
+          router.refresh();
+
+      } catch (error: any) {
+          toast.error(error.message || 'Bir hata oluştu.');
+          console.error("Resim kaydetme hatası:", error);
+      } finally {
+          toast.dismiss(loadingToastId);
+      }
+  });
+};
 
 
   return (

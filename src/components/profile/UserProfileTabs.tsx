@@ -44,7 +44,7 @@ const UserProfileTabs: React.FC<UserProfileTabsProps> = ({
         
         // "Hesap Ayarları" için direkt link, diğerleri için query parametreli link
         const tabHref = tab.key === 'settings' 
-            ? `/profil/ayarlar` // Bu sayfanın var olduğundan emin olun
+            ? `/profil` // Bu sayfanın var olduğundan emin olun
             : `/profil/${username}?tab=${tab.key}`;
 
         return (

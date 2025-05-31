@@ -74,7 +74,7 @@ const Footer = () => {
     { label: "X (Twitter)", href: "#", iconClass: "fab fa-twitter" },
     { label: "Instagram", href: "#", iconClass: "fab fa-instagram" },
     { label: "TikTok", href: "#", iconClass: "fab fa-tiktok" },
-    { label: "Discord", href: "#", iconClass: "fab fa-discord" },
+    { label: "Discord", target:'_blank', href: "https://discord.gg/24UHAsAN5v", iconClass: "fab fa-discord" },
   ];
 
   // tailwind.config.js'de bu renklerin tanımlı olması beklenir:

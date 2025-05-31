@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer"; // Footer'ı import et
 import Providers from "@/components/Providers";
+import ClientToaster from '@/components/ui/ClientToaster';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -26,32 +27,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-site-bg-main text-prestij-text-primary min-h-screen`}>
         <Providers>
-          <Toaster 
-            position="top-right" // Bildirimlerin konumu (isteğe bağlı)
-            toastOptions={{
-              // Varsayılan stil ayarları (isteğe bağlı)
-              className: '',
-              duration: 5000,
-              style: {
-                background: '#333', // Dark mode için örnek
-                color: '#fff',
-              },
-              success: {
-                duration: 3000,
-                // theme: {
-                //   primary: 'green',
-                //   secondary: 'black',
-                // },
-              },
-              error: {
-                duration: 4000,
-                // theme: {
-                //   primary: 'red',
-                //   secondary: 'black',
-                // },
-              }
-            }}
-          />
+          <ClientToaster />
           <Header />
           <main className="flex-grow">
             {children}

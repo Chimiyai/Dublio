@@ -107,8 +107,8 @@ export default function Navbar() {
   const navItems = [
     { label: 'Oyunlar', dropdownId: 'oyunlarDropdown', dropdownContent: oyunlarDropdownContent },
     { label: 'Animeler', dropdownId: 'animelerDropdown', dropdownContent: animelerDropdownContent },
-    { label: 'Kadromuz', href: '#' },
-    { label: 'Bize Katıl!', href: '#' },
+    { label: 'Kadromuz', href: '/kadromuz' },
+    { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/24UHAsAN5v' },
   ];
 
   return (
@@ -132,7 +132,7 @@ export default function Navbar() {
         <div className="logo-area flex items-center gap-2 lg:order-1">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={45} height={45} className="site-logo h-9 sm:h-10 w-auto" priority />
-            <span className="site-name text-lg sm:text-xl font-medium text-gray-100 hidden sm:inline">Prestij</span>
+            <span className="site-name text-lg sm:text-xl font-medium text-gray-100 hidden sm:inline">PrestiJ</span>
           </Link>
         </div>
 

@@ -98,28 +98,31 @@ function ContributorsSection({ assignments }: { assignments: AssignmentWithDetai
 
   // Rollerin gösterim sırasını belirleyebiliriz (isteğe bağlı)
   const roleOrder: PrismaRoleInProject[] = [
-    PrismaRoleInProject.DIRECTOR,
-    PrismaRoleInProject.VOICE_ACTOR,
-    PrismaRoleInProject.SCRIPT_WRITER,
-    PrismaRoleInProject.TRANSLATOR,
-    PrismaRoleInProject.MIX_MASTER,
-    PrismaRoleInProject.MODDER,
-  ];
+  PrismaRoleInProject.DIRECTOR,
+  PrismaRoleInProject.SCRIPT_WRITER,
+  PrismaRoleInProject.MODDER,
+  PrismaRoleInProject.TRANSLATOR,
+  PrismaRoleInProject.MIX_MASTER,
+  PrismaRoleInProject.VOICE_ACTOR,
+];
   
   const sortedRoles = Object.keys(groupedAssignments)
+    .filter(role => roleOrder.includes(role as PrismaRoleInProject)) // Sadece roleOrder'da olanları al
     .sort((a, b) => {
         const indexA = roleOrder.indexOf(a as PrismaRoleInProject);
         const indexB = roleOrder.indexOf(b as PrismaRoleInProject);
-        // Eğer rol roleOrder'da yoksa sona at
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
         return indexA - indexB;
     }) as PrismaRoleInProject[];
 
+  // Eğer roleOrder'da olmayan ama groupedAssignments'ta olan roller varsa, onları sona ekle (opsiyonel)
+  const otherRoles = Object.keys(groupedAssignments)
+    .filter(role => !roleOrder.includes(role as PrismaRoleInProject)) as PrismaRoleInProject[];
+  
+  const finalSortedRoles = [...sortedRoles, ...otherRoles]; // Önce sıralılar, sonra diğerleri
 
   return (
     <div className="space-y-10">
-      {sortedRoles.map((role) => {
+      {finalSortedRoles.map((role) => {
         const assignmentsInRole = groupedAssignments[role];
         if (!assignmentsInRole || assignmentsInRole.length === 0) return null;
 
@@ -138,33 +141,44 @@ function ContributorsSection({ assignments }: { assignments: AssignmentWithDetai
 
                 return (
                   <a
-                    key={`${assignment.id}-${artist.id}`} // assignment.id daha unique olur
-                    href={`/sanatcilar/${artist.id}`} // Sanatçı profil sayfasına link
-                    className="group flex flex-col items-center text-center p-3 bg-gray-800/60 dark:bg-gray-800/40 rounded-lg shadow-md hover:shadow-xl transition-all duration-200 ease-in-out transform hover:-translate-y-1"
+                    key={`${assignment.id}-${artist.id}`} // veya sadece assignment.id
+                    href={`/sanatcilar/${artist.id}`}
+                    className="group flex items-center space-x-3 p-2.5 bg-gray-800/70 dark:bg-gray-800/50 rounded-lg shadow hover:shadow-md transition-all duration-150 ease-in-out hover:bg-gray-700/80 dark:hover:bg-gray-700/60" // space-x-3 eklendi, padding ayarlandı
                   >
-                    <div className="w-24 h-24 mb-3 rounded-full overflow-hidden border-2 border-gray-700 dark:border-gray-600 group-hover:border-indigo-500 transition-colors duration-200 flex-shrink-0 relative">
+                    {/* Avatar */}
+                    <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border border-gray-700 dark:border-gray-600 group-hover:border-indigo-500 transition-colors duration-150 relative">
                       {artist.imagePublicId ? (
                         <NextImage
-                          src={getCloudinaryImageUrlOptimized(artist.imagePublicId, { width: 96, height: 96, crop: 'fill', gravity: 'face' }, 'avatar')}
+                          src={getCloudinaryImageUrlOptimized(artist.imagePublicId, { width: 60, height: 60, crop: 'fill', gravity: 'face' }, 'avatar')} // Boyutlar küçültüldü
                           alt={`${artist.firstName} ${artist.lastName}`}
                           fill
-                          className="object-cover" // rounded-full parent'ta zaten var
-                          sizes="96px"
+                          className="object-cover"
+                          sizes="60px" // Yeni boyuta göre
                         />
                       ) : (
-                        <UserCircleIcon className="w-full h-full text-gray-500 p-1" />
+                        <UserCircleIcon className="w-full h-full text-gray-500 p-0.5" />
                       )}
                     </div>
-                    <p className="w-full text-sm font-semibold text-gray-100 dark:text-gray-50 group-hover:text-indigo-400 dark:group-hover:text-indigo-300 transition-colors duration-200 truncate">
-                      {artist.firstName} {artist.lastName}
-                    </p>
-                    {charactersPlayed && (
-                      <div className="w-full mt-1">
-                        <p className="text-xs text-purple-400 dark:text-purple-300 truncate px-1" title={charactersPlayed}>
-                          <span className="font-medium">Karakter:</span> {charactersPlayed}
-                        </p>
+
+                    {/* İsim ve Rol/Karakter Bilgisi (Yan Yana) */}
+                    <div className="flex-1 min-w-0"> {/* min-w-0 taşmayı önlemek için önemli */}
+                      <p className="text-sm font-semibold text-gray-100 dark:text-gray-50 group-hover:text-indigo-400 dark:group-hover:text-indigo-300 transition-colors duration-150 truncate">
+                        {artist.firstName} {artist.lastName}
+                      </p>
+                      {/* Rol ve Karakter Bilgisi Alt Alta */}
+                      <div>
+                        {charactersPlayed && (
+  <div className="w-full mt-0.5">
+    <p 
+      className="text-[10px] sm:text-xs text-purple-400 dark:text-purple-300 px-1 leading-tight whitespace-normal" 
+      title={charactersPlayed}
+    >
+      <span className="font-semibold">K:</span> {charactersPlayed}
+    </p>
+  </div>
+)}
                       </div>
-                    )}
+                    </div>
                   </a>
                 );
               })}

@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const skip = (page - 1) * limit;
 
   try {
-    const messages = await prisma.message.findMany({
+    const messagesFromDb = await prisma.message.findMany({
       where: {
         OR: [
           { senderId: currentUserId, receiverId: otherUserId },
@@ -73,8 +73,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // });
 
     return NextResponse.json({
-      messages: messages.reverse(), // En son mesajlar sonda olacak şekilde (veya client'ta reverse)
-                                  // ya da orderBy: 'desc' ve client'ta reverse
+      messages: messagesFromDb, // ===> BURADA .reverse() OLMAMALI
       totalPages: Math.ceil(totalMessages / limit),
       currentPage: page,
       totalMessages,

@@ -84,6 +84,8 @@
                         route.ts
                 password/
                     route.ts
+                update-details/
+                    route.ts
             projects/
                 route.ts
                 top-favorites/
@@ -112,6 +114,7 @@
                     overview-stats/
                         route.ts
         mesajlar/
+            layout.tsx
             page.tsx
             [userId]/
                 page.tsx
@@ -154,6 +157,13 @@
             EditArtistForm.tsx
             EditProjectForm.tsx
             ImageUploader.tsx
+            ProjectAssignmentsManager.tsx
+            ProjectCategoriesSelect.tsx
+            ProjectCharactersManager.tsx
+            ProjectDetailsFields.tsx
+            ProjectImagesManager.tsx
+            ProjectPricingFields.tsx
+            ProjectPublishSettings.tsx
             ProjectsTable.tsx
             UpdateUserRole.tsx
         game/
@@ -178,6 +188,9 @@
             Footer.tsx
             Header.tsx
             SearchOverlay.tsx
+        messages/
+            ChatWindowClient.tsx
+            ConversationsListClient.tsx
         profile/
             ActivityContent.tsx
             BannerImageUploader.tsx
@@ -198,8 +211,10 @@
             CommentsSection.tsx
             ProjectInteractionButtons.tsx
         ui/
+            button.tsx
             card.tsx
             DropdownControl.tsx
+            input.tsx
             PopularContentCard.tsx
             PopularContentCardPlaceholder.tsx
             SliderCard.tsx

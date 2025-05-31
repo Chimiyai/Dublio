@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary'; // Eğer kullanıcı avatarı için kullanacaksak
 import Image from 'next/image';
+import Link from 'next/link';
 import { UserCircleIcon, TrashIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'; // Veya solid
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -53,16 +54,20 @@ function CommentItem({ comment, onDelete, currentUserId, currentUserRole }: {
   return (
     <div className="flex space-x-3 py-4 border-b border-gray-700 last:border-b-0">
       <div className="flex-shrink-0">
-        {avatarUrl ? (
-          <Image src={avatarUrl} alt={comment.user.username} width={40} height={40} className="rounded-full object-cover" />
-        ) : (
-          <UserCircleIcon className="w-10 h-10 text-gray-500" />
-        )}
+        <Link href={`/profil/${comment.user.username}`}>
+          {avatarUrl ? (
+            <Image src={avatarUrl} alt={comment.user.username} width={40} height={40} className="rounded-full object-cover hover:opacity-80 transition-opacity" />
+          ) : (
+            <UserCircleIcon className="w-10 h-10 text-gray-500 hover:text-gray-400 transition-colors" />
+          )}
+        </Link>
       </div>
       <div className="flex-1">
         <div className="flex items-center justify-between">
           <div className="text-sm">
-            <span className="font-semibold text-white mr-2">{comment.user.username}</span>
+            <Link href={`/profil/${comment.user.username}`}>
+              <span className="font-semibold text-white mr-2 hover:underline">{comment.user.username}</span>
+            </Link>
             <span className="text-gray-400 text-xs">
               {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: tr })}
             </span>

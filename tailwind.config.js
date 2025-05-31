@@ -208,8 +208,28 @@ module.exports = {
         'profile-banner-gradient-start': '#101014', // Gradyan başlangıç (arka planla aynı)
         'profile-hr-color': '#252525',
         'overview-table-bg': '#08060D',
+        prestij: { // 'prestij' anahtar kelimesi önemli
+          '500': 'rgba(28, 11, 54, 0.49)', // Senin mor/eflatun vurgu rengin (örnek)
+          '400': 'rgb(165, 105, 255)',
+          // MESAJLAŞMA İÇİN YENİ RENKLER
+          'chat-bg': '#08060D',        // Mesajlaşma yeri ana arka planı
+          'sidebar-bg': '#130F1E',    // Kişi seçme yeri arka planı
+          'border-dark': '#2D2A3E',   // Kenarlıklar için sidebar-bg'den biraz açık
+          'input-bg': '#1A1729',     // Input arka planları için sidebar-bg'den biraz açık
+          'message-other': '#242038', // Diğer kişinin mesaj balonu BG
+          'message-own': '#YourPrestijPurpleHex', // Kendi mesaj balonun (prestij-500 ile aynı olabilir)
+          
+          // METİN RENKLERİ (Bu renkler genel temanla uyumlu olmalı)
+          'text-primary': '#E0E0E0',    // Ana metin (açık gri)
+          'text-secondary': '#A0A0A0',  // İkincil metin (orta gri)
+          'text-muted': '#6B6B6B',     // Soluk metin (koyu gri)
+          'text-placeholder': '#504C64',// Placeholder
+          'card-bg': 'rgb(21, 0, 34)',
+          'role-text': 'rgb(153, 89, 255)',
+        },
       },
       backgroundImage: {
+        'chat-banner-gradient': 'linear-gradient(to top, var(--color-prestij-chat-bg) 0%, rgba(var(--color-prestij-chat-bg-rgb), 0.2) 75%, transparent 100%)',
         'stat-gradient': 'linear-gradient(to right, #8B4EFF, #5A67D8)',
       },
       fontFamily: {

@@ -32,10 +32,10 @@ interface HeaderStats {
 }
 // Sahte veri
 const navLinksData = [
-  { label: 'Oyunlar', href: '#', dropdownId: 'oyunlarDropdown' },
-  { label: 'Animeler', href: '#', dropdownId: 'animelerDropdown' },
-  { label: 'Kadromuz', href: '#' },
-  { label: 'Bize Katıl!', href: '#' },
+  { label: 'Oyunlar', href: 'oyunlar', dropdownId: 'oyunlarDropdown' },
+  { label: 'Animeler', href: 'animeler', dropdownId: 'animelerDropdown' },
+  { label: 'Kadromuz', href: '/kadromuz' },
+  { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/24UHAsAN5v' },
 ];
 
 // Tip tanımlamalarını ekleyelim (isteğe bağlı ama iyi pratik)
@@ -68,6 +68,8 @@ type MobileMenuItem = MobileMenuLinkItem | MobileMenuSubmenuItem;
 
 
 const Header = () => {
+  const [downloadButtonText, setDownloadButtonText] = useState("PrestiJ'i İndir");
+  const [isDownloadClicked, setIsDownloadClicked] = useState(false); // Butonun tıklanıp tıklanmadığını tutar
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
   const isLoadingSession = status === "loading";
@@ -261,11 +263,24 @@ const oyunlarDropdownContent = {
   setMobileSubMenu(targetMenuKey);
 };
 
+const handleDownloadClick = () => {
+    if (!isDownloadClicked) {
+      setDownloadButtonText("Çok Yakında!");
+      setIsDownloadClicked(true); // Buton tıklandı olarak işaretle
+    
+      setTimeout(() => {
+        setDownloadButtonText("PrestiJ'i İndir");
+        setIsDownloadClicked(false);
+      }, 1000); 
+    }
+    // Eğer zaten "Çok Yakında!" ise bir şey yapma veya farklı bir aksiyon al (şimdilik bir şey yapmıyoruz)
+  };
+
   const navLinksForDesktop: NavLinkItem[] = [ // İsmi değiştirdim, çakışmayı önlemek için
     { label: 'Oyunlar', href: '/oyunlar', dropdownId: 'oyunlarDropdown' },
     { label: 'Animeler', href: '/animeler', dropdownId: 'animelerDropdown' },
     { label: 'Kadromuz', href: '/kadromuz' },
-    { label: 'Bize Katıl!', href: '/bize-katil' },
+    { label: 'Bize Katıl!', href: 'https://discord.gg/24UHAsAN5v' },
   ];
 
   if (session?.user) {
@@ -292,7 +307,7 @@ const oyunlarDropdownContent = {
       });
     }
     mainItems.push({ label: 'Kadromuz', action: 'link', href: '/kadromuz' });
-    mainItems.push({ label: 'Bize Katıl!', action: 'link', href: '/bize-katil' });
+    mainItems.push({ label: 'Bize Katıl!', action: 'link', href: 'https://discord.gg/24UHAsAN5v' });
 
     if (session?.user?.role === 'admin' && !isLoadingSession) {
       mainItems.push({ label: 'Admin Paneli', action: 'link', href: '/admin' });
@@ -360,7 +375,7 @@ return (
             <div className="absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none lg:mr-auto">
                 <Link href="/" className="flex items-center gap-2">
                     <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={50} height={50} className="h-[45px] sm:h-[50px] w-auto" />
-                    <span className="site-name text-xl sm:text-2xl font-medium text-prestij-text-primary hidden sm:block">Prestij</span>
+                    <span className="site-name text-xl sm:text-2xl font-medium text-prestij-text-primary hidden sm:block">PrestiJ</span>
                 </Link>
             </div>
 
@@ -568,8 +583,18 @@ return (
                         Giriş Yap
                     </Link>
                 )}
-                <button className="btn hidden md:block bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white text-xs sm:text-sm font-medium py-1.5 px-3 sm:px-4 rounded-md transition-colors whitespace-nowrap">
-                    PrestiJ'i İndir
+                {/* "Prestij'i İndir" Butonu (Desktop için) */}
+                <button 
+                  onClick={handleDownloadClick}
+                  disabled={isDownloadClicked} // Eğer tıklandıysa disable et
+                  className={`btn hidden md:block text-xs sm:text-sm font-medium py-1.5 px-3 sm:px-4 rounded-md transition-colors whitespace-nowrap
+                    ${isDownloadClicked 
+                      ? 'bg-prestij-bg-button/50 text-prestij-text-muted cursor-not-allowed' // Soluk ve pasif stil
+                      : 'bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white' // Normal stil
+                    }
+                  `}
+                >
+                  {downloadButtonText}
                 </button>
             </div>
           </div>
@@ -755,13 +780,21 @@ return (
                                         Giriş Yap
                                     </Link>
                                  )}
-                                <Link
-                                    href="#" // İndirme linkini buraya ekleyin
-                                    className="block w-full text-center py-2.5 px-4 bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white rounded-md transition-colors font-medium"
-                                    onClick={toggleMobileMenu}
-                                >
-                                    PrestiJ'i İndir
-                                </Link>
+                                <button // Link yerine button kullandım, onClick ile handleDownloadClick'i çağırabiliriz
+                onClick={() => {
+                    handleDownloadClick(); // Ana fonksiyonu çağır
+                    // toggleMobileMenu(); // Menüyü kapatmak isteyebilirsin
+                }}
+                disabled={isDownloadClicked}
+                className={`block w-full text-center py-2.5 px-4 rounded-md transition-colors font-medium
+                    ${isDownloadClicked
+                        ? 'bg-prestij-bg-button/30 text-prestij-text-muted cursor-not-allowed' // Mobil için biraz daha farklı soluk stil olabilir
+                        : 'bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white'
+                    }
+                `}
+            >
+                {downloadButtonText}
+            </button>
                             </div>
                         )}
                     </nav>

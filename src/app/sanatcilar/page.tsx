@@ -4,8 +4,8 @@ import Link from 'next/link';
 import ArtistAvatar from '@/components/ArtistAvatar'; // Client Component
 
 export const metadata = {
-  title: 'Sanatçılar - Prestij Dublaj',
-  description: 'Prestij Dublaj ekibinde yer alan tüm değerli seslendirme sanatçıları, çevirmenler ve diğer yetenekler.',
+  title: 'Sanatçılar - PrestiJ Dublaj',
+  description: 'PrestiJ Dublaj ekibinde yer alan tüm değerli seslendirme sanatçıları, çevirmenler ve diğer yetenekler.',
 };
 
 // Sanatçı listesi için tip

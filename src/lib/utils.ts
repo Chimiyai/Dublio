@@ -10,24 +10,17 @@ export function cn(...inputs: ClassValue[]) {
 // Tarih formatlama fonksiyonu
 export function formatDate(dateStringOrDate: string | Date | null | undefined, options?: Intl.DateTimeFormatOptions): string | null {
   if (!dateStringOrDate) {
-    return null;
+    return null; // Eğer giriş null veya undefined ise null döndür
   }
   try {
     const date = new Date(dateStringOrDate);
-    // Tarihin geçerli olup olmadığını kontrol et
     if (isNaN(date.getTime())) {
-        // console.error("Invalid date for formatDate (parsed as NaN):", dateStringOrDate);
-        return "Bilinmiyor"; // veya null ya da özel bir mesaj
+        return "Bilinmiyor"; // Geçersiz tarih için string döndür (veya null)
     }
-    const defaultOptions: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
+    const defaultOptions: Intl.DateTimeFormatOptions = { /* ... */ };
     return new Intl.DateTimeFormat('tr-TR', options || defaultOptions).format(date);
   } catch (error) {
-    // console.error("Error formatting date:", dateStringOrDate, error);
-    return "Hatalı Tarih"; // veya null
+    return "Hatalı Tarih"; // Hata durumunda string döndür (veya null)
   }
 }
 

@@ -99,7 +99,7 @@ const UserProfileInfo: React.FC<UserProfileInfoProps> = ({
         <div className="flex flex-col justify-center min-w-0">
           {isOwnProfile && (
             <Link
-              href="/profil/ayarlar"
+              href="/profil"
               className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white 
                        bg-black/40 hover:bg-black/60 px-2.5 py-1 rounded-md transition-colors
                        w-fit mb-1.5"

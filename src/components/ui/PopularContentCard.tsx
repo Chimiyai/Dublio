@@ -3,16 +3,21 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary'; // Import et
+import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
+import { cn } from '@/lib/utils'; // cn fonksiyonunu import etmeyi unutmayın
+// İkonları import etmeyi unutma (HandThumbUpIcon, vb.)
+import { PhotoIcon } from '@heroicons/react/24/solid';
+import { HandThumbUpIcon, HandThumbDownIcon, HeartIcon as SolidHeartIcon } from '@heroicons/react/24/solid';
 
-interface PopularContentCardProps {
+
+export interface PopularContentCardProps {
   slug: string;
   title: string;
   type: 'Oyun' | 'Anime';
-  bannerImageUrl: string | null | undefined; // API'den gelen bannerImagePublicId veya placeholder yolu
-  coverImageUrl: string | null | undefined;  // API'den gelen coverImagePublicId veya placeholder yolu
-  description: string;
-  date: string;
+  bannerImageUrl: string | null | undefined;
+  coverImageUrl: string | null | undefined; // Bu, sol taraftaki küçük resim için ID
+  description: string | null;
+  date: string | null;
   likes: number;
   dislikes: number;
   favorites: number;
@@ -23,8 +28,8 @@ const PopularContentCard: React.FC<PopularContentCardProps> = ({
   slug,
   title,
   type,
-  bannerImageUrl, // Bu prop artık Cloudinary ID'si veya placeholder yolu alacak
-  coverImageUrl,  // Bu prop artık Cloudinary ID'si veya placeholder yolu alacak
+  bannerImageUrl,
+  coverImageUrl, // SOLDAKİ KÜÇÜK KAPAK RESMİ İÇİN ID
   description,
   date,
   likes,
@@ -32,70 +37,101 @@ const PopularContentCard: React.FC<PopularContentCardProps> = ({
   favorites,
   itemTypePath,
 }) => {
-  // Rengi burada belirliyoruz
-  const typeClass = type.toLowerCase() === 'oyun' 
-    ? 'bg-project-type-oyun' // Veya bg-[#2A9D8F]
-    : 'bg-project-type-anime';
+  const bannerTypeTagClass = type.toLowerCase() === 'oyun' 
+    ? 'bg-[#2A9D8F]' // Banner üzerindeki etiket rengi
+    : 'bg-[#F4A261]';
+
+  // Tür belirteç çizgisi için renk class'ı (KÜÇÜK KAPAK RESMİNİN ALTINDAKİ)
+  const coverTypeIndicatorLineClass = type.toLowerCase() === 'oyun'
+    ? 'bg-[#2A9D8F]' // Oyun için çizgi rengi
+    : 'bg-[#E76F51]'; // Anime için çizgi rengi
 
   const formatStatCount = (count: number) => {
     if (count > 9999) return (count / 1000).toFixed(0) + 'K';
     if (count > 999) return (count / 1000).toFixed(1) + 'K';
     return count.toString();
   };
-
-  // Cloudinary ID'lerini veya placeholder yollarını URL'ye çevir
+  
   const finalBannerSrc = getCloudinaryImageUrlOptimized(
     bannerImageUrl,
-    { width: 400, height: 225, crop: 'fill', quality: 'auto', format: 'auto' },
-    'banner' // Eğer bannerImageUrl null/undefined ise bu placeholder kullanılacak
+    { width: 400, height: 180, crop: 'fill', quality: 'auto', format: 'auto' }, // Yüksekliği biraz azalttım (16/7 gibi)
+    'banner'
   );
+  const coverImageSize = 126;
   const finalCoverSrc = getCloudinaryImageUrlOptimized(
     coverImageUrl,
-    { width: 60, height: 60, crop: 'thumb', gravity: 'face', quality: 'auto', format: 'auto' },
-    'cover'  // Eğer coverImageUrl null/undefined ise bu placeholder kullanılacak
+    { width: coverImageSize, height: coverImageSize, crop: 'fill', gravity: 'face', quality: 'auto', format: 'auto' },
+    'cover'
   );
 
   return (
     <Link
       href={`/${itemTypePath}/${slug}`}
-      className="popular-card-link group flex flex-col bg-popular-card-bg rounded-xl overflow-hidden shadow-popular-card hover:shadow-popular-card-hover transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-[1.02] h-full"
+      className="popular-card-link group flex flex-col bg-popular-card-bg rounded-xl overflow-hidden shadow-popular-card hover:shadow-popular-card-hover transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] h-full"
     >
-      <div className="popular-card-banner w-full aspect-16/8 relative overflow-hidden">
-        <Image 
-          src={finalBannerSrc} // DÖNÜŞTÜRÜLMÜŞ URL KULLANILDI
-          alt={`${title} Banner`} 
-          fill 
-          className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" // Responsive sizes
-          priority={false} // İlk yüklenenler değilse false olabilir
-        />
-        <span className={`banner-on-type-popular absolute top-2.5 left-2.5 ${typeClass} text-white text-2xs font-semibold rounded uppercase tracking-wider px-2 py-0.5 leading-none z-10`}>
-          {type}
-        </span>
-      </div>
-
-      <div className="popular-card-content p-3.5 flex gap-3 items-start">
-        <Image 
-          src={finalCoverSrc} // DÖNÜŞTÜRÜLMÜŞ URL KULLANILDI
-          alt={`${title} Kapak`} 
-          width={60} 
-          height={60} 
-          className="popular-card-cover w-[60px] h-[60px] object-cover rounded-md flex-shrink-0 border border-white/10" 
-        />
-        <div className="popular-card-info flex-grow min-w-0">
-          <h3 className="popular-card-title text-base font-semibold text-popular-card-text mb-1.5 leading-tight group-hover:text-prestij-purple transition-colors">
-            {title}
-          </h3>
-          <p className="popular-card-description text-xs text-popular-card-description-text mb-2 leading-snug line-clamp-2">
-            {description}
-          </p>
-          <span className="popular-card-date text-2xs text-popular-card-date-text block">
-            Eklendi: {date}
-          </span>
+      {/* Banner Bölümü (En Üstteki Büyük Resim) */}
+      {finalBannerSrc && ( // Sadece bannerImageUrl varsa göster
+        <div className="popular-card-banner w-full aspect-[16/7] sm:aspect-[16/6] relative overflow-hidden">
+          <Image 
+            src={finalBannerSrc}
+            alt={`${title} Banner`} 
+            fill 
+            className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            priority={false}
+          />
         </div>
-      </div>
+      )}
 
-      <div className="popular-card-stats mt-auto px-3.5 py-2.5 border-t border-popular-card-border-top flex justify-around items-center">
+      {/* İçerik Bölümü */}
+      <div className="popular-card-content p-3 sm:p-4 flex flex-col flex-grow"> {/* Padding ayarlandı */}
+        <div className="flex gap-3 items-start mb-3"> {/* Gap ayarlandı */}
+          {/* Sol Taraftaki Küçük Kapak Resmi ve Altındaki Çizgi */}
+          <div className="flex-shrink-0">
+            {/* KÜÇÜK KAPAK RESMİ İÇİN YENİ CLASS'LAR */}
+            <div 
+              className="popular-card-cover w-14 h-14 object-cover rounded-md overflow-hidden border border-white/10 relative bg-gray-700" // w-14 h-14 (56px), rounded-md
+              // style={{ width: `${coverImageSize}px`, height: `${coverImageSize}px` }} // Alternatif olarak inline stil
+            >
+              {coverImageUrl || finalCoverSrc.startsWith('/') ? ( // Placeholder veya gerçek resim varsa
+                <Image 
+                  src={finalCoverSrc}
+                  alt={`${title} Kapak`} 
+                  fill
+                  className="object-cover"
+                  sizes={`${coverImageSize}px`} // Image sizes prop'u güncellendi
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                    <PhotoIcon className="w-8 h-8 text-gray-500" /> {/* Placeholder ikonu */}
+                </div>
+              )}
+            </div>
+            {/* TÜR BELİRTEÇ ÇİZGİSİ */}
+            <div className={cn(
+                "w-full h-0.5 mt-1.5 rounded", // h-0.5 (2px) daha ince bir çizgi için
+                coverTypeIndicatorLineClass
+            )}></div>
+          </div>
+
+          {/* Sağ Taraftaki Bilgi Bloğu */}
+          <div className="popular-card-info flex-grow min-w-0">
+            <h3 className="popular-card-title text-sm md:text-base font-semibold text-popular-card-text mb-0.5 leading-tight group-hover:text-prestij-purple transition-colors"> {/* Yazı boyutu ve mb ayarlandı */}
+              {title}
+            </h3>
+            {description && (
+                <p className="popular-card-description text-xs text-popular-card-description-text mb-1 leading-snug line-clamp-2"> {/* mb ayarlandı */}
+                {description}
+                </p>
+            )}
+            <span className="popular-card-date text-2xs text-popular-card-date-text block">
+                {date ? `Yayın: ${date}` : 'Tarih Bilinmiyor'}
+            </span>
+          </div>
+        </div>
+
+        {/* İstatistikler */}
+        <div className="popular-card-stats mt-auto pt-2.5 px-0 pb-1 border-t border-popular-card-border-top flex justify-around items-center">
         <button 
           onClick={(e) => { e.preventDefault(); console.log('Like tıklandı:', slug); }}
           className="stat-button flex items-center gap-1 text-popular-stat-button-text hover:text-popular-stat-button-hover-text hover:bg-popular-stat-button-hover-bg p-1 rounded transition-colors text-xs"
@@ -122,8 +158,10 @@ const PopularContentCard: React.FC<PopularContentCardProps> = ({
           <span className="stat-count font-medium">{formatStatCount(favorites)}</span>
         </button>
       </div>
+      </div>
     </Link>
   );
 };
 
 export default PopularContentCard;
+
