@@ -1,10 +1,10 @@
+// src/app/api/admin/users/[userId]/route.ts
 import prisma from '@/lib/prisma';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // NextRequest import edildi
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { z } from 'zod'; // Veri doğrulama için Zod'u kullanacağız
+import { authOptions } from '@/lib/authOptions';
+import { z } from 'zod';
 
-// Rol güncelleme için beklenen request body'sinin şeması
 const updateUserRoleSchema = z.object({
   role: z.enum(['user', 'admin'], {
     errorMap: () => ({ message: "Rol 'user' veya 'admin' olmalıdır." }),
@@ -12,38 +12,39 @@ const updateUserRoleSchema = z.object({
 });
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { userId: string } }
+  request: NextRequest, // Request tipini NextRequest olarak değiştirdik
+  { params }: { params: Promise<{ userId: string }> } // params'ı Promise olarak al
 ) {
   const session = await getServerSession(authOptions);
-
-  // 1. Oturum ve admin rolü kontrolü
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
 
-  const userIdToUpdateAsInt = parseInt(params.userId, 10);
+  const resolvedParams = await params; // params'ı çöz
+  const userIdString = resolvedParams.userId;
+
+  if (!userIdString || typeof userIdString !== 'string' || userIdString.trim() === "") {
+    return NextResponse.json({ message: 'Eksik veya geçersiz kullanıcı ID parametresi.' }, { status: 400 });
+  }
+  const userIdToUpdateAsInt = parseInt(userIdString, 10);
+
   if (isNaN(userIdToUpdateAsInt)) {
     return NextResponse.json({ message: 'Geçersiz kullanıcı ID formatı.' }, { status: 400 });
   }
 
-  // 2. Adminin kendi rolünü değiştirmesini engelleme
-  // session.user.id (string) ve params.userId (string) karşılaştırması
-  if (session.user.id === params.userId) {
+  if (session.user.id === userIdString) { // Karşılaştırmayı string üzerinden yapabiliriz veya ikisini de parse edebiliriz
     return NextResponse.json(
       { message: 'Admin kendi rolünü değiştiremez.' },
-      { status: 400 } // Bad Request
+      { status: 400 }
     );
   }
 
-  // 3. Request body'sinden yeni rolü al ve doğrula
   let newRole: 'user' | 'admin';
   try {
     const body = await request.json();
     const parsedBody = updateUserRoleSchema.safeParse(body);
 
     if (!parsedBody.success) {
-      // Zod'un kendi hata mesajlarını kullanmak için
       return NextResponse.json({ message: 'Geçersiz veri.', errors: parsedBody.error.flatten().fieldErrors }, { status: 400 });
     }
     newRole = parsedBody.data.role;
@@ -52,7 +53,6 @@ export async function PATCH(
   }
 
   try {
-    // 4. Kullanıcıyı bul
     const userToUpdate = await prisma.user.findUnique({
       where: { id: userIdToUpdateAsInt },
     });
@@ -61,12 +61,9 @@ export async function PATCH(
       return NextResponse.json({ message: 'Rolü güncellenecek kullanıcı bulunamadı.' }, { status: 404 });
     }
 
-    // 5. Kullanıcıyı güncelle (sadece rolünü)
     const updatedUser = await prisma.user.update({
       where: { id: userIdToUpdateAsInt },
-      data: {
-        role: newRole,
-      },
+      data: { role: newRole },
     });
 
     return NextResponse.json(
@@ -82,25 +79,28 @@ export async function PATCH(
   }
 }
 
-// Mevcut DELETE fonksiyonunuz burada kalacak
 export async function DELETE(
-  request: Request,
-  { params }: { params: { userId: string } }
+  request: NextRequest, // Request tipini NextRequest olarak değiştirdik
+  { params }: { params: Promise<{ userId: string }> } // params'ı Promise olarak al
 ) {
-  // ... (önceki DELETE fonksiyonunun içeriği)
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
 
-  const userIdToDeleteAsInt = parseInt(params.userId, 10);
+  const resolvedParams = await params; // params'ı çöz
+  const userIdString = resolvedParams.userId;
+
+  if (!userIdString || typeof userIdString !== 'string' || userIdString.trim() === "") {
+    return NextResponse.json({ message: 'Eksik veya geçersiz kullanıcı ID parametresi.' }, { status: 400 });
+  }
+  const userIdToDeleteAsInt = parseInt(userIdString, 10);
 
   if (isNaN(userIdToDeleteAsInt)) {
     return NextResponse.json({ message: 'Geçersiz kullanıcı ID formatı.' }, { status: 400 });
   }
   
-  if (session.user.id === params.userId) { 
+  if (session.user.id === userIdString) { 
     return NextResponse.json(
       { message: 'Admin kendi hesabını silemez.' },
       { status: 400 }

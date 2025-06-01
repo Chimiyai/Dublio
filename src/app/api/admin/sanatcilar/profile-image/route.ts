@@ -1,7 +1,7 @@
 // src/app/api/admin/sanatcilar/profile-image/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // authOptions yolunu kontrol et
+import { authOptions } from '@/lib/authOptions'; // authOptions yolunu kontrol et
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 
 cloudinary.config({

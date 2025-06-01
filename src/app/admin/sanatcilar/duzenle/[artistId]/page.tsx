@@ -3,17 +3,17 @@ import prisma from '@/lib/prisma';
 import EditArtistForm, { ArtistFormDataForEdit } from '@/components/admin/EditArtistForm';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { notFound } from 'next/navigation';
-import type { Metadata } from 'next'; // Metadata'yı import et
+import { notFound, redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 
-interface EditSanatciPageProps {
-  params: {
-    artistId: string;
-  };
+interface CustomPageProps {
+  params: { artistId: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export async function generateMetadata({ params }: EditSanatciPageProps): Promise<Metadata> { // Promise<Metadata> eklendi
-  const artistIdAsNumber = parseInt(params.artistId, 10); // Değişken adı tutarlı olsun
+export async function generateMetadata({ params }: { params: Promise<{ artistId: string }> }): Promise<Metadata> {
+  const { artistId } = await params;
+  const artistIdAsNumber = parseInt(artistId, 10);
   if (isNaN(artistIdAsNumber)) {
     return { title: 'Sanatçı Bulunamadı | Admin Paneli' };
   }
@@ -30,8 +30,9 @@ export async function generateMetadata({ params }: EditSanatciPageProps): Promis
   };
 }
 
-export default async function EditSanatciPage({ params }: EditSanatciPageProps) {
-  const artistIdAsNumber = parseInt(params.artistId, 10);
+export default async function EditSanatciPage({ params }: { params: Promise<{ artistId: string }> }) {
+  const { artistId } = await params;
+  const artistIdAsNumber = parseInt(artistId, 10);
 
   if (isNaN(artistIdAsNumber)) {
     return (

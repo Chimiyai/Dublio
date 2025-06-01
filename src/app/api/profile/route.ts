@@ -1,7 +1,7 @@
 // src/app/api/profile/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Yolunu kontrol et
+import { authOptions } from '@/lib/authOptions'; // Yolunu kontrol et
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client'; // Prisma tipleri için

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 
 const createCommentSchema = z.object({
   content: z.string().min(3, 'Yorum en az 3 karakter olmalı.').max(1000, 'Yorum en fazla 1000 karakter olabilir.'),
@@ -15,19 +15,19 @@ const getCommentsQuerySchema = z.object({
   // sortBy: z.enum(['createdAt_asc', 'createdAt_desc']).optional().default('createdAt_desc'), // İleride eklenebilir
 });
 
-interface Params {
-  params: { projectId: string };
-}
-
-export async function POST(request: NextRequest, { params }: Params) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
+  const resolvedParams = await params;
+  const projectIdString = resolvedParams.projectId;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Yorum yapmak için giriş yapmalısınız.' }, { status: 401 });
   }
-
-  const projectId = parseInt(params.projectId);
+  if (!projectIdString || typeof projectIdString !== 'string') { // projectIdString'i kontrol et
+      return NextResponse.json({ message: 'Eksik veya geçersiz proje ID parametresi.' }, { status: 400 });
+  }
+  const projectId = parseInt(projectIdString, 10);
   if (isNaN(projectId)) {
-    return NextResponse.json({ message: 'Geçersiz proje ID.' }, { status: 400 });
+    return NextResponse.json({ message: 'Geçersiz proje ID formatı.' }, { status: 400 });
   }
   const userId = parseInt(session.user.id);
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const newComment = await prisma.comment.create({
       data: {
         content,
-        projectId,
+        projectId: projectId,
         userId,
       },
       include: { // Yeni yorumu, kullanıcı bilgileriyle birlikte döndür
@@ -76,24 +76,31 @@ export async function POST(request: NextRequest, { params }: Params) {
 }
 
 
-export async function GET(request: NextRequest, { params }: Params) {
-  const projectId = parseInt(params.projectId);
-  if (isNaN(projectId)) {
-    return NextResponse.json({ message: 'Geçersiz proje ID.' }, { status: 400 });
+export async function GET(
+    request: NextRequest, 
+    { params }: { params: Promise<{ projectId: string }> } // 1. Parametre tipi doğru
+) {
+  const resolvedParams = await params; // 2. Promise'ı çöz
+  const projectIdString = resolvedParams.projectId;
+  if (!projectIdString || typeof projectIdString !== 'string') {
+      return NextResponse.json({ message: 'Eksik veya geçersiz proje ID parametresi.' }, { status: 400 });
+  }
+  const projectId = parseInt(projectIdString, 10); // Parse et
+  if (isNaN(projectId)) { // Şimdi isNaN kontrolü yap
+    return NextResponse.json({ message: 'Geçersiz proje ID formatı.' }, { status: 400 });
   }
 
   const { searchParams } = new URL(request.url);
-  const queryParse = getCommentsQuerySchema.safeParse(Object.fromEntries(searchParams));
-
-  if (!queryParse.success) {
-    return NextResponse.json({ message: 'Geçersiz sorgu parametreleri.', errors: queryParse.error.issues }, { status: 400 });
+  const queryParseResult = getCommentsQuerySchema.safeParse(Object.fromEntries(searchParams)); // queryParse -> queryParseResult
+  if (!queryParseResult.success) {
+    return NextResponse.json({ message: 'Geçersiz sorgu parametreleri.', errors: queryParseResult.error.issues }, { status: 400 });
   }
-  const { page, limit } = queryParse.data;
+  const { page, limit } = queryParseResult.data;
   const skip = (page - 1) * limit;
 
   try {
     const comments = await prisma.comment.findMany({
-      where: { projectId },
+      where: { projectId: projectId },
       include: {
         user: {
           select: {
@@ -110,7 +117,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     const totalComments = await prisma.comment.count({
-      where: { projectId },
+      where: { projectId: projectId },
     });
 
     return NextResponse.json({

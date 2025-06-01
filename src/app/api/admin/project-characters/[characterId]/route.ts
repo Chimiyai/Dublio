@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 
 interface Params {
   params: { characterId: string };
@@ -17,13 +17,17 @@ const updateCharacterSchema = z.object({
 });
 
 // GET: Tek bir karakterin detayları
-export async function GET(request: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'admin') {
-    return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ characterId: string }> } // DOĞRU: params bir Promise
+) {
+  const resolvedParams = await params; // params'ı await ile çöz
+  const characterIdString = resolvedParams.characterId;
+  if (!characterIdString) {
+    return NextResponse.json({ message: 'Eksik karakter ID parametresi.' }, { status: 400 });
   }
+  const characterId = parseInt(characterIdString, 10);
 
-  const characterId = parseInt(params.characterId);
   if (isNaN(characterId)) {
     return NextResponse.json({ message: 'Geçersiz Karakter ID.' }, { status: 400 });
   }
@@ -43,13 +47,15 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 // PUT: Karakter güncelleme
-export async function PUT(request: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'admin') {
-    return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ characterId: string }> } // DOĞRU
+) {
+  const { characterId: characterIdString } = await params; // Doğrudan await ile destructure et
+  if (!characterIdString) {
+    return NextResponse.json({ message: 'Geçersiz Karakter ID.' }, { status: 400 });
   }
-
-  const characterId = parseInt(params.characterId);
+  const characterId = parseInt(characterIdString, 10);
   if (isNaN(characterId)) {
     return NextResponse.json({ message: 'Geçersiz Karakter ID.' }, { status: 400 });
   }
@@ -82,13 +88,16 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // DELETE: Karakter silme
-export async function DELETE(request: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'admin') {
-    return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ characterId: string }> } // DOĞRU
+) {
+  const { characterId: characterIdString } = await params; // Doğrudan await ile destructure et
+  if (!characterIdString) {
+    return NextResponse.json({ message: 'Geçersiz Karakter ID.' }, { status: 400 });
   }
 
-  const characterId = parseInt(params.characterId);
+  const characterId = parseInt(characterIdString, 10);
   if (isNaN(characterId)) {
     return NextResponse.json({ message: 'Geçersiz Karakter ID.' }, { status: 400 });
   }

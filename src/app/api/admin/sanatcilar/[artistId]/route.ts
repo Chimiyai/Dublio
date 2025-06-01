@@ -2,23 +2,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
 
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
+// Cloudinary config
+if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    cloudinary.config({
+        cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true,
+    });
+} else {
+    console.warn("Sanatçı API: Cloudinary environment variables are not fully set.");
+}
 
+// Zod şeması (PUT için)
 const updateArtistSchema = z.object({
   firstName: z.string().min(1, "Ad boş bırakılamaz.").max(191).optional(),
   lastName: z.string().min(1, "Soyad boş bırakılamaz.").max(191).optional(),
   slug: z.string().min(1).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug geçersiz formatta.").max(191).nullable().optional(),
-  bio: z.string().max(5000, "Biyografi çok uzun.").nullable().optional(), // max(2000)'den max(5000)'e yükseltildi
+  bio: z.string().max(5000).nullable().optional(),
   imagePublicId: z.string().max(255).nullable().optional(),
   siteRole: z.string().max(100).nullable().optional(),
   websiteUrl: z.string().url({ message: "Geçersiz web sitesi URL'i." }).or(z.literal('')).nullable().optional().transform(val => val === '' ? null : val),
@@ -32,56 +38,45 @@ const updateArtistSchema = z.object({
   teamOrder: z.number().int("Sıralama tam sayı olmalı.").nullable().optional(),
 });
 
-// Helper fonksiyon: Eski publicId'den arşiv publicId'si oluştur
-// Bu fonksiyonu API dosyasının dışında bir utils dosyasına taşımak daha iyi olabilir
-const getArchivePublicIdForArtist = (oldPublicId: string) => {
+// getArchivePublicIdForArtist fonksiyonu
+const getArchivePublicIdForArtist = (oldPublicId: string | null | undefined): string | null => {
     if (!oldPublicId) return null;
     const baseArchiveFolder = 'kullanilmayanlar';
-    const subFolder = 'sanatcilar_arsiv'; // Sanatçılar için özel arşiv klasörü
-    
+    const subFolder = 'sanatcilar_arsiv';
     let filenameWithTimestamp = oldPublicId;
-    // Eğer oldPublicId zaten "artist_profiles/" gibi bir klasör içeriyorsa, sadece dosya adını alalım
     if (oldPublicId.includes('/')) {
         filenameWithTimestamp = oldPublicId.substring(oldPublicId.lastIndexOf('/') + 1);
     }
-    // Yeni publicId: kullanilmayanlar/sanatcilar_arsiv/orijinalDosyaAdi_timestamp
     return `${baseArchiveFolder}/${subFolder}/${filenameWithTimestamp}_${Date.now()}`.substring(0, 200);
 };
 
-export async function PUT( // YENİ: PUT olarak değiştirildi
+
+// --- PUT (Sanatçıyı güncelle) ---
+export async function PUT(
   request: NextRequest,
-  { params }: { params: { artistId: string } }
+  { params }: { params: Promise<{ artistId: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
 
-  const artistIdAsInt = parseInt(params.artistId, 10);
+  const resolvedParams = await params;
+  const artistIdString = resolvedParams.artistId;
+
+  if (!artistIdString || typeof artistIdString !== 'string' || artistIdString.trim() === "") {
+    return NextResponse.json({ message: 'Eksik veya geçersiz sanatçı ID parametresi.' }, { status: 400 });
+  }
+  const artistIdAsInt = parseInt(artistIdString, 10);
+
   if (isNaN(artistIdAsInt)) {
     return NextResponse.json({ message: 'Geçersiz sanatçı ID formatı.' }, { status: 400 });
   }
 
   try {
-    const body = await request.json();
-    // Gelen body'yi loglayalım (debug için)
-    console.log("API Sanatçı Güncelleme - Gelen Body:", body);
-    const parsedBody = updateArtistSchema.safeParse(body);
-
-    if (!parsedBody.success) {
-      console.error("API Sanatçı Güncelleme - Zod Hataları:", parsedBody.error.flatten().fieldErrors);
-      return NextResponse.json(
-        { message: 'Geçersiz veri.', errors: parsedBody.error.flatten().fieldErrors },
-        { status: 400 }
-      );
-    }
-
-    const dataToUpdateFromClient = parsedBody.data;
-
     const currentArtist = await prisma.dubbingArtist.findUnique({
       where: { id: artistIdAsInt },
-      // Gerekli tüm alanları seçelim ki karşılaştırma yapabilelim
-      select: { 
+      select: {
         imagePublicId: true, 
         firstName: true, 
         lastName: true, 
@@ -104,19 +99,24 @@ export async function PUT( // YENİ: PUT olarak değiştirildi
       return NextResponse.json({ message: 'Güncellenecek sanatçı bulunamadı.' }, { status: 404 });
     }
 
-    // Sadece gerçekten değişen alanları içeren bir dataToUpdate objesi oluşturalım
+    const body = await request.json();
+    const parsedBody = updateArtistSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      console.error("API Sanatçı Güncelleme - Zod Hataları:", parsedBody.error.flatten().fieldErrors);
+      return NextResponse.json({ message: "Geçersiz veri gönderildi.", errors: parsedBody.error.flatten().fieldErrors }, { status: 400 });
+    }
+
+    const dataToUpdateFromClient = parsedBody.data;
     const dataToActuallyUpdate: Prisma.DubbingArtistUpdateInput = {};
     let hasChanges = false;
 
+    // Değişiklik kontrolü ve dataToActuallyUpdate'i doldurma
     for (const key in dataToUpdateFromClient) {
         const K = key as keyof typeof dataToUpdateFromClient;
-        // currentArtist'ta bu alanın olup olmadığını da kontrol et (yeni eklenen alanlar için)
-        // ve null/undefined durumlarını doğru karşılaştır
         const clientValue = dataToUpdateFromClient[K];
-        const dbValue = currentArtist[K as keyof typeof currentArtist];
-
-        // null ve undefined'ı aynı kabul etmek için basit bir kontrol
-        // veya daha iyisi, Object.prototype.hasOwnProperty.call(dataToUpdateFromClient, K) ile kontrol et
+        // currentArtist'ın tüm alanlarını seçtiğimizden emin olmalıyız (yukarıdaki select'te)
+        const dbValue = currentArtist[K as keyof typeof currentArtist]; 
         if (Object.prototype.hasOwnProperty.call(dataToUpdateFromClient, K)) {
             if (clientValue !== dbValue && !(clientValue === null && dbValue === undefined) && !(clientValue === undefined && dbValue === null) ) {
                  (dataToActuallyUpdate as any)[K] = clientValue;
@@ -124,85 +124,88 @@ export async function PUT( // YENİ: PUT olarak değiştirildi
             }
         }
     }
-
+    
     // Slug unique kontrolü
-    if (dataToActuallyUpdate.slug && dataToActuallyUpdate.slug !== currentArtist.slug) {
-        const existingSlugArtist = await prisma.dubbingArtist.findFirst({ where: { slug: dataToActuallyUpdate.slug as string, NOT: { id: artistIdAsInt } }});
+    if (dataToActuallyUpdate.slug && typeof dataToActuallyUpdate.slug === 'string' && dataToActuallyUpdate.slug !== currentArtist.slug) {
+        const existingSlugArtist = await prisma.dubbingArtist.findFirst({ where: { slug: dataToActuallyUpdate.slug, NOT: { id: artistIdAsInt } }});
         if (existingSlugArtist) {
             return NextResponse.json({ errors: { slug: ['Bu slug zaten başka bir sanatçı tarafından kullanılıyor.']}}, { status: 409 });
         }
     }
-    
+
     // Resim değişikliği ve arşivleme
-    if (dataToUpdateFromClient.imagePublicId !== undefined && dataToUpdateFromClient.imagePublicId !== currentArtist.imagePublicId) {
-        if (currentArtist.imagePublicId) { // Sadece eski resim varsa arşivle
+    if (Object.prototype.hasOwnProperty.call(dataToUpdateFromClient, 'imagePublicId') && dataToUpdateFromClient.imagePublicId !== currentArtist.imagePublicId) {
+        if (currentArtist.imagePublicId) {
             const archivePublicId = getArchivePublicIdForArtist(currentArtist.imagePublicId);
             if (archivePublicId) {
-                cloudinary.uploader.rename(currentArtist.imagePublicId, archivePublicId, { resource_type: 'image', overwrite: true })
-                    .then(result => console.log('Eski sanatçı resmi arşivlendi:', result.public_id))
-                    .catch(err => console.error("Cloudinary eski sanatçı resmi arşivleme hatası (PUT):", err.message));
+                cloudinary.uploader.rename(currentArtist.imagePublicId, archivePublicId, { resource_type: 'image', overwrite: true }) // overwrite: true olabilir
+                    .catch(err => console.error("Eski sanatçı resmi arşivleme hatası (PUT):", err.message));
             }
         }
-        // dataToActuallyUpdate.imagePublicId zaten set edilmiş olmalı (eğer değiştiyse)
+        // dataToActuallyUpdate.imagePublicId zaten set edilmiş olmalı
     }
 
-
-    if (!hasChanges) {
+    if (!hasChanges && Object.keys(dataToActuallyUpdate).length === 0) {
       return NextResponse.json(currentArtist); 
     }
 
     const updatedArtist = await prisma.dubbingArtist.update({
       where: { id: artistIdAsInt },
-      data: dataToActuallyUpdate, // Sadece değişen alanları gönder
+      data: dataToActuallyUpdate,
     });
 
-    return NextResponse.json(updatedArtist);
+    return NextResponse.json(updatedArtist, { status: 200 });
+
   } catch (error: any) {
-    console.error('Sanatçı güncelleme API hatası:', error);
+    console.error(`API Sanatçı (ID: ${artistIdString}) güncelleme hatası:`, error);
     if (error.code === 'P2025') { 
       return NextResponse.json({ message: 'Güncellenecek sanatçı bulunamadı (muhtemelen silinmiş).' }, { status: 404 });
     }
-    return NextResponse.json(
-      { message: 'Sanatçı güncellenirken bir sunucu hatası oluştu.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: error.message || 'Sanatçı güncellenirken bir sunucu hatası oluştu.' }, { status: 500 });
   }
 }
 
-// DELETE fonksiyonu (eğer varsa, benzer şekilde resmi arşivlemeli)
+
+// --- DELETE (Sanatçıyı sil) ---
 export async function DELETE(
-    request: NextRequest,
-    { params }: { params: { artistId: string } }
-  ) {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
+  request: NextRequest,
+  { params }: { params: Promise<{ artistId: string }> } // Promise olarak al
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
+  }
+
+  const resolvedParams = await params; // params'ı çöz
+  const artistIdString = resolvedParams.artistId;
+
+  if (!artistIdString || typeof artistIdString !== 'string' || artistIdString.trim() === "") {
+    return NextResponse.json({ message: 'Eksik veya geçersiz sanatçı ID parametresi.' }, { status: 400 });
+  }
+  const artistIdAsInt = parseInt(artistIdString, 10);
+
+  if (isNaN(artistIdAsInt)) {
+      return NextResponse.json({ message: 'Geçersiz sanatçı ID formatı.' }, { status: 400 });
+  }
+
+  try {
+    const artistToDelete = await prisma.dubbingArtist.findUnique({
+      where: { id: artistIdAsInt },
+      select: { imagePublicId: true, firstName: true, lastName: true }
+    });
+
+    if (!artistToDelete) {
+      return NextResponse.json({ message: 'Silinecek sanatçı bulunamadı.' }, { status: 404 });
     }
-    const artistIdAsInt = parseInt(params.artistId, 10);
-    if (isNaN(artistIdAsInt)) {
-        return NextResponse.json({ message: 'Geçersiz sanatçı ID.' }, { status: 400 });
-    }
-  
-    try {
-      const artistToDelete = await prisma.dubbingArtist.findUnique({
-        where: { id: artistIdAsInt },
-        select: { imagePublicId: true, firstName: true, lastName: true }
-      });
-  
-      if (!artistToDelete) {
-        return NextResponse.json({ message: 'Silinecek sanatçı bulunamadı.' }, { status: 404 });
-      }
-  
-      // Önce DB'den sil (veya önce arşivle, sonra sil)
-      await prisma.dubbingArtist.delete({ where: { id: artistIdAsInt } });
-  
-      if (artistToDelete.imagePublicId) {
-        const archivePublicId = getArchivePublicIdForArtist(artistToDelete.imagePublicId); // Arşiv klasörü default
-        if (archivePublicId) {
-            try {
-                console.log(`Cloudinary'de arşivleniyor (sanatçı DELETE): ${artistToDelete.imagePublicId} -> ${archivePublicId}`);
-                await cloudinary.uploader.rename(artistToDelete.imagePublicId, archivePublicId, { resource_type: 'image', overwrite: false });
-            } catch (renameError: any) {
+
+    await prisma.dubbingArtist.delete({ where: { id: artistIdAsInt } });
+
+    if (artistToDelete.imagePublicId) {
+      const archivePublicId = getArchivePublicIdForArtist(artistToDelete.imagePublicId);
+      if (archivePublicId) {
+          try {
+              await cloudinary.uploader.rename(artistToDelete.imagePublicId, archivePublicId, { resource_type: 'image', overwrite: false });
+          } catch (renameError: any) {
                 if (renameError.http_code === 404 && renameError.message?.includes("Resource not found")) {
                     console.log(`Arşivlenecek resim Cloudinary'de bulunamadı (DELETE): ${artistToDelete.imagePublicId}`);
                 } else {

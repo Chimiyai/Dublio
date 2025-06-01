@@ -6,7 +6,7 @@ import { tr } from 'date-fns/locale';
 import DeleteUserButton from '@/components/admin/DeleteUserButton';
 import UpdateUserRole from '@/components/admin/UpdateUserRole'; // YENİ IMPORT
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 
 export const revalidate = 0;
 

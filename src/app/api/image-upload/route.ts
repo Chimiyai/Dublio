@@ -1,7 +1,7 @@
 // src/app/api/image-upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Yolunu kontrol et
+import { authOptions } from '@/lib/authOptions'; // Yolunu kontrol et
 import { v2 as cloudinary, UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 
 cloudinary.config({

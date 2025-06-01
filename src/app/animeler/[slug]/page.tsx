@@ -5,7 +5,7 @@ import NextImage from 'next/image';
 import Link from 'next/link';
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Metadata } from 'next';
@@ -102,8 +102,12 @@ async function getAnimeDetails(slug: string): Promise<AnimeDataForTabs | null> {
   return formattedAnime;
 }
 
-export async function generateMetadata({ params }: AnimeDetailPageProps): Promise<Metadata> {
-  const anime = await getAnimeDetails(params.slug); // anime değişkenini kullan
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  if (!slug) {
+    return { title: 'Geçersiz İstek' }; // Veya daha uygun bir başlık
+  }
+  const anime = await getAnimeDetails(slug);
   if (!anime) return { title: 'Anime Bulunamadı' };
   return {
     title: `${anime.title} Türkçe Dublaj İzle | PrestiJ Studio`, // Başlık güncellendi
@@ -111,9 +115,14 @@ export async function generateMetadata({ params }: AnimeDetailPageProps): Promis
   };
 }
 
-export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) {
+export default async function AnimeDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  if (!slug) {
+    notFound(); // Veya kullanıcıyı başka bir sayfaya yönlendir
+  }
+
   const session = await getServerSession(authOptions);
-  const anime = await getAnimeDetails(params.slug); // Değişken adı anime oldu
+  const anime = await getAnimeDetails(slug);
 
   if (!anime) {
     notFound();
@@ -259,7 +268,7 @@ export default async function AnimeDetailPage({ params }: AnimeDetailPageProps) 
                   <iframe 
                       width="100%" 
                       height="100%" 
-                      src="https://www.youtube.com/embed/dQw4w9WgXcQ" // Örnek video ID
+                      src="#" // Örnek video ID
                       title="YouTube video player" 
                       frameBorder="0" 
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 

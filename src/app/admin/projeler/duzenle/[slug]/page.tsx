@@ -4,13 +4,7 @@ import EditProjectForm, { InitialProjectData, ProjectTypeEnum } from '@/componen
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { RoleInProject } from '@prisma/client';
 import { notFound } from 'next/navigation';
-import type { Metadata, ResolvingMetadata } from 'next';
-
-interface EditPageProps { params: { slug: string }; }
-
-interface EditPageProps {
-  params: { slug: string };
-}
+import type { Metadata } from 'next';
 
 async function getProjectDataForEdit(slug: string) {
   const projectFromDb = await prisma.project.findUnique({
@@ -42,8 +36,6 @@ async function getProjectDataForEdit(slug: string) {
   const allCategories = await prisma.category.findMany({
     select: { id: true, name: true }
   });
-
-  const projectCategoryIds = projectFromDb.categories.map(pc => pc.category.id);
 
   // ProjectFormData'ya uygun hale getir
   const formattedProject: InitialProjectData = { // Bu tip InitialProjectData olmalı
@@ -77,9 +69,9 @@ async function getProjectDataForEdit(slug: string) {
   };
 }
 
-export async function generateMetadata({ params }: EditPageProps): Promise<Metadata> {
-  const pageSlug = params.slug; // Değişkene ata
-  const projectData = await getProjectDataForEdit(pageSlug); // Değişkeni kullan
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug: pageSlug } = await params;
+  const projectData = await getProjectDataForEdit(pageSlug);
   if (!projectData?.project) {
     return { title: 'Proje Bulunamadı | Admin' };
   }
@@ -88,9 +80,9 @@ export async function generateMetadata({ params }: EditPageProps): Promise<Metad
   };
 }
 
-export default async function EditExistingProjectPage({ params }: EditPageProps) {
-  const pageSlug = params.slug; // Değişkene ata
-  const data = await getProjectDataForEdit(pageSlug); // Değişkeni kullan
+export default async function EditExistingProjectPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug: pageSlug } = await params;
+  const data = await getProjectDataForEdit(pageSlug);
 
   if (!data || !data.project) {
     notFound();
@@ -102,7 +94,6 @@ export default async function EditExistingProjectPage({ params }: EditPageProps)
       backLink={{ href: '/admin/projeler', label: 'Proje Listesine Dön' }}
       breadcrumbs={[
         { label: "Proje Yönetimi", href: "/admin/projeler" },
-        // pageSlug'ı burada da kullanabilirsin veya data.project.slug'ı (eğer değişmediyse)
         { label: data.project.title, href: `/admin/projeler/duzenle/${data.project.slug}` } 
       ]}
     >
@@ -111,7 +102,7 @@ export default async function EditExistingProjectPage({ params }: EditPageProps)
           Proje: <span className='font-semibold text-indigo-600 dark:text-indigo-400'>{data.project.title}</span>
         </p>
         <EditProjectForm
-          project={data.project} // data.project ProjectFormData tipine uygun olmalı
+          project={data.project}
           allArtists={data.allArtists}
           allCategories={data.allCategories}
           availableRoles={data.availableRoles}

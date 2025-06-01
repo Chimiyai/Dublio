@@ -551,17 +551,6 @@ return (
     Profilim
 </Link>
 
-{/* Arkadaşlar linki */}
-<Link
-    href="/arkadaslar"
-    className="flex items-center px-4 py-2.5 text-sm text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple text-left transition-colors rounded-md mx-2 w-[calc(100%-16px)]"
-    role="menuitem"
-    onClick={() => setIsProfileDropdownOpen(false)}
->
-    <UsersIcon className="mr-3 h-5 w-5" aria-hidden="true" />
-    Arkadaşlar
-</Link>
-
 {/* Çıkış Yap butonu */}
 <button
     onClick={() => { signOut(); setIsProfileDropdownOpen(false); }}

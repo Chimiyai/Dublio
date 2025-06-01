@@ -411,6 +411,6 @@ module.exports = {
     require('@tailwindcss/typography'),
     require('@tailwindcss/aspect-ratio'), // Eğer banner'larda kullanacaksak
     require('tailwindcss-textshadow'), // Kullanıyorsanız
-    require('@tailwindcss/line-clamp'),
+    //require('@tailwindcss/line-clamp'),
   ],
 };

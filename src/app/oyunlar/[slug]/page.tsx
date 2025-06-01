@@ -1,10 +1,11 @@
 // src/app/oyunlar/[slug]/page.tsx
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import NextImage from 'next/image'; // Image'ı 'NextImage' olarak import etmiştik, bu şekilde kullanalım
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { StarIcon, PhotoIcon as PagePhotoIcon } from '@heroicons/react/24/solid';
@@ -12,12 +13,6 @@ import { StarIcon, PhotoIcon as PagePhotoIcon } from '@heroicons/react/24/solid'
 import GameTabs, { GameDataForTabs, CategoryForGamePage } from '@/components/game/GameTabs'; // Gerekli tipleri de import et
 // YENİ: ProjectInteractionButtons importu
 import ProjectInteractionButtons, { ProjectInteractionButtonsProps } from '@/components/project/ProjectInteractionButtons';
-
-interface GameDetailPageProps {
-  params: {
-    slug: string;
-  };
-}
 
 async function getGameDetails(slug: string): Promise<GameDataForTabs | null> { // Dönüş tipini GameDataForTabs yap
   const project = await prisma.project.findUnique({
@@ -101,8 +96,8 @@ async function getGameDetails(slug: string): Promise<GameDataForTabs | null> { /
   return gameData;
 }
 
-export async function generateMetadata({ params }: GameDetailPageProps) {
-  const pageSlug = params.slug;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug: pageSlug } = await params; // pageSlug olarak adlandırmıştık
   const game = await getGameDetails(pageSlug); // Artık GameDataForTabs | null döner
   if (!game) return { title: 'Oyun Bulunamadı' };
   return {
@@ -111,8 +106,8 @@ export async function generateMetadata({ params }: GameDetailPageProps) {
   };
 }
 
-export default async function GameDetailPage({ params }: GameDetailPageProps) {
-  const pageSlug = params.slug;
+export default async function GameDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug: pageSlug } = await params; // pageSlug olarak adlandırmıştık
   const session = await getServerSession(authOptions);
   
   const game = await getGameDetails(pageSlug); // game artık GameDataForTabs | null
@@ -275,7 +270,7 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
             <iframe 
                 width="100%" 
                 height="100%" 
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ" // Örnek video ID
+                src="#" // Örnek video ID
                 title="YouTube video player" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 

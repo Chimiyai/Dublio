@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions'; // authOptions yolunu kontrol et
 import { z } from 'zod';
 import { RoleInProject, Prisma } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
@@ -17,12 +17,6 @@ if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_
     });
 } else {
     console.warn("Cloudinary environment variables are not fully set. Image operations might fail.");
-}
-
-interface RouteContext {
-  params: {
-    slug: string; // Bu dosya adı [slug] olduğu için params.slug olacak
-  };
 }
 
 // Zod şeması (frontend'den gelen payload'u doğrulamak için)
@@ -46,6 +40,7 @@ const updateProjectSchema = z.object({
   categoryIds: z.array(z.number().int("Kategori ID'si tam sayı olmalı.")).optional(),
 });
 
+// Cloudinary'de eski resimleri arşivlemek için yardımcı fonksiyon
 const getArchivePublicId = (oldPublicId: string | null | undefined, typePrefix: string): string | null => {
     if (!oldPublicId) return null;
     const baseArchiveFolder = 'kullanilmayanlar';
@@ -60,19 +55,27 @@ const getArchivePublicId = (oldPublicId: string | null | undefined, typePrefix: 
     return newPublicId.substring(0, 200);
 };
 
+
 // --- PUT (Projeyi güncelle) ---
-export async function PUT(request: NextRequest, { params }: RouteContext) {
+export async function PUT(
+  request: NextRequest, 
+  { params }: { params: Promise<{ slug: string }> } // params'ı Promise olarak al
+) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
 
-  const currentProjectSlug = params.slug; // URL'den gelen slug
+  const resolvedParams = await params; // params'ı çöz
+  const currentProjectSlug = resolvedParams.slug;
+
+  if (!currentProjectSlug || typeof currentProjectSlug !== 'string' || currentProjectSlug.trim() === "") {
+    return NextResponse.json({ message: 'Eksik veya geçersiz proje slug parametresi.' }, { status: 400 });
+  }
 
   try {
     const currentProject = await prisma.project.findUnique({
       where: { slug: currentProjectSlug },
-      // Karşılaştırma için ve ID'yi almak için gerekli alanları seç
       select: { 
         id: true, title: true, slug: true, type: true, description: true, 
         coverImagePublicId: true, bannerImagePublicId: true, releaseDate: true, 
@@ -88,7 +91,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     const parsedBody = updateProjectSchema.safeParse(body);
 
     if (!parsedBody.success) {
-      console.error("API Proje Güncelleme ([slug]/route.ts) - Zod Hataları:", parsedBody.error.flatten().fieldErrors);
+      console.error("API Proje Güncelleme ([slug]/route.ts PUT) - Zod Hataları:", parsedBody.error.flatten().fieldErrors);
       return NextResponse.json({ message: "Geçersiz veri gönderildi.", errors: parsedBody.error.flatten().fieldErrors }, { status: 400 });
     }
 
@@ -104,9 +107,9 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     } = parsedBody.data;
     
     const projectUpdatePayload: Prisma.ProjectUpdateInput = {};
-    let hasBasicChanges = false;
+    let hasBasicChanges = false; // Sadece temel proje bilgilerinde değişiklik olup olmadığını takip eder
 
-    // Temel proje alanları
+    // Temel proje alanlarını kontrol et ve sadece değişmişse payload'a ekle
     if (projectBasicDataFromClient.title !== undefined && projectBasicDataFromClient.title !== currentProject.title) { projectUpdatePayload.title = projectBasicDataFromClient.title; hasBasicChanges = true; }
     if (projectBasicDataFromClient.slug !== undefined && projectBasicDataFromClient.slug !== currentProject.slug) {
         const existingSlug = await prisma.project.findFirst({ where: { slug: projectBasicDataFromClient.slug, NOT: { id: currentProject.id } }});
@@ -122,57 +125,51 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     }
     if (projectBasicDataFromClient.isPublished !== undefined && projectBasicDataFromClient.isPublished !== currentProject.isPublished) { projectUpdatePayload.isPublished = projectBasicDataFromClient.isPublished; hasBasicChanges = true; }
 
-    // Resimler
+    // Resimleri kontrol et
     if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'coverImagePublicId') && newCoverIdFromClient !== currentProject.coverImagePublicId) {
         projectUpdatePayload.coverImagePublicId = newCoverIdFromClient; hasBasicChanges = true;
         if (currentProject.coverImagePublicId) {
-                const archiveId = getArchivePublicId(currentProject.coverImagePublicId, 'proje_kapak');
-                if (archiveId) {
-                    cloudinary.uploader.rename(currentProject.coverImagePublicId, archiveId, { resource_type: 'image', overwrite: true })
-                        .catch(err => console.error("Eski kapak resmi arşivleme hatası:", err.message));
-                }
-            }
+            const archiveId = getArchivePublicId(currentProject.coverImagePublicId, 'proje_kapak_arsiv');
+            if (archiveId) cloudinary.uploader.rename(currentProject.coverImagePublicId, archiveId, { resource_type: 'image', overwrite: true }).catch(err => console.error("Eski kapak resmi arşivleme hatası:", err.message));
+        }
     }
     if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'bannerImagePublicId') && newBannerIdFromClient !== currentProject.bannerImagePublicId) {
         projectUpdatePayload.bannerImagePublicId = newBannerIdFromClient; hasBasicChanges = true;
         if (currentProject.bannerImagePublicId) {
-                const archiveId = getArchivePublicId(currentProject.bannerImagePublicId, 'proje_banner');
-                if (archiveId) {
-                    cloudinary.uploader.rename(currentProject.bannerImagePublicId, archiveId, { resource_type: 'image', overwrite: true })
-                        .catch(err => console.error("Eski banner resmi arşivleme hatası:", err.message));
-                }
-            }
+            const archiveId = getArchivePublicId(currentProject.bannerImagePublicId, 'proje_banner_arsiv');
+            if (archiveId) cloudinary.uploader.rename(currentProject.bannerImagePublicId, archiveId, { resource_type: 'image', overwrite: true }).catch(err => console.error("Eski banner resmi arşivleme hatası:", err.message));
+        }
     }
 
-    // Tip ve ona bağlı alanlar
+    // Proje tipine göre fiyat, para birimi ve izleme linki alanlarını ayarla
     const finalProjectType = projectUpdatePayload.type || currentProject.type;
     if (finalProjectType === 'anime') {
-        projectUpdatePayload.price = null; projectUpdatePayload.currency = null; // Anime ise fiyatı sıfırla
-        if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'externalWatchUrl') && newExternalWatchUrlFromClient !== (currentProject.externalWatchUrl || null)) {
-            projectUpdatePayload.externalWatchUrl = newExternalWatchUrlFromClient; hasBasicChanges = true;
-        }
+        if (currentProject.price !== null || currentProject.currency !== null || (Object.prototype.hasOwnProperty.call(parsedBody.data, 'externalWatchUrl') && newExternalWatchUrlFromClient !== (currentProject.externalWatchUrl || null))) hasBasicChanges = true;
+        projectUpdatePayload.price = null; 
+        projectUpdatePayload.currency = null;
+        if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'externalWatchUrl')) projectUpdatePayload.externalWatchUrl = newExternalWatchUrlFromClient;
+        else if (currentProject.externalWatchUrl !== null) projectUpdatePayload.externalWatchUrl = null; // Eğer gönderilmediyse ve eskiden varsa null yap
     } else if (finalProjectType === 'oyun') {
-        projectUpdatePayload.externalWatchUrl = null; // Oyun ise izleme linkini sıfırla
+        if (currentProject.externalWatchUrl !== null) hasBasicChanges = true;
+        projectUpdatePayload.externalWatchUrl = null;
         if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'price') && newPriceFromClient !== (currentProject.price || null)) { projectUpdatePayload.price = newPriceFromClient; hasBasicChanges = true; }
         if (Object.prototype.hasOwnProperty.call(parsedBody.data, 'currency') && newCurrencyFromClient !== (currentProject.currency || null)) { projectUpdatePayload.currency = newCurrencyFromClient; hasBasicChanges = true; }
     }
     
-    // Transaction
     const finalUpdatedProject = await prisma.$transaction(async (tx) => {
-      let updatedProjectEntity = currentProject; // Başlangıçta mevcut proje
-      if (hasBasicChanges || Object.keys(projectUpdatePayload).length > 0) { // Sadece gerçekten değişiklik varsa güncelle
-        updatedProjectEntity = await tx.project.update({
+      let projectEntityAfterUpdate = currentProject;
+      if (hasBasicChanges || Object.keys(projectUpdatePayload).length > 0) {
+        projectEntityAfterUpdate = await tx.project.update({
           where: { id: currentProject.id },
           data: projectUpdatePayload,
         });
       }
 
-      // Kategori yönetimi
       if (newCategoryIdsFromClient !== undefined) {
         await tx.projectCategory.deleteMany({ where: { projectId: currentProject.id } });
         if (newCategoryIdsFromClient.length > 0) {
           await tx.projectCategory.createMany({
-            data: newCategoryIdsFromClient.map((catId: number) => ({ // catId tipini ekle
+            data: newCategoryIdsFromClient.map((catId: number) => ({
               projectId: currentProject.id,
               categoryId: catId,
             }))
@@ -180,11 +177,9 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
         }
       }
 
-      // Atama ve Karakter yönetimi
       if (newAssignmentsDataFromClient !== undefined) {
         const oldAssignments = await tx.projectAssignment.findMany({
-            where: { projectId: currentProject.id },
-            select: { id: true }
+            where: { projectId: currentProject.id }, select: { id: true }
         });
         if (oldAssignments.length > 0) {
             await tx.voiceAssignment.deleteMany({
@@ -217,9 +212,8 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
         }
       }
 
-      // En son halini ilişkilerle birlikte çek ve döndür
       return tx.project.findUniqueOrThrow({
-        where: { id: updatedProjectEntity.id }, // updatedProjectEntity.id kullan
+        where: { id: projectEntityAfterUpdate.id },
         include: { 
           assignments: { include: { artist: true, voiceRoles: { include: { character: true } } } },
           categories: { include: { category: true }},
@@ -230,7 +224,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json(finalUpdatedProject, { status: 200 });
 
   } catch (error: any) {
-    console.error(`API Proje PUT (slug: ${params.slug}) hatası:`, error);
+    console.error(`API Proje PUT (slug: ${currentProjectSlug}) hatası:`, error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002' && error.meta && typeof error.meta.target === 'string' && error.meta.target.includes('slug')) {
         return NextResponse.json({ errors: { slug: ['Bu slug zaten kullanılıyor.'] } }, { status: 409 });
@@ -242,19 +236,27 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ message: error.message || 'Proje güncellenirken bir sunucu hatası oluştu.' }, { status: 500 });
   }
 }
-
 // --- GET Metodu (Proje detaylarını admin için getirme) ---
-export async function GET(request: NextRequest, { params }: RouteContext) {
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ slug: string }> } // Promise olarak al
+) {
   const session = await getServerSession(authOptions);
-  // Sadece adminler veya belirli yetkilere sahip kullanıcılar erişebilmeli
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
 
+  const resolvedParams = await params; // params'ı çöz
+  const projectSlug = resolvedParams.slug;
+
+  if (!projectSlug) {
+    return NextResponse.json({ message: 'Eksik proje slug parametresi.' }, { status: 400 });
+  }
+
   try {
     const project = await prisma.project.findUnique({
-      where: { slug: params.slug },
-      include: { 
+      where: { slug: projectSlug }, // projectSlug kullan
+      include: {
         assignments: { 
             orderBy: [{ artist: {lastName: 'asc'}}, {artist: {firstName: 'asc'}}],
             include: { 
@@ -278,19 +280,27 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     }
     return NextResponse.json(project);
   } catch (error) {
-    console.error(`API Proje GET (slug: ${params.slug}) hatası:`, error);
-    return NextResponse.json({ message: "Proje getirilirken bir sunucu hatası oluştu." }, { status: 500 });
+    console.error(`API Proje GET (slug: ${projectSlug}) hatası:`, error);
+    return NextResponse.json({ message: "Proje getirilirken bir hata oluştu." }, { status: 500 });
   }
 }
 
-
 // --- DELETE Metodu (Projeyi silme) ---
-export async function DELETE(request: NextRequest, { params }: RouteContext) {
+export async function DELETE(
+  request: NextRequest, 
+  { params }: { params: Promise<{ slug: string }> } // Promise olarak al
+) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
-  const slugToDelete = params.slug;
+
+  const resolvedParams = await params; // params'ı çöz
+  const slugToDelete = resolvedParams.slug;
+
+  if (!slugToDelete) {
+    return NextResponse.json({ message: 'Eksik proje slug parametresi.' }, { status: 400 });
+  }
 
   try {
     const projectToDelete = await prisma.project.findUnique({
@@ -338,3 +348,5 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ message: 'Proje silinirken bir sunucu hatası oluştu.' }, { status: 500 });
   }
 }
+
+

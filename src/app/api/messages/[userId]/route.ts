@@ -2,38 +2,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { z } from 'zod';
-
-interface RouteParams {
-  params: { userId: string }; // Sohbet edilen diğer kullanıcının ID'si
-}
 
 const getMessagesQuerySchema = z.object({
   page: z.string().optional().default('1').transform(Number),
-  limit: z.string().optional().default('20').transform(Number), // Sayfa başına mesaj sayısı
+  limit: z.string().optional().default('20').transform(Number),
 });
 
-// GET: Belirli bir kullanıcıyla olan mesajları listele
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ userId: string }> }
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
   }
+  const resolvedParams = await params;
+  const otherUserIdString = resolvedParams.userId;
+
+  if (!otherUserIdString) {
+    return NextResponse.json({ message: 'Eksik kullanıcı ID parametresi.' }, { status: 400 });
+  }
   const currentUserId = parseInt(session.user.id);
-  const otherUserId = parseInt(params.userId);
+  const otherUserId = parseInt(otherUserIdString);
 
   if (isNaN(otherUserId)) {
-    return NextResponse.json({ message: 'Geçersiz kullanıcı ID.' }, { status: 400 });
+    return NextResponse.json({ message: 'Geçersiz sorgu parametreleri.' }, { status: 400 });
   }
-
   const { searchParams } = new URL(request.url);
-  const queryParse = getMessagesQuerySchema.safeParse(Object.fromEntries(searchParams));
+  const queryParseResult = getMessagesQuerySchema.safeParse(Object.fromEntries(searchParams));
 
-  if (!queryParse.success) {
-    return NextResponse.json({ message: 'Geçersiz sorgu parametreleri.', errors: queryParse.error.issues }, { status: 400 });
+  if (!queryParseResult.success) { // queryParseResult kullan
+    return NextResponse.json({ message: 'Geçersiz sorgu parametreleri.', errors: queryParseResult.error.issues }, { status: 400 }); // queryParseResult kullan
   }
-  const { page, limit } = queryParse.data;
+  const { page, limit } = queryParseResult.data; // queryParseResult kullan
   const skip = (page - 1) * limit;
 
   try {
@@ -91,14 +94,23 @@ const createMessageSchema = z.object({
   content: z.string().min(1, "Mesaj boş olamaz.").max(2000, "Mesaj en fazla 2000 karakter olabilir."),
 });
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest, 
+  { params }: { params: Promise<{ userId: string }> } // DOĞRUDAN TİP
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Mesaj göndermek için giriş yapmalısınız.' }, { status: 401 });
   }
 
+  const resolvedParams = await params; // params'ı çöz
+  const receiverIdString = resolvedParams.userId;
+
+  if (!receiverIdString) { // Ekstra kontrol
+    return NextResponse.json({ message: 'Eksik alıcı ID parametresi.' }, { status: 400 });
+  }
   const senderId = parseInt(session.user.id);
-  const receiverId = parseInt(params.userId);
+  const receiverId = parseInt(receiverIdString); // Çözülmüş string'i parse et
 
   if (isNaN(receiverId)) {
     return NextResponse.json({ message: 'Geçersiz alıcı ID.' }, { status: 400 });

@@ -10,7 +10,7 @@ import ProjectCardCover from '@/components/ProjectCardCover';
 import ArtistAvatar from '@/components/ArtistAvatar';
 import { Metadata } from 'next';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import ArtistInteractionButtons from '@/components/artists/ArtistInteractionButtons';
 
 // --- TİP TANIMLARI ---
@@ -42,14 +42,22 @@ interface ArtistPageData extends DubbingArtist {
   // veya biz likeCount ve favoriteCount'u direkt DubbingArtist modeline eklemiştik.
 }
 
+interface SanatciPageServerProps {
+  params: Promise<{ artistId: string }>;
+  // Bu sayfada searchParams kullanılmıyor gibi, o yüzden eklemeyebiliriz.
+  // searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
 async function getArtistDetails(artistIdParam: string, currentUserId?: number): Promise<ArtistPageData | null> {
   const artistId = parseInt(artistIdParam, 10);
-  if (isNaN(artistId)) return null;
+  if (isNaN(artistId)) {
+    console.error("getArtistDetails: Geçersiz artistIdParam:", artistIdParam);
+    return null;
+  }
 
   const artistData = await prisma.dubbingArtist.findUnique({
     where: { id: artistId },
-    include: { // Gerekli tüm ilişkileri ve sayımları burada çekiyoruz
+    include: {
       assignments: {
         orderBy: { project: { releaseDate: 'desc' } },
         include: {
@@ -60,22 +68,14 @@ async function getArtistDetails(artistIdParam: string, currentUserId?: number): 
             },
           },
           voiceRoles: {
-            orderBy: {character: {name: 'asc'}}, // Karakterleri sırala
+            orderBy: {character: {name: 'asc'}},
             select: {
               character: { select: { id: true, name: true } }
             }
           }
         },
       },
-      // likeCount ve favoriteCount alanları zaten DubbingArtist modelinde olduğu için
-      // _count ile ayrıca çekmeye gerek yok, direkt modelden okunacaklar.
-      // Eğer bu alanlar modelde olmasaydı, _count kullanırdık:
-      // _count: {
-      //   select: {
-      //     likes: true,
-      //     favoritedBy: true,
-      //   },
-      // },
+      // likeCount ve favoriteCount DubbingArtist modelinde zaten var olmalı
     },
   });
 
@@ -96,29 +96,50 @@ async function getArtistDetails(artistIdParam: string, currentUserId?: number): 
     userFavorited = !!favorite;
   }
   
+  // ArtistPageData tipine cast ederken eksik alan olmamalı
   return { 
     ...artistData, 
-    assignments: artistData.assignments as AssignmentWithDetailsAndProject[], // Tip cast
+    assignments: artistData.assignments as AssignmentWithDetailsAndProject[],
     userLiked, 
     userFavorited,
-    // likeCount ve favoriteCount zaten artistData içinde olmalı
-  };
+    // likeCount ve favoriteCount artistData'dan direkt gelmeli (modelde @default(0) vardı)
+  } as ArtistPageData; // Son cast
 }
 
-export async function generateMetadata({ params }: { params: { artistId: string } }): Promise<Metadata> {
-  const artist = await getArtistDetails(params.artistId);
-  if (!artist) return { title: 'Sanatçı Bulunamadı' };
+
+export async function generateMetadata(
+  { params }: SanatciPageServerProps // Güncellenmiş Props tipi
+): Promise<Metadata> {
+  const resolvedParams = await params; // params'ı çöz
+  const artistIdString = resolvedParams.artistId;
+
+  if (!artistIdString || typeof artistIdString !== 'string' || artistIdString.trim() === "") {
+    return { title: 'Sanatçı Bulunamadı | PrestiJ Studio' };
+  }
+  // getArtistDetails zaten string alıyor, parseInt'i orada yapıyor.
+  const artist = await getArtistDetails(artistIdString); 
+  if (!artist) return { title: 'Sanatçı Bulunamadı | PrestiJ Studio' };
   return {
     title: `${artist.firstName} ${artist.lastName} - PrestiJ Dublaj`,
     description: artist.bio || `PrestiJ Dublaj ekibinden ${artist.firstName} ${artist.lastName}'in katkıda bulunduğu projeler.`,
   };
 }
 
-export default async function ArtistDetailPage({ params }: { params: { artistId: string } }) {
+export default async function ArtistDetailPage(
+  { params }: SanatciPageServerProps // Güncellenmiş Props tipi
+) {
   const session = await getServerSession(authOptions);
   const currentUserId = session?.user?.id ? parseInt(session.user.id) : undefined;
 
-  const artist = await getArtistDetails(params.artistId, currentUserId); // artistId'yi string olarak gönder
+  const resolvedParams = await params; // params'ı çöz
+  const artistIdString = resolvedParams.artistId;
+
+  if (!artistIdString || typeof artistIdString !== 'string' || artistIdString.trim() === "") {
+    console.error("ArtistDetailPage: Eksik veya geçersiz artistId parametresi.");
+    notFound();
+  }
+
+  const artist = await getArtistDetails(artistIdString, currentUserId);
   
   if (!artist) {
     notFound();

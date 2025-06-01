@@ -2,7 +2,7 @@
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server'; // NextRequest importu
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { z } from 'zod';
 
 const createArtistSchema = z.object({

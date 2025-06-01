@@ -3,12 +3,12 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import { getServerSession } from 'next-auth/next'; 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 // Oturuma gerek yok, token ile doğrulama yapıyoruz ama session'ı alıp
 // işlemi yapan kullanıcının ID'si ile request'teki userId eşleşiyor mu diye
 // ek bir kontrol yapılabilir (opsiyonel).
 // import { getServerSession } from 'next-auth/next';
-// import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+// import { authOptions } from '@/lib/authOptions';
 
 // Token doğrulama şeması
 const verifyTokenSchema = z.object({

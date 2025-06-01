@@ -1,24 +1,24 @@
 // src/app/profil/[username]/page.tsx
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation'; // redirect eklendi
 import prisma from '@/lib/prisma';
-import Image from 'next/image'; // ActivityContent veya diğerleri kullanabilir diye ekliyoruz
+import Image from 'next/image';
 import Link from 'next/link';
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
-import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Auth options dosyanızın yolu
+import { authOptions } from '@/lib/authOptions';
 
 import UserProfileBanner from '@/components/profile/UserProfileBanner';
 import UserProfileInfo from '@/components/profile/UserProfileInfo';
 import UserProfileStatsBar from '@/components/profile/UserProfileStatsBar';
 import UserProfileTabs, { ProfileTabKey } from '@/components/profile/UserProfileTabs';
 import OverviewContent from '@/components/profile/OverviewContent';
-import ActivityContent, { UserCommentActivity } from '@/components/profile/ActivityContent'; // UserCommentActivity tipini de import et
+import ActivityContent, { UserCommentActivity } from '@/components/profile/ActivityContent';
 import LibraryContent from '@/components/profile/LibraryContent';
+import type { Metadata } from 'next'; // Metadata importu
 
-interface UserProfilePageProps {
-  params: { username: string };
-  searchParams: { tab?: string };
+interface UserProfilePageServerProps {
+  params: Promise<{ username: string }>;
+  searchParams?: { [key: string]: string | string[] | undefined }; // searchParams genellikle Promise değildir
 }
 
 async function getUserProfile(username: string) {
@@ -91,13 +91,50 @@ async function getUserComments(userId: number, limit = 21): Promise<UserCommentA
   }
 }
 
-export default async function UserProfilePage({ params, searchParams }: UserProfilePageProps) {
+export async function generateMetadata(
+  { params, searchParams }: { // searchParams'ı da alabilir ama metadata için genellikle kullanılmaz
+    params: Promise<{ username: string }>;
+    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>; // Promise olarak ekleyelim
+  }
+): Promise<Metadata> {
+  const resolvedParams = await params;
+  const username = resolvedParams.username;
+  // const resolvedSearchParams = searchParams ? await searchParams : {}; // Metadata için gerekirse
+
+  if (!username || typeof username !== 'string' || username.trim() === "") {
+    return { title: 'Profil | PrestiJ Studio' };
+  }
+  const user = await getUserProfile(decodeURIComponent(username));
+  if (!user) {
+    return { title: 'Kullanıcı Bulunamadı | PrestiJ Studio' };
+  }
+  return {
+    title: `${user.username} Profili | PrestiJ Studio`,
+    description: user.bio || `${user.username} kullanıcısının PrestiJ Studio profili.`,
+  };
+}
+
+export default async function UserProfilePage(
+  { params, searchParams }: { 
+    params: Promise<{ username: string }>;
+    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>; // searchParams'ı da Promise olarak al
+  }
+) {
   const session = await getServerSession(authOptions);
   
-  const currentUsernameFromParams = params.username;
-  const activeTabFromSearchParams = searchParams?.tab;
+  const resolvedParams = await params;
+  const currentUsernameFromParams = resolvedParams.username;
 
-  const user = await getUserProfile(currentUsernameFromParams);
+  // searchParams'ı çöz
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const activeTabFromSearchParams = resolvedSearchParams?.tab as string | undefined;
+
+  if (!currentUsernameFromParams || typeof currentUsernameFromParams !== 'string' || currentUsernameFromParams.trim() === "") {
+    console.error("UserProfilePage: Eksik veya geçersiz username parametresi.");
+    notFound();
+  }
+  
+  const user = await getUserProfile(decodeURIComponent(currentUsernameFromParams));
 
   if (!user) {
     notFound();
@@ -110,10 +147,8 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
   if (loggedInUserId !== undefined && loggedInUserId !== null) {
     isOwnProfile = loggedInUserId.toString() === user.id.toString();
   }
-  // Admin her profili "kendi profiliymiş gibi" düzenleme yetkisine sahip olsun mu?
-  // Eğer öyleyse:
   const canAdminEdit = loggedInUserRole === 'admin';
-  const displayEditButton = isOwnProfile || canAdminEdit; // Düzenle butonu için
+  // const displayEditButton = isOwnProfile || canAdminEdit; // Bu değişken kullanılmıyorsa kaldırılabilir
 
   const finalBannerUrl = getCloudinaryImageUrlOptimized(
     user.bannerImagePublicId,
@@ -127,14 +162,10 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
   };
 
   const activeTab = (activeTabFromSearchParams || 'overview') as ProfileTabKey;
-
   let initialActivityComments: UserCommentActivity[] = [];
   if (activeTab === 'activity') {
     initialActivityComments = await getUserComments(user.id);
   }
-
-  // OverviewContent için de benzer şekilde veri çekilebilir veya client component içinde fetch edilebilir
-  // Şimdilik OverviewContent kendi içinde API isteği yapıyor.
 
   return (
     <div className="bg-profile-page-bg min-h-screen text-gray-200">

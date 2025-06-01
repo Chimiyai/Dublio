@@ -1,27 +1,29 @@
 // src/app/api/users/[userId]/overview-stats/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-// Prisma tiplerini import etmeye gerek yok eğer doğrudan kullanmıyorsak,
-// Prisma Client zaten tipleri biliyor.
+// Prisma tiplerini import etmeye gerek yok eğer doğrudan kullanmıyorsak
 
-interface RouteContext {
-  params: {
-    userId: string;
-  };
-}
+// RouteContext interface'ini kaldırıyoruz.
+// interface RouteContext {
+//   params: {
+//     userId: string;
+//   };
+// }
 
-export async function GET(request: NextRequest, { params }: RouteContext) {
-  const userIdInt = parseInt(params.userId, 10);
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ userId: string }> } // params'ı Promise olarak al
+) {
+  const resolvedParams = await params; // params'ı çöz
+  const userIdString = resolvedParams.userId;
 
-  if (isNaN(userIdInt)) {
-    return NextResponse.json({ error: 'Geçersiz kullanıcı ID.' }, { status: 400 });
+  if (!userIdString || typeof userIdString !== 'string' || userIdString.trim() === "") {
+    return NextResponse.json({ error: 'Eksik veya geçersiz kullanıcı ID parametresi.' }, { status: 400 });
   }
-
-  // overview-stats için limit parametresine ihtiyacımız yok,
-  // çünkü top 5 kategori ve son 4 sanatçı gibi sabit sayılar alıyoruz.
-  // Eğer favori sanatçı sayısını dinamik yapmak isterseniz, o zaman limit alabilirsiniz.
-  // const { searchParams } = new URL(request.url);
-  // const favoriteArtistLimit = parseInt(searchParams.get('favoriteArtistLimit') || '4', 10);
+  const userIdInt = parseInt(userIdString, 10);
+  if (isNaN(userIdInt)) {
+    return NextResponse.json({ error: 'Geçersiz kullanıcı ID formatı.' }, { status: 400 });
+  }
 
   console.log(`API /api/users/${userIdInt}/overview-stats GET request received`);
 
@@ -85,14 +87,14 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     // Genel istatistikler
     const totalLikes = await prisma.projectLike.count({ where: { userId: userIdInt } });
     const totalFavorites = await prisma.projectFavorite.count({ where: { userId: userIdInt } });
-    const totalComments = await prisma.comment.count({ where: { userId: userIdInt } }); // Comment modeliniz olduğunu varsayıyoruz
+    const totalComments = await prisma.comment.count({ where: { userId: userIdInt } });
 
-    // Favori Sanatçılar (Bu kısım overviewData'nın bir parçası olmalı)
-    const favoriteArtistLimit = 4; // Sabit bir limit veya URL'den alınabilir
+    // Favori Sanatçılar
+    const favoriteArtistLimit = 4;
     const favoriteArtistsRelations = await prisma.dubbingArtistFavorite.findMany({
       where: { userId: userIdInt },
       orderBy: { createdAt: 'desc' },
-      take: favoriteArtistLimit, // Tanımlı limiti kullan
+      take: favoriteArtistLimit,
       select: {
         artist: {
           select: {
@@ -100,27 +102,25 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
             firstName: true,
             lastName: true,
             imagePublicId: true,
-            bio: true,
+            slug: true, // Slug eklendi
+            // bio: true, // Bio burada gerekmeyebilir, kartta gösterilecekse
           }
         }
       }
     });
     const favoriteArtists = favoriteArtistsRelations.map(fav => fav.artist);
-    console.log(`User ${userIdInt} - Fetched Favorite Artists:`, JSON.stringify(favoriteArtists, null, 2));
-
-
-    // Tüm veriyi tek bir objede topla
+    
     const overviewData = {
       gameCategoryStats: topGameCategories.map(s => ({ 
         categoryName: s.name, 
-        categorySlug: s.slug, // <<<< SLUG EKLENDİ
+        categorySlug: s.slug,
         projectCount: s.projectCount, 
         interactionScore: s.score, 
         type: s.type 
       })),
       animeCategoryStats: topAnimeCategories.map(s => ({ 
         categoryName: s.name, 
-        categorySlug: s.slug, // <<<< SLUG EKLENDİ
+        categorySlug: s.slug,
         projectCount: s.projectCount, 
         interactionScore: s.score, 
         type: s.type 
@@ -130,18 +130,17 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
         totalFavorites,
         totalComments,
       },
-      favoriteArtists: favoriteArtists, // Favori sanatçıları da ekle
+      favoriteArtists: favoriteArtists,
     };
 
-    console.log("Overview data prepared:", JSON.stringify(overviewData, null, 2));
+    // console.log("Overview data prepared:", JSON.stringify(overviewData, null, 2)); // Debug için
     return NextResponse.json(overviewData);
 
   } catch (error) {
-    console.error(`API Error for user ${userIdInt} overview-stats:`, error);
+    console.error(`API Hatası: Kullanıcı ${userIdInt} genel bakış istatistikleri getirilirken:`, error);
     let errorMessage = "Genel bakış istatistikleri getirilirken bir sunucu hatası oluştu.";
     if (error instanceof Error) {
         errorMessage = error.message;
-        // ... (daha detaylı hata loglama)
     }
     return NextResponse.json({ error: "Genel bakış istatistikleri getirilirken bir hata oluştu.", details: errorMessage }, { status: 500 });
   }

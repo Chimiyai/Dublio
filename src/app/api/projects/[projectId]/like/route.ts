@@ -2,25 +2,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Doğru yolu kontrol et
-
-interface Params {
-  params: { projectId: string };
-}
+import { authOptions } from '@/lib/authOptions'; // Doğru yolu kontrol et
 
 // Projeyi beğenme (like)
-export async function POST(request: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions);
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  const resolvedParams = await params;
+  const projectIdString = resolvedParams.projectId;
+
+  if (!projectIdString) {  return NextResponse.json({ message: 'Eksik proje ID.' }, { status: 400 }); } // Kısaltılmış kontrol
+  const projectId = parseInt(projectIdString, 10);
+  if (isNaN(projectId)) { return NextResponse.json({ message: 'Geçersiz proje ID.' }, { status: 400 }); }
+
+  const session = await getServerSession(authOptions); // SESSION BURADA
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
   }
-
-  const userId = parseInt(session.user.id);
-  const projectId = parseInt(params.projectId);
-
-  if (isNaN(projectId)) {
-    return NextResponse.json({ message: 'Geçersiz proje ID.' }, { status: 400 });
-  }
+  const userId = parseInt(session.user.id); // USERID BURADA
 
   try {
     // Kullanıcı bu projeyi daha önce dislike etmiş mi diye kontrol et
@@ -82,18 +82,22 @@ export async function POST(request: NextRequest, { params }: Params) {
 }
 
 // Beğeniyi (like) geri alma
-export async function DELETE(request: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions);
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  const resolvedParams = await params;
+  const projectIdString = resolvedParams.projectId;
+
+  if (!projectIdString) { return NextResponse.json({ message: 'Eksik proje ID.' }, { status: 400 }); }
+  const projectId = parseInt(projectIdString, 10);
+  if (isNaN(projectId)) { return NextResponse.json({ message: 'Geçersiz proje ID.' }, { status: 400 }); }
+
+  const session = await getServerSession(authOptions); // SESSION BURADA
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
   }
-
-  const userId = parseInt(session.user.id);
-  const projectId = parseInt(params.projectId);
-
-  if (isNaN(projectId)) {
-    return NextResponse.json({ message: 'Geçersiz proje ID.' }, { status: 400 });
-  }
+  const userId = parseInt(session.user.id); // USERID BURADA
 
   try {
     const result = await prisma.$transaction(async (tx) => {

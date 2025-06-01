@@ -1,24 +1,35 @@
 // src/app/mesajlar/[userId]/page.tsx
-import ChatWindowClient, { MessageUser } from "@/components/messages/ChatWindowClient"; // MessageUser'ı import et
+import ChatWindowClient, { MessageUser } from "@/components/messages/ChatWindowClient";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions"; // GÜNCELLENMİŞ İMPORT YOLU
 import { notFound } from "next/navigation";
 
-interface ChatPageProps {
-  params: {
-    userId: string;
-  };
-}
+// ChatPageProps interface'ini kaldırıyoruz.
+// interface ChatPageProps {
+//   params: {
+//     userId: string;
+//   };
+// }
 
-export default async function ChatPage({ params }: ChatPageProps) {
+export default async function ChatPage(
+  { params }: { params: Promise<{ userId: string }> } // params'ı Promise olarak al
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return notFound();
+    return notFound(); // Veya redirect('/giris');
   }
 
-  const currentUserId = parseInt(session.user.id); // Non-null assertion yapmadan önce kontrol et
-  const otherUserId = parseInt(params.userId);
+  const resolvedParams = await params; // params'ı çöz
+  const otherUserIdString = resolvedParams.userId;
+
+  if (!otherUserIdString || typeof otherUserIdString !== 'string' || otherUserIdString.trim() === "") {
+    console.error("ChatPage: Eksik veya geçersiz userId parametresi.");
+    return notFound(); // Veya uygun bir hata mesajı göster
+  }
+
+  const currentUserId = parseInt(session.user.id);
+  const otherUserId = parseInt(otherUserIdString);
 
   if (isNaN(otherUserId) || currentUserId === otherUserId) {
     return (
