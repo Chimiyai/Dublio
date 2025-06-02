@@ -5,6 +5,8 @@ import { PlusCircleIcon } from '@heroicons/react/24/outline';
 import AdminPageLayout from '@/components/admin/AdminPageLayout'; // Layout'u import et
 import ProjectsTable from '@/components/admin/ProjectsTable'; // Tabloyu ayrı bir client component'e taşıyacağız
 
+export const dynamic = 'force-dynamic';
+
 // Sunucu tarafında tüm projeleri çekiyoruz
 async function getAllProjects() {
   return prisma.project.findMany({

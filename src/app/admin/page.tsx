@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Library, Mic2 } from 'lucide-react';
 import prisma from '@/lib/prisma'; // Prisma client importu
 
+export const dynamic = 'force-dynamic';
+
 async function getAdminDashboardStats() {
   try {
     const userCount = await prisma.user.count();

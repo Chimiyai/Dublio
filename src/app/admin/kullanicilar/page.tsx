@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 // Link artık kullanılmıyorsa kaldırılabilir, eğer başka yerde gerekmiyorsa.
-// import Link from 'next/link'; 
+// import Link from 'next/link';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import DeleteUserButton from '@/components/admin/DeleteUserButton';
@@ -10,22 +10,31 @@ import { authOptions } from '@/lib/authOptions';
 
 export const revalidate = 0;
 
+// 1. Kullanıcı objesinin tipini burada tanımlayalım
+// Prisma'dan gelen verilere ve kullanımlara göre:
+interface PageUser {
+  id: number; // user.id.toString() kullanıldığı için number varsayıyoruz
+  username: string;
+  email: string;
+  role: string; // Prisma'dan string olarak gelir, component içinde 'user' | 'admin' olarak ele alınır
+  createdAt: Date; // Prisma DateTime alanlarını Date objesi olarak döndürür
+}
+
 async function AdminUsersPage() {
   const session = await getServerSession(authOptions);
   const currentAdminId = session?.user?.id; // string (NextAuth'tan)
 
-  const users = await prisma.user.findMany({
+  // users değişkeni artık PageUser[] tipinde olacak
+  const users: PageUser[] = await prisma.user.findMany({ // İsteğe bağlı: users'a da tip atayabilirsiniz
     orderBy: {
       createdAt: 'desc',
     },
-    // Şifre alanını çekmemek daha güvenli, zaten kullanmıyoruz.
     select: {
       id: true,
       username: true,
       email: true,
       role: true,
       createdAt: true,
-      // Not: Project, Message gibi ilişkili alanlar burada çekilmiyor, gerekirse eklenebilir.
     }
   });
 
@@ -51,14 +60,15 @@ async function AdminUsersPage() {
             </tr>
             </thead>
             <tbody className="bg-gray-900 divide-y divide-gray-800">
-            {users.map((user) => (
+            {/* 2. user parametresine tanımladığımız PageUser tipini atayalım */}
+            {users.map((user: PageUser) => (
               <tr key={user.id} className="hover:bg-gray-800/50 transition-colors">
                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-200">{user.username}</td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{user.email}</td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm">
                   <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.role === 'admin' 
-                      ? 'bg-green-900 text-green-200' 
+                    user.role === 'admin'
+                      ? 'bg-green-900 text-green-200'
                       : 'bg-blue-900 text-blue-200'
                   }`}>
                     {user.role === 'admin' ? 'Admin' : 'Kullanıcı'}

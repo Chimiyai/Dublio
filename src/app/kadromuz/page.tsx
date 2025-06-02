@@ -8,6 +8,8 @@ import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
 import { FaTwitter, FaInstagram, FaYoutube, FaGlobe, FaLinkedin, FaGithub } from 'react-icons/fa';
 import { HeartIcon as DonationIconOutline } from '@heroicons/react/24/outline';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Kadromuz | PrestiJ Studio',
   description: 'PrestiJ Studio ekibiyle tanışın. Projelerimize hayat veren yetenekli seslendirme sanatçılarımız, çevirmenlerimiz ve tüm değerli üyelerimiz.',

@@ -9,7 +9,7 @@ import DeleteArtistButton from '@/components/admin/DeleteArtistButton';
 // import { UserCircleIcon } from '@heroicons/react/24/solid'; // KALDIRILDI (AdminArtistAvatar içinde)
 import AdminArtistAvatar from '@/components/admin/AdminArtistAvatar'; // YENİ IMPORT
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 interface ArtistForAdminList {
   id: number;
