@@ -13,25 +13,33 @@ interface ProjectDetailsFieldsProps {
   onDescriptionChange: (value: string) => void;
   releaseDate: string;
   onReleaseDateChange: (value: string) => void;
-  // YENİ PROPLAR
-  trailerUrl: string | null; // Fragman URL'i için state
-  onTrailerUrlChange: (value: string) => void; // Fragman URL'i state'ini güncelleyecek callback
+  trailerUrl: string | null;
+  onTrailerUrlChange: (value: string) => void;
+  externalWatchUrl: string | null;
+  onExternalWatchUrlChange: (value: string) => void;
   errors: {
     title?: string[],
     slug?: string[],
     type?: string[],
     description?: string[],
     releaseDate?: string[],
-    trailerUrl?: string[] // YENİ
+    trailerUrl?: string[]
+    externalWatchUrl?: string[];
   };
 }
 
 export default function ProjectDetailsFields({
   title, onTitleChange, slug, onSlugChange, projectType, onProjectTypeChange,
   description, onDescriptionChange, releaseDate, onReleaseDateChange,
-  trailerUrl, onTrailerUrlChange, // YENİ PROPLARI AL
+  trailerUrl, onTrailerUrlChange,
+  externalWatchUrl, onExternalWatchUrlChange,
   errors
 }: ProjectDetailsFieldsProps) {
+
+  const externalUrlLabel = projectType === 'anime' ? "Harici İzleme URL'i" : "İndirme URL'i (Nexus, Drive vb.)";
+  const externalUrlPlaceholder = projectType === 'anime' ? "https://ornek-anime-sitesi.com/..." : "https://nexusmods.com/oyun/mods/123";
+
+
   return (
     <div className="border-b border-gray-900/10 dark:border-gray-700 pb-10">
       <h2 className="text-lg font-semibold leading-7 text-gray-900 dark:text-gray-100">
@@ -100,6 +108,30 @@ export default function ProjectDetailsFields({
           {errors.trailerUrl && <p className="mt-1 text-xs text-red-500">{errors.trailerUrl.join(', ')}</p>}
         </div>
         {/* YENİ FRAGMAN URL INPUT ALANI SONU */}
+
+        {/* --- YENİ EKLENEN/TAŞINAN BÖLÜM --- */}
+        <div className="sm:col-span-full">
+          <label htmlFor="externalWatchUrl" className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
+            {externalUrlLabel} {/* Dinamik etiket */}
+          </label>
+          <div className="mt-2">
+            <input
+              type="url"
+              name="externalWatchUrl"
+              id="externalWatchUrl"
+              value={externalWatchUrl || ''}
+              onChange={(e) => onExternalWatchUrlChange(e.target.value)}
+              placeholder={externalUrlPlaceholder} // Dinamik placeholder
+              className="block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800"
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {projectType === 'anime' 
+              ? 'Animeler için izleme sitesinin linki.' 
+              : 'Oyunlar için direkt indirme linki.'}
+          </p>
+          {errors.externalWatchUrl && <p className="mt-1 text-xs text-red-500">{errors.externalWatchUrl.join(', ')}</p>}
+        </div>
 
 
         <div className="col-span-full">

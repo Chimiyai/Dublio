@@ -298,7 +298,7 @@ export default function EditProjectForm({
         currency: projectType === 'oyun' && price.trim() !== '' && currency.trim() !== '' ? currency.trim().toUpperCase() : null,
         assignments: assignmentsForApi,
         categoryIds: selectedCategoryIds,
-        externalWatchUrl: projectType === 'anime' && externalWatchUrl.trim() !== '' ? externalWatchUrl.trim() : null,
+        externalWatchUrl: externalWatchUrl && externalWatchUrl.trim() !== '' ? externalWatchUrl.trim() : null,
         trailerUrl: trailerUrl && trailerUrl.trim() !== '' ? trailerUrl.trim() : null, // YENİ: payload'a ekle
       };
 
@@ -323,7 +323,7 @@ export default function EditProjectForm({
         const response = await fetch(apiUrl, {
           method: apiMethod,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(finalPayloadToSend),
+          body: JSON.stringify(payload),
         });
         const data = await response.json(); 
         toast.dismiss(loadingToastId);
@@ -375,7 +375,9 @@ export default function EditProjectForm({
         projectType={projectType} onProjectTypeChange={setProjectType}
         description={description} onDescriptionChange={setDescription}
         releaseDate={releaseDate} onReleaseDateChange={setReleaseDate}
-        trailerUrl={trailerUrl} onTrailerUrlChange={setTrailerUrl} // YENİ PROP'LARI GEÇ
+        externalWatchUrl={externalWatchUrl}
+        onExternalWatchUrlChange={setExternalWatchUrl}
+        trailerUrl={trailerUrl} onTrailerUrlChange={setTrailerUrl}
         errors={errors}
       />
       {/* Sadece Anime ise göster */}

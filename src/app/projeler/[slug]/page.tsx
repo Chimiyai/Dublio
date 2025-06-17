@@ -107,10 +107,17 @@ async function getUserSpecificData(userId: number | undefined, projectId: number
 }
 
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
+// --- 1. DEĞİŞİKLİK: generateMetadata Fonksiyonu ---
+export async function generateMetadata(
+  // Tipi { params: { slug: string } } yerine { params: Promise<{ slug: string }> } olarak değiştiriyoruz.
+  { params }: { params: Promise<{ slug: string }> }
+): Promise<Metadata> {
+  const resolvedParams = await params; // `await` ile çöz
+  const slug = resolvedParams.slug;
+  
   const project = await getProjectDetails(slug);
   if (!project) return { title: 'Proje Bulunamadı' };
+
   const typeTR = project.type === 'oyun' ? 'Oyun' : 'Anime';
   return {
     title: `${project.title} Türkçe Dublaj ${typeTR} | PrestiJ Studio`,
@@ -118,8 +125,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function ProjectDetailPageServer({ params }: { params: { slug: string } }) {
-  const { slug: pageSlug } = await params;
+
+// --- 2. DEĞİŞİKLİK: Ana Sayfa Component'i ---
+export default async function ProjectDetailPageServer(
+  // Tipi burada da değiştiriyoruz.
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const resolvedParams = await params; // `await` ile çöz
+  const pageSlug = resolvedParams.slug;
+
   const session = await getServerSession(authOptions);
   const project = await getProjectDetails(pageSlug);
 
@@ -134,7 +148,7 @@ export default async function ProjectDetailPageServer({ params }: { params: { sl
     <ProjectDetailContent
       project={project}
       isUserLoggedIn={!!session?.user?.id}
-      userHasGame={project.type === 'oyun' ? userHasGame : false} // Sadece oyunlar için
+      userHasGame={project.type === 'oyun' ? userHasGame : false}
       userInitialInteraction={userInitialInteraction}
     />
   );
