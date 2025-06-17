@@ -1,8 +1,7 @@
-// next.config.js (veya .mjs)
+// next.config.js
 /** @type {import('next').NextConfig} */
 console.log(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME)
 const nextConfig = {
-  // ...
   images: {
     remotePatterns: [
       {
@@ -10,11 +9,31 @@ const nextConfig = {
         hostname: 'res.cloudinary.com',
         pathname: `/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/**`,
       },
-      // Eğer public klasöründeki placeholder'lar için Image component'ini
-      // unoptimized={true} OLMADAN kullanmak isterseniz, localhost'u eklemeniz gerekebilir
-      // AMA unoptimized={true} kullanmak daha basit bir çözüm.
     ],
   },
-  // ...
+  async redirects() {
+    return [
+      {
+        source: '/oyunlar',
+        destination: '/projeler?type=oyun', // Veya sadece '/projeler' eğer type filtresi default olacaksa
+        permanent: true,
+      },
+      {
+        source: '/oyunlar/:slug',
+        destination: '/projeler/:slug',
+        permanent: true,
+      },
+      {
+        source: '/animeler',
+        destination: '/projeler?type=anime', // Veya sadece '/projeler'
+        permanent: true,
+      },
+      {
+        source: '/animeler/:slug',
+        destination: '/projeler/:slug',
+        permanent: true,
+      },
+    ];
+  },
 };
 module.exports = nextConfig;

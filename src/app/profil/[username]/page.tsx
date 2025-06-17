@@ -179,6 +179,7 @@ export default async function UserProfilePage(
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <UserProfileInfo 
                 user={{
+                    id: user.id,
                     username: user.username,
                     bio: user.bio,
                     profileImagePublicId: user.profileImagePublicId,

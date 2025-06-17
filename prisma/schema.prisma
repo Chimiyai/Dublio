@@ -84,6 +84,8 @@ model Project {
   averageRating Float @default(0)
   ratingCount   Int   @default(0)
 
+  trailerUrl          String?
+
   assignments ProjectAssignment[]
   likes       ProjectLike[]
   dislikes    ProjectDislike[]

@@ -21,16 +21,13 @@ import ProjectPublishSettings from './ProjectPublishSettings';
 // Tipler
 export type ProjectTypeEnum = 'oyun' | 'anime';
 
-export interface AssignmentFormData { // Bu tipi export etmeyi unutma
-  tempId: string; // EKLENMELİ
+export interface AssignmentFormData {
+  tempId: string;
   artistId: number;
   role: RoleInProject;
-  artistName?: string; // EKLENMELİ (opsiyonel)
+  artistName?: string;
   characterIds?: number[];
 }
-// Formun ana veri yapısı (EditProjectFormProps'tan gelen project)
-// Bu, sayfa component'inden (getProjectDataForEdit) gelen ve Prisma veritabanı
-// yapısına daha yakın olan bir tip olmalı. Alt component'ler kendi state'lerini yönetir.
 export interface InitialProjectData {
   id?: number;
   title: string;
@@ -43,23 +40,21 @@ export interface InitialProjectData {
   isPublished: boolean;
   price: number | null;
   currency: string | null;
-  assignments: AssignmentManagerAssignmentData[]; // Bu artık tempId ve characterIds içermeli
+  assignments: AssignmentManagerAssignmentData[];
   categoryIds: number[];
-  // categories?: { category: { id: number; name: string; } }[]; // categoryIds yeterli
   externalWatchUrl?: string | null;
+  trailerUrl?: string | null; // YENİ ALAN
 }
 
-
 interface EditProjectFormProps {
-  project?: InitialProjectData; // Düzenleme için
+  project?: InitialProjectData;
   allArtists: { value: number; label: string }[];
   allCategories: { value: number; label: string }[];
   availableRoles: RoleInProject[];
   isEditing: boolean;
 }
 
-// API'ye gönderilecek payload'un tipi
-interface ApiPayload { // Bu tipin doğru tanımlandığından emin ol
+interface ApiPayload {
   title: string;
   slug: string;
   type: ProjectTypeEnum;
@@ -71,12 +66,13 @@ interface ApiPayload { // Bu tipin doğru tanımlandığından emin ol
   externalWatchUrl?: string | null;
   price: number | null;
   currency: string | null;
-  assignments: { // Bu kısım önemli
+  assignments: {
     artistId: number;
     role: RoleInProject;
     characterIds?: number[];
   }[];
   categoryIds: number[];
+  trailerUrl?: string | null; // YENİ ALAN
 }
 
 interface FormErrors {
@@ -84,6 +80,8 @@ interface FormErrors {
   coverImagePublicId?: string[]; bannerImagePublicId?: string[];
   releaseDate?: string[]; isPublished?: string[]; price?: string[]; currency?: string[];
   assignments?: string[]; categoryIds?: string[]; general?: string;
+  trailerUrl?: string[]; // YENİ ALAN
+  externalWatchUrl?: string[]; // Bu da eksikti sanırım, ekleyelim
 }
 
 // Cloudinary için yardımcı fonksiyon (dosyanın dışında veya lib/utils.ts'te olabilir)
@@ -112,7 +110,7 @@ const getArchivePublicId = (oldPublicId: string | null | undefined, typePrefix: 
 export default function EditProjectForm({
   project: initialProjectData,
   allArtists,
-  allCategories: initialAllCategoriesData = [], // Prop'tan gelen formatlı hali
+  allCategories: initialAllCategoriesData = [],
   availableRoles,
   isEditing,
 }: EditProjectFormProps) {
@@ -120,13 +118,14 @@ export default function EditProjectForm({
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // --- FORM STATE'LERİ (Her bölüm kendi state'ini callback ile buraya yansıtacak) ---
+  // --- FORM STATE'LERİ ---
   const [externalWatchUrl, setExternalWatchUrl] = useState(initialProjectData?.externalWatchUrl || '');
   const [title, setTitle] = useState(initialProjectData?.title || '');
   const [slug, setSlug] = useState(initialProjectData?.slug || '');
   const [projectType, setProjectType] = useState<ProjectTypeEnum>(initialProjectData?.type || 'oyun');
   const [description, setDescription] = useState(initialProjectData?.description || '');
   const [releaseDate, setReleaseDate] = useState(initialProjectData?.releaseDate || '');
+  const [trailerUrl, setTrailerUrl] = useState<string | null>(initialProjectData?.trailerUrl || null); // YENİ STATE
   
   const [currentCoverPublicId, setCurrentCoverPublicId] = useState<string | null>(initialProjectData?.coverImagePublicId || null);
   const [currentBannerPublicId, setCurrentBannerPublicId] = useState<string | null>(initialProjectData?.bannerImagePublicId || null);
@@ -173,10 +172,10 @@ export default function EditProjectForm({
         })) || []
       );
       setIsPublished(initialProjectData.isPublished ?? true);
-      // Seçili dosyaları sıfırla, çünkü initialProjectData değişti
+      setExternalWatchUrl(initialProjectData.externalWatchUrl || '');
+      setTrailerUrl(initialProjectData?.trailerUrl || null);
       setSelectedCoverFile(null);
       setSelectedBannerFile(null);
-      setExternalWatchUrl(initialProjectData.externalWatchUrl || '');
     }
   }, [initialProjectData]);
 
@@ -242,15 +241,22 @@ export default function EditProjectForm({
       return;
     }
     if (projectType === 'oyun' && price.trim() !== '' && parseFloat(price) < 0) {
-    toast.error("Oyun fiyatı 0 veya pozitif bir değer olmalıdır.");
-    setErrors(prev => ({ ...prev, price: ["Fiyat 0 veya pozitif olmalı."] }));
-    return;
-}
+        toast.error("Oyun fiyatı 0 veya pozitif bir değer olmalıdır.");
+        setErrors(prev => ({ ...prev, price: ["Fiyat 0 veya pozitif olmalı."] }));
+        return;
+    }
     if (projectType === 'oyun' && price.trim() !== '' && currency.trim().length !== 3) {
         toast.error("Para birimi 3 karakter olmalıdır (örn: TRY).");
         setErrors(prev => ({ ...prev, currency: ["Para birimi 3 karakter olmalı."] }));
         return;
     }
+    // Opsiyonel: Trailer URL formatını basitçe kontrol et
+    if (trailerUrl && trailerUrl.trim() !== '' && !trailerUrl.startsWith('http')) {
+        toast.error("Fragman URL'i geçerli bir URL olmalıdır (http:// veya https:// ile başlamalı).");
+        setErrors(prev => ({ ...prev, trailerUrl: ["Geçerli bir URL girin."] }));
+        return;
+    }
+
 
     const loadingToastId = toast.loading(isEditing ? 'Proje güncelleniyor...' : 'Proje oluşturuluyor...');
     let finalCoverIdToSubmit = currentCoverPublicId;
@@ -258,110 +264,106 @@ export default function EditProjectForm({
     startTransition(async () => {
       
       if (selectedCoverFile) {
-        const uploadedId = await handleImageUpload(selectedCoverFile, 'projectCover', slug || title, initialProjectData?.id);
-        if (!uploadedId) { toast.dismiss(loadingToastId); return; }
-        finalCoverIdToSubmit = uploadedId;
-      }
-      if (selectedBannerFile) {
-        const uploadedId = await handleImageUpload(selectedBannerFile, 'projectBanner', slug || title, initialProjectData?.id);
-        if (!uploadedId) { toast.dismiss(loadingToastId); return; }
-        finalBannerIdToSubmit = uploadedId;
-      }
+            const uploadedId = await handleImageUpload(selectedCoverFile, 'projectCover', slug || title, initialProjectData?.id);
+            if (!uploadedId) { toast.dismiss(loadingToastId); return; }
+            finalCoverIdToSubmit = uploadedId;
+        }
+        if (selectedBannerFile) {
+            const uploadedId = await handleImageUpload(selectedBannerFile, 'projectBanner', slug || title, initialProjectData?.id);
+            if (!uploadedId) { toast.dismiss(loadingToastId); return; }
+            finalBannerIdToSubmit = uploadedId;
+        }
 
       const assignmentsForApi = currentAssignments.map(asn => {
       const apiAssignment: { artistId: number; role: RoleInProject; characterIds?: number[] } = {
-        artistId: asn.artistId,
-        role: asn.role,
-      };
-      if (asn.role === RoleInProject.VOICE_ACTOR && asn.characterIds && asn.characterIds.length > 0) {
-        apiAssignment.characterIds = asn.characterIds;
-      }
-      return apiAssignment;
-    });
-
-    // PAYLOAD'U BURADA, GEREKLİ TÜM DEĞERLER HAZIR OLDUKTAN SONRA OLUŞTUR
-    const payload: ApiPayload = {
-      title: title.trim(),
-      slug: slug.trim(),
-      type: projectType,
-      description: description && description.trim() !== '' ? description.trim() : null,
-      coverImagePublicId: finalCoverIdToSubmit,
-      bannerImagePublicId: finalBannerIdToSubmit,
-      releaseDate: releaseDate ? new Date(releaseDate).toISOString() : null,
-      isPublished,
-      price: projectType === 'oyun' && price.trim() !== '' ? parseFloat(price) : null,
-      currency: projectType === 'oyun' && price.trim() !== '' && currency.trim() !== '' ? currency.trim().toUpperCase() : null,
-      assignments: assignmentsForApi,
-      categoryIds: selectedCategoryIds,
-      externalWatchUrl: projectType === 'anime' && externalWatchUrl.trim() !== '' ? externalWatchUrl.trim() : null,
-    };
-
-    // Sadece yeni proje oluşturulurken assignments gönderme
-    let finalPayloadToSend: Partial<ApiPayload> = { ...payload };
-    if (!isEditing) {
-        delete finalPayloadToSend.assignments; // Veya payload oluşturulurken assignments'ı koşullu ekle
-    }
-
-
-    const apiUrl = isEditing && initialProjectData?.slug ? `/api/admin/projects/${initialProjectData.slug}` : '/api/admin/projects';
-    const apiMethod = isEditing ? 'PUT' : 'POST';
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: apiMethod,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalPayloadToSend), // finalPayloadToSend kullan
+            artistId: asn.artistId,
+            role: asn.role,
+        };
+        if (asn.role === RoleInProject.VOICE_ACTOR && asn.characterIds && asn.characterIds.length > 0) {
+            apiAssignment.characterIds = asn.characterIds;
+        }
+        return apiAssignment;
       });
-        const data = await response.json(); // Her zaman JSON bekliyoruz
+
+      const payload: ApiPayload = {
+        title: title.trim(),
+        slug: slug.trim(),
+        type: projectType,
+        description: description && description.trim() !== '' ? description.trim() : null,
+        coverImagePublicId: finalCoverIdToSubmit,
+        bannerImagePublicId: finalBannerIdToSubmit,
+        releaseDate: releaseDate ? new Date(releaseDate).toISOString() : null,
+        isPublished,
+        price: projectType === 'oyun' && price.trim() !== '' ? parseFloat(price) : null,
+        currency: projectType === 'oyun' && price.trim() !== '' && currency.trim() !== '' ? currency.trim().toUpperCase() : null,
+        assignments: assignmentsForApi,
+        categoryIds: selectedCategoryIds,
+        externalWatchUrl: projectType === 'anime' && externalWatchUrl.trim() !== '' ? externalWatchUrl.trim() : null,
+        trailerUrl: trailerUrl && trailerUrl.trim() !== '' ? trailerUrl.trim() : null, // YENİ: payload'a ekle
+      };
+
+      let finalPayloadToSend: Partial<ApiPayload> = { ...payload };
+      if (!isEditing) {
+        // Yeni proje oluşturulurken assignments'ı göndermiyoruz (önce proje oluşmalı)
+        // Sen zaten EditProjectForm'u yeni proje için de kullanıyorsun ama assignments ayrı yönetiliyor.
+        // Bu kısım AddProjectForm'daki mantıkla daha uyumlu olmalı.
+        // AddProjectForm'da assignments'ı POST request'e dahil ediyorsun.
+        // Bu durumda, eğer EditProjectForm hem yeni hem düzenleme için kullanılıyorsa
+        // ve yeni proje için assignments gönderilecekse, bu delete'i kaldırmalısın.
+        // Şimdilik AddProjectForm'daki gibi bırakıyorum, yani yeni projede de assignments gidecek.
+        // Eğer yeni projede assignments gönderilmeyecekse, aşağıdaki satırı aktif et:
+        // delete finalPayloadToSend.assignments; 
+      }
+
+
+      const apiUrl = isEditing && initialProjectData?.slug ? `/api/admin/projects/${initialProjectData.slug}` : '/api/admin/projects';
+      const apiMethod = isEditing ? 'PUT' : 'POST';
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: apiMethod,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(finalPayloadToSend),
+        });
+        const data = await response.json(); 
         toast.dismiss(loadingToastId);
 
         if (!response.ok) {
-          if (data.errors && typeof data.errors === 'object') {
-            setErrors(data.errors as FormErrors);
-            const firstErrorField = Object.keys(data.errors)[0] as keyof FormErrors;
-            if (firstErrorField && data.errors[firstErrorField]?.[0]) {
-                 toast.error(`${data.errors[firstErrorField][0]}`); // Alan adını belirtmeden sadece hatayı göster
+            if (data.errors && typeof data.errors === 'object') {
+                setErrors(data.errors as FormErrors);
+                const firstErrorField = Object.keys(data.errors)[0] as keyof FormErrors;
+                if (firstErrorField && data.errors[firstErrorField]?.[0]) {
+                    toast.error(`${data.errors[firstErrorField][0]}`); 
+                } else {
+                    toast.error(data.message || 'Bir hata oluştu.');
+                }
             } else {
-                 toast.error(data.message || 'Bir hata oluştu.');
+                setErrors({ general: data.message || 'Bir hata oluştu.' });
+                toast.error(data.message || 'Bir hata oluştu.');
             }
-          } else {
-            setErrors({ general: data.message || 'Bir hata oluştu.' });
-            toast.error(data.message || 'Bir hata oluştu.');
-          }
-          return;
+            return;
         }
 
         toast.success(`Proje başarıyla ${isEditing ? 'güncellendi' : 'oluşturuldu'}.`);
         setSelectedCoverFile(null); 
         setSelectedBannerFile(null);
         
-        if (isEditing) {
-          if (data.slug && data.slug !== initialProjectData?.slug) {
-            router.push(`/admin/projeler/duzenle/${data.slug}`);
-          } else {
-            router.refresh(); // Sayfayı yenile (yeni initialProjectData için)
-          }
-        } else {
-          router.push(`/admin/projeler/duzenle/${data.slug}`);
+        if (!isEditing && data.slug) { // Yeni proje oluşturulduysa ve slug döndüyse
+            router.push(`/admin/projeler/duzenle/${data.slug}`); 
+        } else if (isEditing) {
+            if (data.slug && data.slug !== initialProjectData?.slug) { // Slug değiştiyse yeni slug'a yönlendir
+                router.push(`/admin/projeler/duzenle/${data.slug}`);
+            } else {
+                router.refresh(); // Sadece veriyi yenile
+            }
         }
-      if (!isEditing && response.ok && data.slug) {
-        toast.success(`Proje "${data.title}" başarıyla oluşturuldu. Şimdi detayları düzenleyebilirsiniz.`);
-        router.push(`/admin/projeler/duzenle/${data.slug}`); // DÜZENLEME SAYFASINA YÖNLENDİR
-      } else if (isEditing && response.ok) {
-        toast.success(`Proje başarıyla güncellendi.`);
-        if (data.slug && data.slug !== initialProjectData?.slug) {
-          router.push(`/admin/projeler/duzenle/${data.slug}`);
-        } else {
-          router.refresh();
-        }
+      } catch (err: any) {
+        toast.dismiss(loadingToastId);
+        toast.error(err.message || 'Bir ağ hatası oluştu.');
+        setErrors({ general: 'Bir ağ hatası oluştu. Lütfen internet bağlantınızı kontrol edin.' });
       }
-    } catch (err: any) { // err tipini any yap
-      toast.dismiss(loadingToastId);
-      toast.error(err.message || 'Bir ağ hatası oluştu.');
-      setErrors({ general: 'Bir ağ hatası oluştu. Lütfen internet bağlantınızı kontrol edin.' });
-    }
-  });
-};
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-10">
@@ -373,6 +375,7 @@ export default function EditProjectForm({
         projectType={projectType} onProjectTypeChange={setProjectType}
         description={description} onDescriptionChange={setDescription}
         releaseDate={releaseDate} onReleaseDateChange={setReleaseDate}
+        trailerUrl={trailerUrl} onTrailerUrlChange={setTrailerUrl} // YENİ PROP'LARI GEÇ
         errors={errors}
       />
       {/* Sadece Anime ise göster */}
@@ -394,14 +397,14 @@ export default function EditProjectForm({
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 dark:bg-gray-800"
               />
             </div>
-            {/* errors.externalWatchUrl eklenebilir */}
+            {errors.externalWatchUrl && <p className="mt-1 text-xs text-red-500">{errors.externalWatchUrl.join(', ')}</p>}
           </div>
         </div>
       )}
 
       <ProjectImagesManager
         coverImagePublicId={currentCoverPublicId}
-        onCoverImagePublicIdChange={setCurrentCoverPublicId} // Bu, URL.createObjectURL veya null set eder
+        onCoverImagePublicIdChange={setCurrentCoverPublicId} 
         onCoverFileSelect={setSelectedCoverFile}
         bannerImagePublicId={currentBannerPublicId}
         onBannerImagePublicIdChange={setCurrentBannerPublicId}
@@ -426,15 +429,13 @@ export default function EditProjectForm({
         errors={errors}
       />
       
-      {/* Karakter Yönetimi sadece düzenleme modunda ve proje ID'si varsa mantıklı */}
-      {isEditing && initialProjectData?.slug && initialProjectData?.id && ( // Hem slug hem id varsa göster
+      {isEditing && initialProjectData?.slug && initialProjectData?.id && ( 
         <ProjectCharactersManager
-        projectSlug={initialProjectData?.slug} // Düzenleme modunda slug dolu olacak
-        projectId={initialProjectData?.id}     // Düzenleme modunda id dolu olacak
-                                               // Yeni proje modunda ikisi de undefined olacak
+        projectSlug={initialProjectData?.slug} 
+        projectId={initialProjectData?.id}    
         onCharactersUpdate={setProjectCharacters}
         isFormPending={isPending}
-        isEditing={isEditing} // YENİ PROP BURADA GEÇİRİLİYOR
+        isEditing={isEditing} 
       />
       )}
 
@@ -442,11 +443,10 @@ export default function EditProjectForm({
         allArtists={allArtists}
         availableRoles={availableRoles}
         projectCharactersForSelect={projectCharacters.map(char => ({ value: char.id, label: char.name }))}
-        // isLoadingProjectCharacters prop'u kaldırıldı
         initialAssignments={currentAssignments}
         onAssignmentsChange={setCurrentAssignments}
         isFormPending={isPending}
-        isEditing={isEditing} // Bu prop ProjectAssignmentsManagerProps'a eklendi
+        isEditing={isEditing} 
       />
 
       <ProjectPublishSettings
@@ -455,11 +455,12 @@ export default function EditProjectForm({
         errors={errors}
       />
 
+
       <div className="mt-6 flex items-center justify-end gap-x-6">
         <button type="button" onClick={() => router.back()} className="text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 px-3 py-1.5 rounded-md">
           İptal
         </button>
-        <button type="submit" disabled={isPending} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 ...">
+        <button type="submit" disabled={isPending} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:ring-offset-gray-800">
           {isPending ? (isEditing ? 'Güncelleniyor...' : 'Oluşturuluyor...') : (isEditing ? 'Değişiklikleri Kaydet' : 'Projeyi Oluştur')}
         </button>
       </div>
