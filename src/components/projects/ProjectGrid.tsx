@@ -44,21 +44,25 @@ export default function ProjectGrid({ projects, isLoading }: ProjectGridProps) {
     <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
       {projects.map(project => ( // 'project' objesi ProjectForCard tipinde
         <PopularContentCard
-          key={project.id}
-          slug={project.slug}
-          title={project.title}
-          type={project.type === 'oyun' ? 'Oyun' : 'Anime'}
-          bannerImageUrl={project.bannerImagePublicId ?? null} // DİKKAT: project.bannerImagePublicId KULLANILIYOR
-          coverImageUrl={project.coverImagePublicId}
-          description={project.description ?? null}
-          date={project.releaseDate ? formatDate(project.releaseDate, { day: 'numeric', month: 'short', year: 'numeric' }) : null}
-          likes={project.likeCount || 0}
-          dislikes={project.dislikeCount || 0}   // DİKKAT: project.dislikeCount KULLANILIYOR
-          favorites={project.favoriteCount || 0} // DİKKAT: project.favoriteCount KULLANILIYOR
-          itemTypePath="projeler"
-          price={project.price}
-          currency={project.currency}
-        />
+      key={project.id}
+      slug={project.slug}
+      title={project.title}
+      type={project.type === 'oyun' ? 'Oyun' : 'Anime'}
+      coverImageUrl={project.coverImagePublicId}
+      bannerImageUrl={project.bannerImagePublicId}
+      description={project.description  ?? null}
+      date={project.releaseDate ? new Date(project.releaseDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric'}) : null}
+      
+      // === DÜZELTME BURADA ===
+      likes={project.likeCount}       // `likes` prop'una `project.likeCount` değerini ata
+      dislikes={project.dislikeCount}   // `dislikes` prop'una `project.dislikeCount` değerini ata
+      favorites={project.favoriteCount} // `favorites` prop'una `project.favoriteCount` değerini ata
+      // =======================
+
+      itemTypePath="projeler"
+      price={project.price}
+      currency={project.currency}
+    />
       ))}
     </div>
   );

@@ -22,14 +22,15 @@ export interface ApiProjectPopular {
   slug: string;
   title: string;
   type: string; // 'oyun' veya 'anime'
-  bannerImagePublicId?: string | null;
-  coverImagePublicId?: string | null;
   description?: string | null;
+  coverImagePublicId?: string | null;
+  bannerImagePublicId?: string | null;
   releaseDate?: string | Date | null; // Çıkış/Yayın tarihi
   createdAt?: string | Date | null;   // Veritabanına eklenme tarihi
-  likes?: number | null;
-  dislikes?: number | null;
-  favorites?: number | null;
+  // API'den gelen alan adlarına göre güncellendi:
+  likeCount?: number | null;    // likes yerine likeCount
+  dislikeCount?: number | null; // dislikes yerine dislikeCount
+  favoriteCount?: number | null; // favorites yerine favoriteCount
   viewCount?: number | null;
   averageRating?: number | null;
   ratingCount?: number | null;

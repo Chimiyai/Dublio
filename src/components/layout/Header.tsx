@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useState, useEffect, useRef, Fragment, JSX } from 'react';
+import UnreadMessagesBadge from './UnreadMessagesBadge';
 import { useSession, signOut } from 'next-auth/react';
 import {
   Bars3Icon,
@@ -35,7 +36,7 @@ const navLinksData = [
   { label: 'Oyunlar', href: 'oyunlar', dropdownId: 'oyunlarDropdown' },
   { label: 'Animeler', href: 'animeler', dropdownId: 'animelerDropdown' },
   { label: 'Kadromuz', href: '/kadromuz' },
-  { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/24UHAsAN5v' },
+  { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/8Uh4yrXeBg' },
 ];
 
 // Tip tanımlamalarını ekleyelim (isteğe bağlı ama iyi pratik)
@@ -280,7 +281,7 @@ const handleDownloadClick = () => {
     { label: 'Oyunlar', href: '/oyunlar', dropdownId: 'oyunlarDropdown' },
     { label: 'Animeler', href: '/animeler', dropdownId: 'animelerDropdown' },
     { label: 'Kadromuz', href: '/kadromuz' },
-    { label: 'Bize Katıl!', href: 'https://discord.gg/24UHAsAN5v' },
+    { label: 'Bize Katıl!', href: 'https://discord.gg/8Uh4yrXeBg' },
   ];
 
   if (session?.user) {
@@ -307,7 +308,7 @@ const handleDownloadClick = () => {
       });
     }
     mainItems.push({ label: 'Kadromuz', action: 'link', href: '/kadromuz' });
-    mainItems.push({ label: 'Bize Katıl!', action: 'link', href: 'https://discord.gg/24UHAsAN5v' });
+    mainItems.push({ label: 'Bize Katıl!', action: 'link', href: 'https://discord.gg/8Uh4yrXeBg' });
 
     if (session?.user?.role === 'admin' && !isLoadingSession) {
       mainItems.push({ label: 'Admin Paneli', action: 'link', href: '/admin' });
@@ -441,8 +442,9 @@ return (
             <div className="user-actions flex items-center gap-3 sm:gap-4 lg:ml-auto">
                 {/* Mesajlar İkonu */}
                 {session?.user && ( // Sadece giriş yapmışsa göster
-                    <Link href="/mesajlar" className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-1.5 rounded-full hover:bg-prestij-purple/10">
+                    <Link href="/mesajlar" className="relative text-prestij-text-accent hover:text-prestij-purple transition-colors p-1.5 rounded-full hover:bg-prestij-purple/10">
                         <ChatBubbleOvalLeftEllipsisIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                        <UnreadMessagesBadge />
                     </Link>
                 )}
                 {/* Bildirim İkonu */}

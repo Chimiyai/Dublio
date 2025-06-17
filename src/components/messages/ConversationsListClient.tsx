@@ -1,71 +1,59 @@
 // src/components/messages/ConversationsListClient.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react'; // useMemo eklendi
 import Link from 'next/link';
-import { useParams, useRouter } // useRouter eklendi
-from 'next/navigation';
-import { UserCircleIcon } from '@heroicons/react/24/solid';
+import { useParams } from 'next/navigation';
+import { UserCircleIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid'; // Arama ikonu eklendi
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
-import NextImage from 'next/image'; // NextImage kullanıyoruz
+import NextImage from 'next/image';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import useSWR from 'swr'; // SWR'ı periyodik veri çekme için kullanalım
 
 interface ConversationUser {
   id: number;
   username: string;
   profileImagePublicId: string | null;
-  // onlineStatus?: string; // Ekran görüntüsündeki gibi
 }
 
 interface Conversation {
   user: ConversationUser;
-  lastMessage: string;
-  lastMessageAt: string; // ISO date string
-  // unreadCount?: number;
+  lastMessageContent: string;
+  lastMessageAt: string;
+  unreadCount: number; // API'den bu verinin geldiğini varsayıyoruz
+  isLastMessageSentByMe: boolean;
 }
 
-export default function ConversationsListClient() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const params = useParams(); // Aktif sohbeti belirlemek için
-  const router = useRouter(); // Yönlendirme için
+// SWR için fetcher fonksiyonu
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
+export default function ConversationsListClient() {
+  // Veriyi SWR ile çekiyoruz, böylece periyodik olarak güncellenir
+  const { data: conversations, error, isLoading } = useSWR<Conversation[]>(
+    '/api/messages/conversations', 
+    fetcher,
+    { refreshInterval: 15000 } // Her 15 saniyede bir sohbet listesini yenile
+  );
+
+  // Arama state'i
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const params = useParams();
   const activeChatUserId = params.userId ? parseInt(params.userId as string) : null;
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch('/api/messages/conversations');
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.message || 'Sohbetler yüklenemedi.');
-        }
-        const data: Conversation[] = await response.json();
-        setConversations(data);
+  // Arama mantığı
+  const filteredConversations = useMemo(() => {
+    if (!conversations) return [];
+    if (!searchTerm.trim()) {
+      return conversations;
+    }
+    return conversations.filter(convo =>
+      convo.user.username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [conversations, searchTerm]);
 
-        // Eğer hiç aktif sohbet yoksa ve konuşmalar varsa, ilk konuşmaya yönlendir (isteğe bağlı)
-        // if (!activeChatUserId && data.length > 0 && typeof window !== 'undefined') {
-        //    router.replace(`/mesajlar/${data[0].user.id}`);
-        // }
-
-      } catch (err: any) {
-        setError(err.message);
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchConversations();
-    // Periyodik olarak fetch etme eklenebilir
-    // const intervalId = setInterval(fetchConversations, 30000); // 30 saniyede bir
-    // return () => clearInterval(intervalId);
-  }, [activeChatUserId, router]); // activeChatUserId değiştiğinde de çalışabilir ama genelde gerek yok
 
   if (isLoading) {
     return (
@@ -84,32 +72,49 @@ export default function ConversationsListClient() {
   }
 
   if (error) {
-    return <p className="p-4 text-red-400 text-sm">Hata: {error}</p>;
+    return <p className="p-4 text-red-400 text-sm">Sohbetler yüklenemedi...</p>;
   }
 
-  if (conversations.length === 0) {
-    return <p className="p-4 text-gray-400 text-sm">Henüz hiç sohbetiniz yok.</p>;
+  if (!conversations || conversations.length === 0) {
+    return <p className="p-4 text-gray-400 text-sm text-center">Henüz hiç sohbetiniz yok.</p>;
   }
 
   return (
-    <nav className="flex-1 py-2 px-1.5 sm:px-2 space-y-0.5">
-      {conversations.map((convo) => {
-        const isActive = activeChatUserId === convo.user.id;
-        const avatarUrl = convo.user.profileImagePublicId
-          ? getCloudinaryImageUrlOptimized(convo.user.profileImagePublicId, { width: 40, height: 40, crop: 'fill', gravity: 'face' }, 'avatar')
-          : null; // Veya varsayılan avatar yolu
+    // Component'i flex ve dikey yapıya çeviriyoruz
+    <div className="flex flex-col h-full">
+        {/* Arama Çubuğu */}
+        <div className="p-3 sm:p-4 border-b border-prestij-border-dark">
+            <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-4 w-4 text-prestij-text-muted" />
+                </div>
+                <input
+                    type="search"
+                    placeholder="Sohbetlerde ara..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-prestij-input-bg rounded-md text-sm text-prestij-text-primary placeholder-prestij-text-placeholder focus:outline-none focus:ring-1 focus:ring-prestij-500 border border-transparent focus:border-prestij-500"
+                />
+            </div>
+        </div>
+        
+        {/* Sohbet Listesi (Kaydırılabilir Alan) */}
+        <nav className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-transparent py-2 px-1.5 sm:px-2 space-y-0.5">
+        {filteredConversations.length > 0 ? (
+          filteredConversations.map((convo) => {
+            const isActive = activeChatUserId === convo.user.id;
+            const avatarUrl = convo.user.profileImagePublicId ? getCloudinaryImageUrlOptimized(convo.user.profileImagePublicId, { width: 40, height: 40, crop: 'fill', gravity: 'face' }, 'avatar') : null;
+            const hasUnread = convo.unreadCount > 0;
 
-        return (
-          <Link
-            key={convo.user.id}
-            href={`/mesajlar/${convo.user.id}`}
-            className={cn(
-              "flex items-center space-x-3 p-2.5 rounded-lg hover:bg-prestij-input-bg/70 transition-colors group relative", // Hover rengi güncellendi
-              isActive 
-                ? "bg-prestij-input-bg text-prestij-text-primary" // Aktif arka plan güncellendi
-                : "text-prestij-text-secondary hover:text-prestij-text-primary"
-            )}
-          >
+            return (
+              <Link
+                key={convo.user.id}
+                href={`/mesajlar/${convo.user.id}`}
+                className={cn(
+                  "flex items-center space-x-3 p-2.5 rounded-lg hover:bg-prestij-input-bg/70 transition-colors group relative",
+                  isActive ? "bg-prestij-input-bg" : "text-prestij-text-secondary hover:text-prestij-text-primary"
+                )}
+              >
             {isActive && ( // Aktiflik çizgisi
               <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-prestij-500 rounded-r-md"></span>
             )}
@@ -131,25 +136,46 @@ export default function ConversationsListClient() {
               )} */}
             </div>
             <div className="flex-1 min-w-0">
-              <p className={cn(
-                  "text-sm font-medium truncate",
-                  isActive ? "text-white" : "text-prestij-text-primary group-hover:text-white"
-              )}>
-                {convo.user.username}
-              </p>
+                  <p className={cn(
+                      "text-sm font-medium truncate",
+                      isActive ? "text-white" : "text-prestij-text-primary group-hover:text-white",
+                      hasUnread && !isActive && "font-bold"
+                  )}>
+                    {convo.user.username}
+                  </p>
               <p className={cn(
                   "text-xs truncate", 
-                  isActive ? "text-prestij-text-secondary" : "text-prestij-text-muted group-hover:text-prestij-text-secondary"
+                  isActive ? "text-prestij-text-secondary" : "text-prestij-text-muted group-hover:text-prestij-text-secondary",
+                  hasUnread && !isActive ? "text-white font-medium" : "" // Eğer aktif değilse ve okunmamışsa son mesajı da belirgin yap
               )}>
-                {convo.lastMessage}
+                {/* Son mesajı gönderen ben isem: "Siz: Mesaj..." */}
+                {convo.isLastMessageSentByMe && 'Siz: '}
+                {convo.lastMessageContent}
               </p>
             </div>
-            <div className="flex-shrink-0 text-xs text-prestij-text-muted self-start pt-0.5">
-              {formatDistanceToNowStrict(new Date(convo.lastMessageAt), { locale: tr, addSuffix: false })}
-            </div>
-          </Link>
-        );
-      })}
-    </nav>
+
+                <div className="flex flex-col items-end space-y-1.5 self-start pt-0.5">
+                    <span className="text-xs text-prestij-text-muted">
+                      {formatDistanceToNowStrict(new Date(convo.lastMessageAt), { locale: tr, addSuffix: false })}
+                    </span>
+                    
+                    {/* OKUNMAMIŞ MESAJ SAYISI ROZETİ */}
+                    {hasUnread && (
+                        <span className={cn(
+                        "flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold text-white",
+                        "bg-red-500"
+                    )}>
+                        {convo.unreadCount > 9 ? '9+' : convo.unreadCount}
+                    </span>
+                    )}
+                </div>
+              </Link>
+            );
+          })
+        ) : (
+            <p className="p-4 text-gray-400 text-sm text-center">Aramanızla eşleşen sohbet bulunamadı.</p>
+        )}
+        </nav>
+    </div>
   );
 }

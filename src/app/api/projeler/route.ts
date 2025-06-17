@@ -110,15 +110,15 @@ export async function GET(request: NextRequest) {
         bannerImagePublicId: true,
         description: true,
         releaseDate: true,
-        likeCount: true,
-        dislikeCount: true,
-        favoriteCount: true,
         averageRating: true,
         viewCount: true,
         price: true,
         currency: true,
         _count: { select: { comments: true, ratings: true } },
         categories: { select: { category: { select: { name: true, slug: true } } } },
+        likeCount: true,
+        dislikeCount: true,
+        favoriteCount: true,
       },
     });
 

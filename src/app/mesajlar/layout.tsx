@@ -1,4 +1,7 @@
 // src/app/mesajlar/layout.tsx
+'use client'; // Bu layoutun Client Component olduğunu belirtiyoruz
+
+import { useEffect } from 'react'; // useEffect hook'unu import ediyoruz
 import ConversationsListClient from "@/components/messages/ConversationsListClient";
 
 export default function MessagesLayout({
@@ -6,18 +9,20 @@ export default function MessagesLayout({
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    // Layout yüklendiğinde body'nin kaydırmasını devre dışı bırak
+    document.body.style.overflow = 'hidden';
+
+    // Layout kaldırıldığında body'nin kaydırmasını geri aç
+    return () => {
+      document.body.style.overflow = 'unset'; // veya 'auto' kullanabilirsiniz
+    };
+  }, []); // Boş dependency array, bu effect'in sadece mount ve unmount'ta çalışmasını sağlar
+
   return (
     <div className="flex h-[calc(100vh-var(--header-height,4rem))] bg-prestij-chat-bg"> {/* Ana mesajlaşma BG */}
-      {/* Sol Panel: Kişiler/Sohbetler Listesi */}
+
       <div className="w-full sm:w-72 md:w-80 lg:w-96 bg-prestij-sidebar-bg flex flex-col border-r border-prestij-border-dark">
-        <div className="p-3 sm:p-4 border-b border-prestij-border-dark sticky top-0 bg-prestij-sidebar-bg z-10">
-          <input 
-            type="text"
-            placeholder="Kişilerde ara..."
-            className="w-full px-3 py-2 bg-prestij-input-bg rounded-md text-sm text-prestij-text-primary placeholder-prestij-text-placeholder focus:outline-none focus:ring-1 focus:ring-prestij-500 border border-transparent focus:border-prestij-500"
-          />
-        </div>
-        
         <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-prestij-sidebar-bg"> {/* Scrollbar renkleri güncellendi */}
           <ConversationsListClient />
         </div>
