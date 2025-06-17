@@ -24,6 +24,7 @@ import {
 import SearchOverlay from './SearchOverlay';
 import { cn } from '@/lib/utils';
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
+import NotificationBell from './NotificationBell';
 
 // Stats için tip tanımı
 interface HeaderStats {
@@ -447,10 +448,7 @@ return (
                         <UnreadMessagesBadge />
                     </Link>
                 )}
-                {/* Bildirim İkonu */}
-                <Link href="#" className="notification-bell text-prestij-text-accent hover:text-prestij-purple transition-colors p-1.5 rounded-full hover:bg-prestij-purple/10">
-                    <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-                </Link>
+                <NotificationBell />
 
                 {isLoadingSession ? (
                     <div className="h-8 w-8 bg-prestij-bg-button/50 animate-pulse rounded-full"></div>

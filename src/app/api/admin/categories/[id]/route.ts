@@ -7,12 +7,17 @@ import { authOptions } from '@/lib/authOptions';
 import { z } from 'zod';
 import slugify from 'slugify';
 
-// Kategori güncelleme şeması
 const updateCategorySchema = z.object({
   name: z.string().min(2, "Kategori adı en az 2 karakter olmalıdır.").max(50),
 });
 
-interface RouteContext { params: { id: string } }
+// --- DÜZELTİLMİŞ TİP ---
+// Bu tip, fonksiyon imzalarında kullanılacak.
+interface RouteContext { 
+  params: Promise<{ 
+    id: string; 
+  }> 
+}
 
 // --- PUT: Mevcut Kategoriyi Güncelle ---
 export async function PUT(request: NextRequest, { params }: RouteContext) {
@@ -21,7 +26,9 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
   
-  const categoryId = parseInt(params.id);
+  const resolvedParams = await params; // `await` ile çöz
+  const categoryId = parseInt(resolvedParams.id, 10);
+
   if (isNaN(categoryId)) {
     return NextResponse.json({ message: 'Geçersiz ID formatı.' }, { status: 400 });
   }
@@ -37,7 +44,6 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     const { name } = parsedBody.data;
     const slug = slugify(name, { lower: true, strict: true });
 
-    // Güncellenen isim/slug başka bir kategori tarafından kullanılıyor mu?
     const existingCategory = await prisma.category.findFirst({
       where: { OR: [{ name }, { slug }], NOT: { id: categoryId } }
     });
@@ -65,24 +71,22 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 403 });
   }
 
-  const categoryId = parseInt(params.id);
+  const resolvedParams = await params; // `await` ile çöz
+  const categoryId = parseInt(resolvedParams.id, 10);
+
   if (isNaN(categoryId)) {
     return NextResponse.json({ message: 'Geçersiz ID formatı.' }, { status: 400 });
   }
 
   try {
-    // ÖNEMLİ: Bu kategoriyi kullanan projeler varsa ne olacak?
-    // Prisma şemasında `onDelete` kuralı belirtilmediyse, ilişkili proje varken kategori silinemez ve hata verir.
-    // Bu iyi bir şey, veri bütünlüğünü korur.
     await prisma.category.delete({
       where: { id: categoryId }
     });
 
-    return new NextResponse(null, { status: 204 }); // Başarılı, içerik yok
+    return new NextResponse(null, { status: 204 });
 
   } catch (error: any) {
     console.error(`Kategori (ID: ${categoryId}) silme hatası:`, error);
-    // P2003: Foreign key constraint failed on the field
     if (error.code === 'P2003') {
         return NextResponse.json({ message: 'Bu kategori projelere atandığı için silinemez. Önce projelerden kaldırın.'}, { status: 409 });
     }
