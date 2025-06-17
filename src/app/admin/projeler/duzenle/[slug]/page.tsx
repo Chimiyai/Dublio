@@ -9,7 +9,23 @@ import type { Metadata } from 'next';
 async function getProjectDataForEdit(slug: string) {
   const projectFromDb = await prisma.project.findUnique({
     where: { slug },
-    include: {
+    // DİKKAT: Bu sorgunun `include` değil, `select` olması gerekiyor gibi duruyor.
+    // Eğer `include` kullanıyorsan da, ana modelin alanlarını da `select` etmelisin.
+    // Şimdilik select ile devam edelim, bu daha net.
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      coverImagePublicId: true,
+      bannerImagePublicId: true,
+      releaseDate: true,
+      isPublished: true,
+      price: true,
+      currency: true,
+      externalWatchUrl: true,
+      trailerUrl: true, // <<< EKSİK OLAN SATIR BURAYA EKLENDİ
       assignments: {
         include: {
           artist: { select: { id: true, firstName: true, lastName: true } },
@@ -37,7 +53,7 @@ async function getProjectDataForEdit(slug: string) {
     select: { id: true, name: true }
   });
 
-  // ProjectFormData'ya uygun hale getir
+  // Gelen veriyi EditProjectForm'un beklediği InitialProjectData tipine formatla
   const formattedProject: InitialProjectData = {
     id: projectFromDb.id,
     title: projectFromDb.title,
@@ -51,8 +67,8 @@ async function getProjectDataForEdit(slug: string) {
     price: projectFromDb.price === null ? null : Number(projectFromDb.price),
     currency: projectFromDb.currency || null,
     assignments: projectFromDb.assignments.map((a, index) => ({
-      tempId: `${Date.now()}-server-${a.artistId}-${index}`, // YENİ: Sunucu tarafında geçici ID ata
-      artistId: a.artistId,
+      tempId: `${Date.now()}-server-${a.artist.id}-${index}`,
+      artistId: a.artist.id,
       role: a.role,
       artistName: `${a.artist.firstName} ${a.artist.lastName}`,
       characterIds: a.role === RoleInProject.VOICE_ACTOR && a.voiceRoles
@@ -60,15 +76,16 @@ async function getProjectDataForEdit(slug: string) {
         : undefined,
     })),
     categoryIds: projectFromDb.categories.map(pc => pc.category.id),
-    externalWatchUrl: projectFromDb.externalWatchUrl || undefined, // undefined olabilir
-    trailerUrl: projectFromDb.trailerUrl || undefined,
+    externalWatchUrl: projectFromDb.externalWatchUrl || '',
+    trailerUrl: projectFromDb.trailerUrl || null, // Artık hata vermeyecek
   };
+
   return {
     project: formattedProject,
-    allArtists: (await prisma.dubbingArtist.findMany({ select: { id: true, firstName: true, lastName: true } })).map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` })),
-    allCategories: (await prisma.category.findMany({ select: { id: true, name: true } })).map(c => ({ value: c.id, label: c.name })),
+    allArtists: allArtists.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` })),
+    allCategories: allCategories.map(c => ({ value: c.id, label: c.name })),
     availableRoles: Object.values(RoleInProject),
-};
+  };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
