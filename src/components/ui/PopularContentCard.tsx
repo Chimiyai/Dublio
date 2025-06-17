@@ -24,6 +24,7 @@ export interface PopularContentCardProps {
   itemTypePath: 'oyunlar' | 'animeler' | 'projeler'; // Bu da doğru
   price?: number | null;
   currency?: string | null;
+  onClick?: () => void;
 }
 
 
@@ -39,6 +40,7 @@ const PopularContentCard: React.FC<PopularContentCardProps> = ({
   dislikes,
   favorites,
   itemTypePath,
+  onClick,
 }) => {
   console.log(`KART RENDER: ${title}`, { likes, favorites });
   const bannerTypeTagClass = type.toLowerCase() === 'oyun' 
@@ -71,6 +73,7 @@ const PopularContentCard: React.FC<PopularContentCardProps> = ({
   return (
     <Link
       href={`/${itemTypePath}/${slug}`}
+      onClick={onClick}
       className="popular-card-link group flex flex-col bg-popular-card-bg rounded-xl overflow-hidden shadow-popular-card hover:shadow-popular-card-hover transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.01] h-full"
     >
       {/* Banner Bölümü (En Üstteki Büyük Resim) */}
