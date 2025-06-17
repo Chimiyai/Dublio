@@ -96,7 +96,7 @@ export default function HakkimizdaPage() {
                     Ekibimizi Gör
                 </Link>
                 <Link
-                    href="https://discord.gg/24UHAsAN5v" // Bize Katıl sayfasına link
+                    href="https://discord.gg/8Uh4yrXeBg" // Bize Katıl sayfasına link
                     className="inline-block bg-prestij-500 hover:bg-prestij-600 text-white px-8 py-3 rounded-lg text-base font-medium transition-colors shadow-lg hover:shadow-xl"
                 >
                     Bize Katıl!

@@ -18,23 +18,23 @@ export interface ShowcaseCardData { // İsmi daha genel yapalım, CardDataItem �
 }
 // Popüler içerik kartları ve API'den gelen genel proje verisi için
 export interface ApiProjectPopular {
-  id: string | number;
+  id: number;
   slug: string;
   title: string;
-  type: string; // 'oyun' veya 'anime'
-  bannerImagePublicId?: string | null;
-  coverImagePublicId?: string | null;
-  description?: string | null;
-  releaseDate?: string | Date | null; // Çıkış/Yayın tarihi
-  createdAt?: string | Date | null;   // Veritabanına eklenme tarihi
-  likes?: number | null;
-  dislikes?: number | null;
-  favorites?: number | null;
-  viewCount?: number | null;
-  averageRating?: number | null;
-  ratingCount?: number | null;
-  categories: { category: CategoryInfo }[];
+  type: 'oyun' | 'anime';
+  bannerImagePublicId: string | null;
+  coverImagePublicId: string | null;
+  description: string | null;
+  releaseDate: string | Date | null;
+  createdAt: string | Date | null;
+  
+  // --- GERÇEK ALAN ADLARINI KULLAN ---
+  likeCount: number;
+  dislikeCount: number;
+  favoriteCount: number;
+  // ---------------------------------
 }
+
 // API'den gelen ham proje verisi için tip (bu daha detaylı olabilir)
 export interface ApiProject {
     id: number;

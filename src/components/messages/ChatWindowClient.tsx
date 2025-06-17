@@ -10,6 +10,7 @@ import { tr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { useSWRConfig } from 'swr';
 
 // Tipler
 export interface MessageUser { // Bu tipi export etmiştik
@@ -41,7 +42,7 @@ interface FetchMessagesResponse {
 
 function MessageItem({ message, isSender }: { message: Message; isSender: boolean }) {
   const avatarUrl = message.sender.profileImagePublicId
-    ? getCloudinaryImageUrlOptimized(message.sender.profileImagePublicId, { width: 32, height: 32, crop: 'fill', gravity: 'face' }, 'avatar')
+    ? getCloudinaryImageUrlOptimized(message.sender.profileImagePublicId, { width: 36, height: 36, crop: 'fill', gravity: 'face' }, 'avatar')
     : null;
 
   return (
@@ -56,10 +57,10 @@ function MessageItem({ message, isSender }: { message: Message; isSender: boolea
         </Link>
       )}
       {/* Mesaj Baloncuğu */}
-      <div 
+      <div
         className={cn(
             "max-w-[70%] sm:max-w-[65%] p-3 rounded-xl shadow-md min-w-0", // Daha belirgin köşe, padding ayarlandı
-            isSender 
+            isSender
                 ? "bg-prestij-500 text-white rounded-br-md" // Kendi mesajın
                 : "bg-prestij-message-other text-prestij-text-primary rounded-bl-md" // Diğerinin mesajı
         )}
@@ -70,8 +71,8 @@ function MessageItem({ message, isSender }: { message: Message; isSender: boolea
                 <p className="text-xs font-semibold text-prestij-300 mb-1 hover:underline">{message.sender.username}</p>
             </Link>
         )}
-        <p 
-  className="text-sm whitespace-pre-wrap leading-snug" 
+        <p
+  className="text-sm whitespace-pre-wrap leading-snug"
   style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }} // DOĞRUDAN CSS EKLENDİ
 >
   {message.content}
@@ -93,46 +94,87 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const { mutate } = useSWRConfig();
+  const [firstUnreadId, setFirstUnreadId] = useState<number | null>(null);
+
+  // Mesaj container'ı için ref
+  const messagesEndRef = useRef<HTMLDivElement | null>(null); // Sadece en alta gitmek için kullanılacak
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+  // Scroll to bottom fonksiyonu (mesaj gönderildiğinde kullanılacak)
+  const scrollToBottom = (behavior: 'auto' | 'smooth' = 'auto') => {
+    // Küçük bir gecikme, React'in DOM'u güncellemesine zaman tanır.
+    setTimeout(() => {
+      if (chatContainerRef.current) {
+        // scrollIntoView yerine scrollTop'u manuel olarak ayarlıyoruz.
+        // scrollHeight, bir elementin içeriğinin toplam yüksekliğidir (görünmeyen kısımlar dahil).
+        // scrollTop'u bu değere ayarlamak, scroll bar'ı en dibe çeker.
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: behavior
+        });
+      }
+    }, 50); // Gecikmeyi biraz artırmak render sonrası için daha güvenilir olabilir.
   };
+
 
   const fetchMessages = useCallback(async (page = 1, loadMore = false) => {
     if(!otherUser?.id) return;
     if (!loadMore) setIsLoading(true); else setIsLoadingMessages(true);
     setError(null);
     try {
-      const response = await fetch(`/api/messages/${otherUser.id}?page=${page}&limit=20`);
-      if (!response.ok) { 
+      const response = await fetch(`/api/messages/${otherUser.id}?page=${page}&limit=30`);
+      if (!response.ok) {
         const errData = await response.json().catch(() => ({message: 'Mesajlar yüklenemedi (yanıt okunamadı)'}));
         throw new Error(errData.message || 'Mesajlar yüklenemedi.');
       }
-      const data: FetchMessagesResponse = await response.json();
-      
+      const data = await response.json();
+
+      // Yeni mesajları listenin başına ekle (en üstte görünmeleri için)
       setMessages(prev => loadMore ? [...data.messages, ...prev] : data.messages);
       setTotalPages(data.totalPages);
       setCurrentPage(data.currentPage);
+      setFirstUnreadId(data.firstUnreadMessageId);
 
+      // İlk yüklemede en üste kaydır
       if (!loadMore) {
-        setTimeout(() => scrollToBottom('auto'), 100); // Biraz gecikme ekleyebiliriz render sonrası için
+        scrollToBottom('auto');
       }
-    } catch (err: any) { 
-        setError(err.message); 
+
+
+    } catch (err: any) {
+        setError(err.message);
         console.error("fetchMessages error:", err);
     }
     finally { if (!loadMore) setIsLoading(false); else setIsLoadingMessages(false); }
-  }, [otherUser?.id]);
+  }, [otherUser?.id]); // fetchMessages dependency kaldırıldı, useCallback kullanıldığı için otherUser?.id yeterli
 
+  // Mesajları okundu olarak işaretleme effect'i (bu kısım aynı kalabilir)
   useEffect(() => {
     if (otherUser?.id) {
-        setMessages([]);
+      const markAsRead = async () => {
+        try {
+          await fetch('/api/messages/mark-as-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ senderId: otherUser.id }),
+          });
+          mutate('/api/messages/unread-count');
+        } catch (err) {
+          console.error("Mesajları okundu olarak işaretlerken hata:", err);
+        }
+      };
+      markAsRead();
+    }
+  }, [otherUser?.id, mutate]); // fetchMessages dependency kaldırıldı
+
+  // Veri çekme effect'i
+  useEffect(() => {
+    if (otherUser?.id) {
+        setMessages([]); // Yeni sohbet için mesajları temizle
         setCurrentPage(1);
         setTotalPages(1);
-        fetchMessages(1);
+        fetchMessages(1); // İlk sayfayı çek
     }
   }, [otherUser?.id, fetchMessages]);
 
@@ -140,34 +182,37 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !otherUser?.id) return;
-    
-    const tempId = `temp-${Date.now()}-${Math.random()}`; // tempId burada tanımlanıyor
+
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
     const optimisticMessage: Message = {
-        id: 0, // Geçici, backend'den gerçek ID gelecek
-        tempId: tempId, // Tanımlanan tempId kullanılıyor
+        id: 0,
+        tempId: tempId,
         content: newMessage.trim(),
         createdAt: new Date().toISOString(),
         sender: {
             id: currentUserId,
-            username: "Siz", // Veya session'dan gerçek kullanıcı adı
-            profileImagePublicId: null, // Veya session'dan gerçek avatar
-            bannerImagePublicId: null, // Bu mesaj objesi için gerekmeyebilir
+            username: "Siz", // Assuming "Siz" is the current user's placeholder name
+            profileImagePublicId: null,
+            bannerImagePublicId: null,
         }
     };
-
+    scrollToBottom('smooth');
+    // Yeni mesajı listenin sonuna ekle (standart sohbet davranışı)
     setMessages(prev => [...prev, optimisticMessage]);
-    const messageToSend = newMessage.trim(); // Gönderilecek mesajı sakla
-    setNewMessage(''); // Input'u hemen temizle
-    setTimeout(() => scrollToBottom('smooth'), 0);
+    const messageToSend = newMessage.trim();
+    setNewMessage('');
+    // Mesaj gönderildikten sonra en alta kaydır - BU SATIRI KALDIRIYORUZ
+    // setTimeout(() => scrollToBottom('smooth'), 0);
 
+    scrollToBottom('smooth');
     setIsSending(true);
     try {
       const response = await fetch(`/api/messages/${otherUser.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: messageToSend }), // Saklanan mesajı gönder
+        body: JSON.stringify({ content: messageToSend }),
       });
-      
+
       if (!response.ok) {
         const errData = await response.json().catch(() => ({message: 'Mesaj gönderilemedi (yanıt okunamadı)'}));
         setMessages(prev => prev.filter(m => m.tempId !== tempId)); // Optimistic geri al
@@ -175,18 +220,21 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
       }
       const sentMessage: Message = await response.json();
       // Optimistic mesajı gerçek mesajla değiştir
-      setMessages(prev => prev.map(m => m.tempId === tempId ? { ...sentMessage, tempId: undefined } : m)); // tempId'yi kaldırabiliriz
+      setMessages(prev => prev.map(m => m.tempId === tempId ? { ...sentMessage, tempId: undefined } : m));
+
+      // Mesaj başarıyla gönderildikten sonra, eğer kullanıcı en alttaysa
+      // veya yeni mesajı görmek istiyorsa buraya bir scrollToBottom eklenebilir.
+      // Ancak kullanıcının isteği üzerine otomatik kaydırmayı kaldırdık.
+
     } catch (err: any) {
       toast.error(err.message);
-      // Hata durumunda da optimistic mesajı kaldır (yukarıda zaten yapıldı)
-      // setMessages(prev => prev.filter(m => m.tempId !== tempId));
     } finally {
       setIsSending(false);
     }
   };
-  
+
   const loadMoreMessages = () => {
-      if (currentPage < totalPages && !isLoadingMessages) { // isLoading yerine isLoadingMessages
+      if (currentPage < totalPages && !isLoadingMessages) {
           fetchMessages(currentPage + 1, true);
       }
   };
@@ -201,7 +249,7 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
     : null;
 
   return (
-    <div className="flex flex-col h-full bg-prestij-chat-bg relative overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* Arka Plan Banner Bölümü */}
       <div className="absolute inset-x-0 top-0 h-[35vh] sm:h-[40vh] z-0 pointer-events-none">
         {otherUserBannerUrl && ( // otherUserBannerUrl burada kullanılıyor
@@ -236,14 +284,14 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
       </div>
 
       {/* Mesaj Listesi */}
-      <div 
-        ref={chatContainerRef} 
-        className="flex-grow p-3 sm:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-transparent relative z-10 flex flex-col" // flex flex-col eklendi
+      <div
+        ref={chatContainerRef} // Ref'i mesaj container'ına atayın
+        className="flex-grow p-3 sm:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-transparent relative z-10 flex flex-col" // overflow-y-auto bırakıldı
       >
         {/* "Daha Fazla Yükle" Butonu (Listenin en üstünde) */}
         {currentPage < totalPages && !isLoadingMessages && (
             <div className="text-center my-3">
-                <button 
+                <button
                     onClick={loadMoreMessages}
                     disabled={isLoadingMessages}
                     className="text-xs text-prestij-300 hover:underline disabled:opacity-50"
@@ -256,25 +304,22 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
         {!isLoading && messages.length === 0 && !error && (
           <p className="text-center text-gray-400">Henüz hiç mesaj yok. İlk mesajı sen gönder!</p>
         )}
-        
-        {/* "Daha Fazla Yükle" Butonu */}
-        {currentPage < totalPages && !isLoading && (
-            <div className="text-center my-2">
-                <button 
-                    onClick={loadMoreMessages}
-                    className="text-xs text-prestij-300 hover:underline"
-                >
-                    Önceki mesajları yükle
-                </button>
-            </div>
-        )}
 
         {/* Mesajlar zaten eskiden yeniye sıralı olduğu için direkt map'liyoruz */}
         {messages.map((msg) => (
-          // MessageItem key'i için (msg as any).tempId ?? msg.id kullanabiliriz
-          <MessageItem key={(msg as any).tempId ?? msg.id} message={msg} isSender={msg.sender.id === currentUserId} />
+          <div key={(msg as any).tempId ?? msg.id}>
+            {msg.id === firstUnreadId && (
+              <div className="relative my-4 text-center">
+                <hr className="border-t border-red-500/50" />
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-prestij-chat-bg px-2 text-xs text-red-400">
+                  Yeni Mesajlar
+                </span>
+              </div>
+            )}
+            <MessageItem key={(msg as any).tempId ?? msg.id} message={msg} isSender={msg.sender.id === currentUserId} />
+          </div>
         ))}
-        <div ref={messagesEndRef} /> {/* Scroll için boş div (her zaman en altta) */}
+        {/* messagesEndRef kaldırıldı, chatContainerRef kullanılıyor */}
       </div>
 
       {/* Mesaj Gönderme Formu */}

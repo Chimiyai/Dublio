@@ -12,51 +12,73 @@ export async function GET(request: NextRequest) {
   const currentUserId = parseInt(session.user.id);
 
   try {
-    // Kullanıcının dahil olduğu tüm mesajları çek
+    // 1. Bu kullanıcının mesajlaştığı tüm kişilerin ID'lerini bul.
     const messages = await prisma.message.findMany({
       where: {
-        OR: [
-          { senderId: currentUserId },
-          { receiverId: currentUserId },
-        ],
+        OR: [{ senderId: currentUserId }, { receiverId: currentUserId }],
       },
-      orderBy: {
-        createdAt: 'desc', // Her sohbet için en son mesajı bulmak üzere
-      },
-      include: {
-        sender: { select: { id: true, username: true, profileImagePublicId: true } },
-        receiver: { select: { id: true, username: true, profileImagePublicId: true } },
-      },
+      select: { senderId: true, receiverId: true },
     });
 
-    // Mesajları diğer kullanıcıya göre grupla ve her gruptan son mesajı al
-    const conversationsMap = new Map<number, any>();
+    const partnerIds = [...new Set(
+      messages.map(m => m.senderId === currentUserId ? m.receiverId : m.senderId)
+    )];
 
-    messages.forEach(message => {
-      const otherUserId = message.senderId === currentUserId ? message.receiverId : message.senderId;
-      const otherUser = message.senderId === currentUserId ? message.receiver : message.sender;
+    // 2. Her bir sohbet ortağı için son mesajı ve okunmamış mesaj sayısını getir.
+    const conversations = await Promise.all(
+      partnerIds.map(async (partnerId) => {
+        // Son mesajı bul
+        const lastMessage = await prisma.message.findFirst({
+          where: {
+            OR: [
+              { senderId: currentUserId, receiverId: partnerId },
+              { senderId: partnerId, receiverId: currentUserId },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            sender: { select: { id: true, username: true, profileImagePublicId: true } },
+            receiver: { select: { id: true, username: true, profileImagePublicId: true } },
+          },
+        });
 
-      if (!conversationsMap.has(otherUserId)) {
-        conversationsMap.set(otherUserId, {
-          user: { // Diğer kullanıcı bilgileri
+        if (!lastMessage) return null; // Eğer mesaj bulunamazsa (teorik olarak olmamalı)
+
+        // Okunmamış mesaj sayısını say
+        const unreadCount = await prisma.message.count({
+          where: {
+            senderId: partnerId, // Gönderen diğer kişi
+            receiverId: currentUserId, // Alıcı ben
+            isRead: false,
+          },
+        });
+
+        // Diğer kullanıcının bilgilerini belirle
+        const otherUser = lastMessage.senderId === currentUserId 
+          ? lastMessage.receiver 
+          : lastMessage.sender;
+
+        return {
+          user: {
             id: otherUser.id,
             username: otherUser.username,
             profileImagePublicId: otherUser.profileImagePublicId,
-            // onlineStatus: 'Çevrim içi' // Bu bilgi için ayrı bir sistem gerekir
           },
-          lastMessage: message.content,
-          lastMessageAt: message.createdAt,
-          // unreadCount: 0, // Okunmamış mesaj sayısı için ek mantık gerekir
-        });
-      }
-      // İsteğe bağlı: Okunmamış mesaj sayısını da hesaplayabiliriz
-      // (e.g., if (!message.isRead && message.receiverId === currentUserId) conversationsMap.get(otherUserId).unreadCount++)
-    });
+          lastMessageContent: lastMessage.content,
+          lastMessageAt: lastMessage.createdAt,
+          isLastMessageReadByMe: lastMessage.receiverId === currentUserId ? lastMessage.isRead : true, // Son mesajı ben gönderdiysem okunmuş sayılır
+          isLastMessageSentByMe: lastMessage.senderId === currentUserId,
+          unreadCount, // Okunmamış mesaj sayısı
+        };
+      })
+    );
     
-    const conversations = Array.from(conversationsMap.values())
-      .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    // Null olanları filtrele ve son mesaja göre sırala
+    const validConversations = conversations
+      .filter(c => c !== null)
+      .sort((a, b) => new Date(b!.lastMessageAt).getTime() - new Date(a!.lastMessageAt).getTime());
 
-    return NextResponse.json(conversations);
+    return NextResponse.json(validConversations);
 
   } catch (error) {
     console.error('Sohbet listesi getirme hatası:', error);

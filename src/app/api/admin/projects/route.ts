@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
 import { z } from 'zod';
-import { RoleInProject, Prisma } from '@prisma/client';
+import { RoleInProject } from '@prisma/client';
 
 const createProjectSchema = z.object({
   title: z.string().min(1, "Başlık boş olamaz").max(191),
@@ -21,7 +21,7 @@ const createProjectSchema = z.object({
   isPublished: z.boolean().optional().default(true),
   price: z.number().min(0, "Fiyat 0 veya pozitif olmalı.").nullable().optional(),
   currency: z.string().length(3, "Para birimi 3 karakter olmalı (örn: TRY).").default("TRY").nullable().optional(),
-  trailerUrl: z.string().url({ message: "Fragman URL'i geçerli bir URL formatında olmalıdır." }).nullable().optional(), // YENİ ALAN
+  trailerUrl: z.string().url({ message: "Fragman URL'i geçerli bir URL formatında olmalıdır." }).nullable().optional().transform(val => val === '' ? null : val),
   assignments: z.array(z.object({
     artistId: z.number().int(),
     role: z.nativeEnum(RoleInProject)
@@ -31,9 +31,9 @@ const createProjectSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'admin') {
-        return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 403 });
-    }
+  if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 403 });
+  }
 
   try {
     const body = await request.json();
@@ -44,45 +44,72 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Geçersiz veri.", errors: parsedBody.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    // trailerUrl'i de parsedBody.data'dan al
-    const { assignments, categoryIds, price, currency, trailerUrl, ...projectData } = parsedBody.data;
+    const { assignments, categoryIds, price, ...projectData } = parsedBody.data;
 
-    let finalPrice = projectData.type === 'oyun' ? price : null;
-    let finalCurrency = projectData.type === 'oyun' ? currency : null;
-    if (projectData.type === 'anime' && price !== null && price !== undefined) {
-        console.warn("Anime için fiyat girildi, null olarak ayarlanacak.");
-    }
+    const finalPrice = projectData.type === 'oyun' ? price : null;
+    const finalCurrency = projectData.type === 'oyun' ? (projectData.currency || 'TRY') : null;
 
-    const newProject = await prisma.project.create({
-      data: {
-        ...projectData,
-        price: finalPrice,
-        currency: finalCurrency,
-        trailerUrl: trailerUrl, // YENİ: trailerUrl'i veritabanına ekle
-        assignments: assignments && assignments.length > 0 ? {
-          createMany: { data: assignments.map(a => ({ artistId: a.artistId, role: a.role })) },
-        } : undefined,
-        categories: categoryIds && categoryIds.length > 0 ? {
-          create: categoryIds.map(catId => ({
-            category: { connect: { id: catId } }
-          }))
-        } : undefined,
-      },
-      include: {
-            assignments: { select: { artistId: true, role: true }},
-            categories: { select: { category: { select: { id: true, name: true}} }}
+    // --- YENİ TRANSACTION MANTIĞI ---
+    const newProject = await prisma.$transaction(async (tx) => {
+        // 1. Projeyi oluştur
+        const createdProject = await tx.project.create({
+            data: {
+                ...projectData,
+                price: finalPrice,
+                currency: finalCurrency,
+                // `trailerUrl` ve diğerleri zaten `projectData` içinde
+                assignments: assignments && assignments.length > 0 ? {
+                    createMany: { data: assignments.map(a => ({ artistId: a.artistId, role: a.role })) },
+                } : undefined,
+                categories: categoryIds && categoryIds.length > 0 ? {
+                    create: categoryIds.map(catId => ({
+                        category: { connect: { id: catId } }
+                    }))
+                } : undefined,
+            },
+        });
+
+        // 2. Eğer proje "Yayında" olarak oluşturulduysa bildirimleri oluştur
+        if (createdProject.isPublished) {
+            const newNotification = await tx.notification.create({
+                data: {
+                    message: `Yeni bir proje yayınlandı: ${createdProject.title}`,
+                    link: `/projeler/${createdProject.slug}`,
+                },
+            });
+
+            const allUserIds = await tx.user.findMany({
+                where: { role: 'user' }, // Sadece normal kullanıcılara bildirim gönderelim
+                select: { id: true },
+            });
+
+            if (allUserIds.length > 0) {
+                await tx.userNotification.createMany({
+                    data: allUserIds.map(user => ({
+                        userId: user.id,
+                        notificationId: newNotification.id,
+                        isRead: false,
+                    })),
+                });
+                console.log(`Yeni proje için ${allUserIds.length} kullanıcıya bildirim oluşturuldu.`);
+            }
         }
+        
+        return createdProject;
     });
+    // --- TRANSACTION SONU ---
 
+    // Client'a sadece proje verisini döndürmek yeterli, include'a gerek yok
     return NextResponse.json(newProject, { status: 201 });
+
   } catch (error: any) {
     console.error("Proje oluşturma hatası:", error);
-        if (error instanceof z.ZodError) { 
-            return NextResponse.json({ message: "Geçersiz veri.", errors: error.flatten().fieldErrors }, { status: 400 });
-        }
-        if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
-            return NextResponse.json({ errors: { slug: ['Bu slug zaten kullanılıyor.'] } }, { status: 409 });
-        }
-        return NextResponse.json({ message: 'Proje oluşturulurken bir sunucu hatası oluştu.' }, { status: 500 });
+    if (error instanceof z.ZodError) { 
+        return NextResponse.json({ message: "Geçersiz veri.", errors: error.flatten().fieldErrors }, { status: 400 });
+    }
+    if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        return NextResponse.json({ errors: { slug: ['Bu slug zaten kullanılıyor.'] } }, { status: 409 });
+    }
+    return NextResponse.json({ message: 'Proje oluşturulurken bir sunucu hatası oluştu.' }, { status: 500 });
   }
 }

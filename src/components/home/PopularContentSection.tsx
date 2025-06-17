@@ -167,13 +167,13 @@ const PopularContentSection = () => {
                 slug={item.slug}
                 title={item.title}
                 type={item.type as 'Oyun' | 'Anime'}
-                bannerImageUrl={item.bannerImagePublicId} // DOĞRUDAN PUBLIC ID VEYA NULL
-                coverImageUrl={item.coverImagePublicId}   // DOĞRUDAN PUBLIC ID VEYA NULL
+                bannerImageUrl={item.bannerImagePublicId}
+                coverImageUrl={item.coverImagePublicId}
                 description={item.description || "Açıklama bulunmuyor."}
                 date={formatDateForCard(item.createdAt || item.releaseDate)}
-                likes={item.likes ?? 0}
-                dislikes={item.dislikes ?? 0}
-                favorites={item.favorites ?? 0}
+                likes={item.likeCount ?? 0}
+                dislikes={item.dislikeCount ?? 0}
+                favorites={item.favoriteCount ?? 0}
                 itemTypePath={item.type === 'oyun' ? 'oyunlar' : 'animeler'}
               />
             ))}

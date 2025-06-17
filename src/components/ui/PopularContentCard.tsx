@@ -40,6 +40,7 @@ const PopularContentCard: React.FC<PopularContentCardProps> = ({
   favorites,
   itemTypePath,
 }) => {
+  console.log(`KART RENDER: ${title}`, { likes, favorites });
   const bannerTypeTagClass = type.toLowerCase() === 'oyun' 
     ? 'bg-[#2A9D8F]' // Banner üzerindeki etiket rengi
     : 'bg-[#F4A261]';

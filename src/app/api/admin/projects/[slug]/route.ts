@@ -75,7 +75,7 @@ export async function PUT(
 
     const currentProject = await prisma.project.findUnique({
       where: { slug: slug },
-      select: { id: true, type: true, slug: true }
+      select: { id: true, type: true, slug: true, isPublished: true }
     });
 
     if (!currentProject) {
@@ -114,11 +114,44 @@ export async function PUT(
         }
     }
 
+    const wasPublished = currentProject.isPublished;
+    const isNowPublished = parsedBody.data.isPublished;
+
     const finalUpdatedProject = await prisma.$transaction(async (tx) => {
       const updatedProject = await tx.project.update({
           where: { id: currentProject.id },
           data: projectUpdatePayload,
       });
+
+      // --- BİLDİRİM OLUŞTURMA MANTIĞI ---
+    // Eğer proje daha önce yayında değilken ŞİMDİ yayına alındıysa
+    if (isNowPublished && !wasPublished) {
+        // 1. Ana bildirimi oluştur
+        const newNotification = await tx.notification.create({
+            data: {
+                message: `Yeni bir proje yayınlandı: ${updatedProject.title}`,
+                link: `/projeler/${updatedProject.slug}`,
+            },
+        });
+
+        // 2. Tüm kullanıcıların ID'lerini al
+        const allUserIds = await tx.user.findMany({
+            select: { id: true },
+        });
+
+        // 3. Her kullanıcı için bir UserNotification kaydı oluştur
+        if (allUserIds.length > 0) {
+            await tx.userNotification.createMany({
+                data: allUserIds.map(user => ({
+                    userId: user.id,
+                    notificationId: newNotification.id,
+                    isRead: false,
+                })),
+            });
+            console.log(`${allUserIds.length} kullanıcı için bildirim oluşturuldu.`);
+        }
+    }
+    // ------------------------------------
 
       if (newCategoryIds !== undefined) {
           await tx.projectCategory.deleteMany({ where: { projectId: currentProject.id } });
@@ -175,6 +208,7 @@ export async function PUT(
           categories: { include: { category: true }},
         }
       });
+      return updatedProject;
     });
 
     return NextResponse.json(finalUpdatedProject, { status: 200 });

@@ -23,6 +23,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Notification {
+  id        Int                  @id @default(autoincrement())
+  message   String               // Örn: "Yeni Proje: Cyberpunk 2077 Dublajı"
+  link      String               // Örn: "/projeler/cyberpunk-2077-dublaj"
+  createdAt DateTime             @default(now())
+  
+  // Bu bildirimin hangi kullanıcılara gönderildiğini gösteren ilişki
+  userNotifications UserNotification[]
+  
+  @@map("notifications")
+}
+
+// Ara Tablo: Hangi kullanıcının hangi bildirimi gördüğünü ve okuduğunu tutar.
+model UserNotification {
+  id             Int      @id @default(autoincrement())
+  isRead         Boolean  @default(false)
+  
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  notificationId Int
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationId]) // Bir kullanıcı bir bildirimi sadece bir kez alır
+  @@map("user_notifications")
+}
+
 model User {
   id                     Int                     @id @default(autoincrement())
   email                  String                  @unique
@@ -45,6 +72,7 @@ model User {
   projectFavorites       ProjectFavorite[]
   projectRatings         ProjectRating[]
   ownedGames             UserOwnedGame[] // Kullanıcının sahip olduğu oyunlar
+  notifications          UserNotification[]
 
   @@map("users")
 }
@@ -251,8 +279,10 @@ model Message {
   sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiverId Int
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  isRead     Boolean  @default(false)
 
   @@map("messages")
+  @@index([receiverId, isRead])
 }
 
 model DubbingArtist {

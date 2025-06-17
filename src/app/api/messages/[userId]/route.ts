@@ -64,6 +64,17 @@ export async function GET(
         ],
       },
     });
+
+    const firstUnreadMessage = await prisma.message.findFirst({
+        where: {
+            senderId: otherUserId,
+            receiverId: currentUserId,
+            isRead: false,
+        },
+        orderBy: {
+            createdAt: 'asc' // En eski okunmamış mesaj
+        }
+    });
     
     // Okunmamış mesajları okundu olarak işaretleme (opsiyonel)
     // await prisma.message.updateMany({
@@ -76,7 +87,8 @@ export async function GET(
     // });
 
     return NextResponse.json({
-      messages: messagesFromDb, // ===> BURADA .reverse() OLMAMALI
+      messages: messagesFromDb,
+      firstUnreadMessageId: firstUnreadMessage?.id || null,
       totalPages: Math.ceil(totalMessages / limit),
       currentPage: page,
       totalMessages,

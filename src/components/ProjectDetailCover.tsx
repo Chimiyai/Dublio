@@ -23,7 +23,7 @@ interface ProjectDetailCoverProps {
 export default function ProjectDetailCover({ project, playTrigger, onVideoStateChange }: ProjectDetailCoverProps) {
   const { title, bannerImagePublicId, trailerUrl } = project;
 
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [playerState, setPlayerState] = useState<'banner' | 'playing' | 'error'>('banner');
   const playerRef = useRef<ReactPlayer>(null);

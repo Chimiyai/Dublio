@@ -66,13 +66,14 @@ const Footer = () => {
 
 
   const aboutLinks = [
-    { label: "Ekip Üyelerimiz", href: "/ekip" }, // Gerçek yolları kullanın
+    { label: "Kadromuz", href: "/kadromuz" }, // Gerçek yolları kullanın
     { label: "Site Hakkında", href: "/hakkimizda" }, // Gerçek yolları kullanın
   ];
   const socialLinks = [
     { label: "Instagram", href: "https://www.instagram.com/prestij_studios/", iconClass: "fab fa-instagram" },
     { label: "TikTok", href: "https://www.tiktok.com/@prestijstudiofficial", iconClass: "fab fa-tiktok" },
-    { label: "Discord", target:'_blank', href: "https://discord.gg/24UHAsAN5v", iconClass: "fab fa-discord" },
+    { label: "Discord", target:'_blank', href: "https://discord.gg/8Uh4yrXeBg", iconClass: "fab fa-discord" },
+    { label: "Youtube", target:'_blank', href: "https://www.youtube.com/channel/UCuChIjgg-T3q1V6sPpPApdQ", iconClass: "fab fa-youtube" },
   ];
 
   // tailwind.config.js'de bu renklerin tanımlı olması beklenir:

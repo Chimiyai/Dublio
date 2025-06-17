@@ -236,11 +236,11 @@ export default function ProjectDetailContent({
                     </p>
                     <ProjectInteractionButtons
                         projectId={project.id}
-                        initialLikeCount={project.likeCount}
-                        initialDislikeCount={project.dislikeCount}
-                        initialFavoriteCount={project.favoriteCount}
-                        userInitialInteraction={userInitialInteraction}
                         isUserLoggedIn={isUserLoggedIn}
+                        initialLikeCount={project.likeCount} // Bu prop'ları geçirin
+                        initialDislikeCount={project.dislikeCount} // Bu prop'ları geçirin
+                        initialFavoriteCount={project.favoriteCount} // Bu prop'ları geçirin
+                        userInitialInteraction={userInitialInteraction}
                     />
                 </div>
               </div>

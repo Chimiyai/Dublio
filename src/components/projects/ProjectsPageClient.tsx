@@ -10,6 +10,7 @@ import FilterSidebar from './FilterSidebar';         // YENİ YOL
 import ProjectGrid from './ProjectGrid';             // YENİ YOL
 import SortDropdown, { SortOptionItem } from './SortDropdown';
 import Pagination from '@/components/ui/Pagination'; // Doğru yolu kontrol et
+import { Prisma } from '@prisma/client';
 
 const sortOptionsList: SortOptionItem[] = [
     { value: 'releaseDate-desc', label: 'Yayın Tarihi (Yeni)', group: 'Tarihe Göre' },
@@ -23,20 +24,26 @@ const sortOptionsList: SortOptionItem[] = [
     { value: 'createdAt-desc', label: 'Eklenme Tarihi (Yeni)', group: 'Tarihe Göre' },
 ];
 
-// API'den dönen proje kartı için veri tipi
-// ProjectCardCover component'inin beklediği proplara göre ayarla
-export interface ProjectForCard extends Pick<PrismaProjectType,
-  'id' | 'slug' | 'title' | 'type' |
-  'coverImagePublicId' | 'bannerImagePublicId' | // bannerImagePublicId burada
-  'releaseDate' |
-  'likeCount' | 'dislikeCount' | 'favoriteCount' | // dislikeCount ve favoriteCount burada
-  'averageRating' | 'price' | 'currency'
-> {
-  description?: string | null;
-  _count?: { comments?: number | null; ratings?: number | null } | null;
-  categories?: { category: { name: string; slug: string; } }[];
-}
+const projectCardSelect = Prisma.validator<Prisma.ProjectSelect>()({
+  id: true,
+  slug: true,
+  title: true,
+  type: true,
+  coverImagePublicId: true,
+  bannerImagePublicId: true,
+  description: true,
+  releaseDate: true,
+  likeCount: true,
+  dislikeCount: true,
+  favoriteCount: true,
+  averageRating: true,
+  price: true,
+  currency: true,
+});
 
+export type ProjectForCard = Prisma.ProjectGetPayload<{
+  select: typeof projectCardSelect
+}>;
 
 interface ApiResponse {
   projects: ProjectForCard[];
@@ -110,6 +117,7 @@ export default function ProjectsPageClient({ initialCategories }: ProjectsPageCl
           throw new Error(errData.message || 'Projeler yüklenemedi.');
         }
         const data: ApiResponse = await res.json();
+        console.log("ProjectsPageClient VERİSİ:", data.projects);
         setProjects(data.projects || []);
         setTotalPages(data.totalPages || 1);
         setTotalResults(data.totalResults || 0);

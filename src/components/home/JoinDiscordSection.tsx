@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link'; // Next.js Link component'i
 
 const JoinDiscordSection = () => {
-  const discordInviteLink = "https://discord.gg/24UHAsAN5v"; // GERÇEK LİNKİNİZİ BURAYA YAZIN
+  const discordInviteLink = "https://discord.gg/8Uh4yrXeBg";
 
   return (
     <section className="join-discord-section bg-discord-section-bg py-12 md:py-16 text-center"> {/* hero-bg veya tanımladığınız discord-section-bg */}

@@ -199,15 +199,20 @@ const placeholderCount = searchTerm.trim() === '' ? 9 : 6; // Başlangıçta 9, 
                   key={item.id.toString()}
                   slug={item.slug}
                   title={item.title}
-                  type={item.type as 'Oyun' | 'Anime'}
+                  type={item.type === 'oyun' ? 'Oyun' : 'Anime'} // 'oyun' -> 'Oyun' dönüşümü
                   bannerImageUrl={item.bannerImagePublicId}
                   coverImageUrl={item.coverImagePublicId}
                   description={item.description || ""}
                   date={formatDateForCard(item.createdAt || item.releaseDate)}
-                  likes={item.likes ?? 0}
-                  dislikes={item.dislikes ?? 0}
-                  favorites={item.favorites ?? 0}
-                  itemTypePath={item.type.toLowerCase() === 'oyun' ? 'oyunlar' : 'animeler'}
+                  
+                  // === DÜZELTME BURADA: Doğru prop'lara doğru veriyi ata ===
+                  likes={item.likeCount}
+                  dislikes={item.dislikeCount}
+                  favorites={item.favoriteCount}
+                  // =========================================================
+
+                  // itemTypePath'i de düzeltelim. Projeler sayfasını kullanıyoruz.
+                  itemTypePath={'projeler'}
                 />
               ))}
             </div>

@@ -180,7 +180,8 @@ export default function ProjectInteractionButtons({
   const activeFavoriteClass = "bg-yellow-500 hover:bg-yellow-600"; // Aktif favori için özel stil
 
   return (
-    <div className="flex items-center space-x-3">
+    <div className="flex items-center space-x-4">
+      {/* Beğen Butonu */}
       <button
         onClick={handleLike}
         disabled={isLoading || !isUserLoggedIn}
@@ -195,6 +196,7 @@ export default function ProjectInteractionButtons({
         <span className={textClassName}>{likeCount.toLocaleString('tr-TR')}</span>
       </button>
 
+      {/* Dislike Butonu */}
       <button
         onClick={handleDislike}
         disabled={isLoading || !isUserLoggedIn}
@@ -209,6 +211,7 @@ export default function ProjectInteractionButtons({
         <span className={textClassName}>{dislikeCount.toLocaleString('tr-TR')}</span>
       </button>
 
+      {/* Favori Butonu */}
       <button
         onClick={handleFavorite}
         disabled={isLoading || !isUserLoggedIn}
