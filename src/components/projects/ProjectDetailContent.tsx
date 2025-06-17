@@ -13,6 +13,8 @@ import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { StarIcon, PhotoIcon as PagePhotoIcon, PlayCircleIcon } from '@heroicons/react/24/solid';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 interface ProjectDetailContentProps {
   project: ProjectDataForDetail;
@@ -27,6 +29,8 @@ export default function ProjectDetailContent({
   userHasGame,
   userInitialInteraction,
 }: ProjectDetailContentProps) {
+  const [isRedirectingToPayment, setIsRedirectingToPayment] = useState(false);
+  const router = useRouter();
   const [playTrailerTrigger, setPlayTrailerTrigger] = useState(false);
   const [isVideoActuallyPlaying, setIsVideoActuallyPlaying] = useState(false);
 
@@ -53,20 +57,149 @@ export default function ProjectDetailContent({
     { width: 200, height: 280, crop: 'fill', gravity: 'face' },
     'cover'
   );
+
+  // --- YENİ SATIN ALMA HANDLER FONKSİYONU ---
+  const handlePurchase = async () => {
+    if (!isUserLoggedIn) {
+      toast.error("Satın almak için giriş yapmalısınız.");
+      router.push('/giris'); // Giriş yapmaya yönlendir
+      return;
+    }
+    
+    setIsRedirectingToPayment(true);
+    toast.loading('Ödeme sayfasına yönlendiriliyorsunuz...');
+
+    try {
+      const response = await fetch('/api/payment/create-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          title: project.title,
+          price: project.price,
+          currency: project.currency || 'TRY',
+          // Başarılı ve iptal URL'lerini de backend'e gönderebiliriz
+          successUrl: window.location.href, // Mevcut sayfa URL'i
+          cancelUrl: window.location.href, // Mevcut sayfa URL'i
+        }),
+      });
+
+      const sessionData = await response.json();
+      toast.dismiss(); // Yükleniyor toast'ını kapat
+
+      if (!response.ok) {
+        throw new Error(sessionData.message || 'Ödeme oturumu oluşturulamadı.');
+      }
+
+      if (sessionData.checkoutUrl) {
+        // Kullanıcıyı Pytr'ın ödeme sayfasına yönlendir
+        window.location.href = sessionData.checkoutUrl;
+      } else {
+        throw new Error('Ödeme URL\'i alınamadı.');
+      }
+
+    } catch (error) {
+      toast.dismiss();
+      toast.error((error as Error).message);
+      setIsRedirectingToPayment(false);
+    }
+  };
   
   // ... (totalVotes ve likePercentage hesaplamaları aynı)
   const totalVotes = (project.likeCount || 0) + (project.dislikeCount || 0);
   const likePercentage = totalVotes > 0 ? Math.round(((project.likeCount || 0) / totalVotes) * 100) : 0;
 
+  // --- YENİ: Butonları render etmek için bir yardımcı fonksiyon ---
+  const renderProjectActionButtons = () => {
+    // --- 1. SENARYO: ANİME ---
+    if (project.type === 'anime') {
+      if (project.externalWatchUrl) {
+        return (
+          <Link href={project.externalWatchUrl} target="_blank" rel="noopener noreferrer"
+              className="order-2 inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+              <PlayCircleIcon className="w-5 h-5 sm:w-6 sm:h-6" /> Hemen İzle
+          </Link>
+        );
+      }
+      return (
+          <span className="order-2 inline-block bg-gray-700 text-gray-300 px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg cursor-not-allowed">
+              İzleme Linki Yok
+          </span>
+      );
+    }
+
+    // --- 2. SENARYO: OYUN ---
+    if (project.type === 'oyun') {
+      const isPaidGame = typeof project.price === 'number' && project.price > 0;
+      const downloadUrl = project.externalWatchUrl;
+
+      if (isPaidGame) {
+        if (userHasGame) {
+          if (downloadUrl) {
+            return (
+              <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
+                 className="order-2 inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
+                İndir
+              </a>
+            );
+          }
+          // Sahip ama indirme linki yok
+          return (
+            <span className="order-2 bg-green-600 text-white px-5 py-3 rounded-lg text-sm font-semibold shadow-lg">
+              Kütüphanede
+            </span>
+          );
+        } else {
+          return (
+            <button 
+              onClick={handlePurchase}
+              disabled={isRedirectingToPayment}
+              className="order-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-70 disabled:cursor-wait"
+            >
+              {isRedirectingToPayment 
+                ? 'Lütfen Bekleyin...' 
+                : `${project.price!.toFixed(2)} ${project.currency || 'TRY'} - Satın Al`
+              }
+            </button>
+          );
+        }
+      } 
+      
+      // 2b. Ücretsiz Oyun (price 0 veya null)
+      else {
+        if (downloadUrl) {
+          return (
+            <a href={downloadUrl} target="_blank" rel="noopener noreferrer"
+               className="order-2 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>
+              Ücretsiz İndir
+            </a>
+          );
+        }
+        // Ücretsiz ama indirme linki yok
+        return (
+          <span className="order-2 inline-block bg-gray-700 text-gray-300 px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg cursor-not-allowed">
+              Link Bekleniyor
+          </span>
+        );
+      }
+    }
+
+    // Proje tipi oyun veya anime değilse (beklenmedik durum)
+    return null;
+  };
 
   return (
     <div className="bg-[#101014] min-h-screen text-gray-300">
-      {/* 1. SECTION: Banner/Video Alanı - ALT KATMAN */}
+      {/* 1. SECTION: Banner/Video Alanı */}
       <section 
         className={cn(
           "relative w-full bg-black rounded-lg shadow-lg overflow-hidden",
-          "h-[56.25vw] max-h-[80vh] min-h-[300px] md:min-h-[400px]", // Boyutlandırma
-          "z-10" // Bu katman altta kalacak
+          "h-[56.25vw] max-h-[80vh] min-h-[300px] md:min-h-[400px]",
+          "z-10"
         )}
       >
         <ProjectDetailCover
@@ -80,19 +213,11 @@ export default function ProjectDetailContent({
         />
       </section>
 
-      {/* 2. SECTION: Kapak, başlık, butonlar vb. - ÜST KATMAN */}
-      <section 
-        className={cn(
-          "relative", // Kendi stacking context'ini oluşturması için
-          "z-20",     // Banner/Video section'ından (z-10) daha yukarıda
-          // Negatif margin ile banner'ın üzerine taşı
-          "-mt-24 sm:-mt-32 md:-mt-40 lg:-mt-48"
-        )}
-      >
+      {/* 2. SECTION: Kapak, başlık, butonlar vb. */}
+      <section className={cn("relative z-20 -mt-24 sm:-mt-32 md:-mt-40 lg:-mt-48")}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-end md:items-center gap-6">
           {/* Sol Taraf */}
           <div className="w-full md:w-2/3 lg:w-3/4 xl:w-3/5">
-            {/* ... (içerik aynı kalabilir) ... */}
             <div className="bg-black/60 dark:bg-[#151519]/80 backdrop-blur-md p-4 sm:p-6 rounded-xl shadow-2xl">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
                 <div className="relative w-32 h-44 sm:w-36 sm:h-52 md:w-40 md:h-[220px] flex-shrink-0 rounded-md overflow-hidden shadow-lg border-2 border-white/10">
@@ -150,31 +275,9 @@ export default function ProjectDetailContent({
 )}
              {/* Buton Grubu */}
             <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-3 gap-y-2">
-              {project.type === 'oyun' && (
-                userHasGame ? (
-                    <span className="order-2 bg-green-600 text-white px-5 py-3 rounded-lg text-sm font-semibold shadow-lg">Kütüphanede</span>
-                ) : project.price !== null && typeof project.price === 'number' ? (
-                    project.price > 0 ? (
-                        <button className="order-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
-                            {project.price.toFixed(2)} {project.currency || 'TRY'} - Satın Al
-                        </button>
-                    ) : (
-                        <span className="order-2 bg-gray-600 text-white px-5 py-3 rounded-lg text-sm font-semibold shadow-lg">Ücretsiz</span>
-                    )
-                ) : (
-                    <span className="order-2 bg-gray-700 text-gray-300 px-5 py-3 rounded-lg text-sm font-semibold shadow-lg cursor-not-allowed">Fiyat Yok</span>
-                )
-              )}
-              {project.type === 'anime' && (
-                project.externalWatchUrl ? (
-                    <Link href={project.externalWatchUrl} target="_blank" rel="noopener noreferrer"
-                        className="order-2 inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
-                        <PlayCircleIcon className="w-5 h-5 sm:w-6 sm:h-6" /> Hemen İzle
-                    </Link>
-                ) : (
-                    <span className="order-2 inline-block bg-gray-700 text-gray-300 px-5 py-3 rounded-lg text-sm sm:text-base font-semibold shadow-lg cursor-not-allowed">Link Yok</span>
-                )
-              )}
+              {/* ANA EYLEM BUTONLARI (render fonksiyonunu çağırıyoruz) */}
+              {renderProjectActionButtons()}
+
             </div>
             <div className="text-xs text-gray-300 [text-shadow:_0_2px_2px_rgb(0_0_0_/_0.8)]">
     Tür: {project.categories.map(c => c.category.name).join(', ') || 'Belirtilmemiş'} | Yayın: {project.releaseDate ? format(new Date(project.releaseDate), 'dd MMM yyyy', {locale: tr}) : 'Bilinmiyor'}
