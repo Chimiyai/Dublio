@@ -1,8 +1,9 @@
 // src/components/layout/SearchOverlay.tsx (Yeni dosya)
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/solid'; // Kapatma ikonu için
+import React, { useState, useEffect, useRef, Fragment } from 'react'; // Fragment eklendi
+import { Transition } from '@headlessui/react'; // Transition import edildi
 import PopularContentCard from '@/components/ui/PopularContentCard'; // Sonuç kartı için
 import { ApiProjectPopular } from '@/types/showcase'; // API'den gelecek veri tipi
 import PopularContentCardPlaceholder from '@/components/ui/PopularContentCardPlaceholder';
@@ -110,38 +111,65 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({
       return `${date.getDate()} ${date.toLocaleString('tr-TR', { month: 'short' })} ${date.getFullYear()}`;
     } catch { return "Geçersiz Tarih"; }
   };
-if (!isOpen) return null;
 const placeholderCount = searchTerm.trim() === '' ? 9 : 6; // Başlangıçta 9, aramada 6 placeholder
   return (
-    <div 
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 transition-opacity duration-300 ease-out animate-fade-in" // Basit fade-in animasyonu
+    <Transition
+      show={isOpen} // Animasyonu `isOpen` state'ine bağla
+      as={Fragment} // Ekstra bir DOM elementi oluşturma
     >
+      {/* 
+        Bu `div`, `Dialog.Overlay` gibi çalışır. 
+        Tüm ekranı kaplayan karartılmış arka plandır.
+        Tıklandığında `onClose` fonksiyonunu çağırır.
+      */}
       <div 
-        className="bg-prestij-bg-dark-2 w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl rounded-lg sm:rounded-xl shadow-2xl flex flex-col max-h-[90vh] h-full sm:h-auto sm:max-h-[85vh]"
-        onClick={(e) => e.stopPropagation()}
+        onClick={onClose}
+        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4"
       >
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-prestij-border-soft">
-          <h2 className="text-md sm:text-lg font-semibold text-prestij-text-primary">İçerik Ara</h2>
-          <button
-            onClick={onClose}
-            className="text-prestij-text-muted hover:text-prestij-text-bright transition-colors p-1 rounded-full hover:bg-prestij-bg-light-interactive"
-            aria-label="Arama penceresini kapat"
+        {/* 
+          Transition.Child, asıl animasyonun uygulanacağı element grubunu sarmalar.
+          Açılış ve kapanış animasyonları (`enter`, `leave`) bu elemente uygulanır.
+        */}
+        <Transition.Child
+          as="div" // Gerçek bir `div` elementi olarak render et
+          className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl max-h-[90vh] h-full sm:h-auto sm:max-h-[85vh]" // Boyutlandırma class'ları
+          enter="ease-out duration-300"
+          enterFrom="opacity-0 scale-95"
+          enterTo="opacity-100 scale-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100 scale-100"
+          leaveTo="opacity-0 scale-95"
+        >
+          {/* 
+            Bu iç `div` asıl içerik kutusudur. Tıklama olayının yukarıya (karartılmış alana)
+            yayılmasını engellemek için `e.stopPropagation()` kullanır.
+          */}
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-prestij-bg-dark-2 w-full h-full rounded-lg sm:rounded-xl shadow-2xl flex flex-col"
           >
-            <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
-        </div>
+            {/* === BU KISIMDAN SONRASI TAMAMEN AYNI === */}
+            
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-prestij-border-soft">
+              <h2 className="text-md sm:text-lg font-semibold text-prestij-text-primary">İçerik Ara</h2>
+              <button
+                onClick={onClose}
+                className="text-prestij-text-muted hover:text-prestij-text-bright transition-colors p-1 rounded-full hover:bg-prestij-bg-light-interactive"
+                aria-label="Arama penceresini kapat"
+              >
+                <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
 
-        {/* Arama kutusu ve sonuç etiketleri */}
-<div className="p-3 sm:p-4 space-y-3">
-  {/* Arama input'u */}
-  <input
-    ref={inputRef}
-    type="text"
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-    placeholder="Oyun veya anime adı ara..."
-    className="w-full p-3 bg-prestij-bg-input border border-prestij-border-input rounded-lg text-prestij-text-input placeholder-prestij-text-placeholder focus:ring-1 focus:ring-prestij-purple focus:border-prestij-purple outline-none transition-colors"
-  />
+            <div className="p-3 sm:p-4 space-y-3">
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Oyun veya anime adı ara..."
+                className="w-full p-3 bg-prestij-bg-input border border-prestij-border-input rounded-lg text-prestij-text-input placeholder-prestij-text-placeholder focus:ring-1 focus:ring-prestij-purple focus:border-prestij-purple outline-none transition-colors"
+              />
 
   {/* Sonuç etiketleri ve sayıları */}
 {!isLoading && !error && results.length > 0 && (
@@ -213,15 +241,16 @@ const placeholderCount = searchTerm.trim() === '' ? 9 : 6; // Başlangıçta 9, 
 
                   // itemTypePath'i de düzeltelim. Projeler sayfasını kullanıyoruz.
                   itemTypePath={'projeler'}
+                  onClick={onClose}
                 />
               ))}
             </div>
           )}
         </div>
-        {/* Opsiyonel: Footer'da "Tüm sonuçları gör" linki vs. eklenebilir */}
       </div>
-    </div>
-  );
-};
-
+    </Transition.Child>
+  </div>
+</Transition>
+);
+}
 export default SearchOverlay;

@@ -42,65 +42,61 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const { mutate } = useSWRConfig();
   const { data, error } = useSWR<NotificationsResponse>('/api/notifications', fetcher, { refreshInterval: 60000 });
-  
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
+  // Hem butonu hem de dropdown menüsünü içerecek olan ana sarmalayıcı için ref
+  const wrapperRef = useRef<HTMLDivElement>(null); 
   const unreadCount = data?.unreadCount || 0;
   const notifications = data?.notifications || [];
 
-  // Dropdown açıldığında bildirimleri okundu olarak işaretle
-  const handleOpen = async () => {
-    if (!isOpen && unreadCount > 0) {
-      // Menüyü aç
-      setIsOpen(true);
-      
-      try {
-        // Optimistic UI: Sayacı hemen sıfırla
-        // SWR'a mevcut verinin bir kopyasını alıp unreadCount'ı 0 yapmasını söylüyoruz.
-        // `false` parametresi, bu işlemden sonra otomatik yeniden fetch yapmasını engeller.
-        mutate('/api/notifications', { ...data, unreadCount: 0 }, false);
+  // --- handleOpen fonksiyonunu basitleştiriyoruz ---
+  const handleToggle = () => {
+    const newIsOpenState = !isOpen;
+    setIsOpen(newIsOpenState);
 
-        // Arka planda API'ye "hepsini okundu olarak işaretle" isteği gönder
-        await fetch('/api/notifications', { method: 'POST' });
+    // Sadece menü AÇILIRKEN ve okunmamış bildirim varsa okundu olarak işaretle
+    if (newIsOpenState && unreadCount > 0) {
+      markAllAsRead();
+    }
+  };
 
-        // İşlem bittikten sonra veriyi tekrar doğrula (isteğe bağlı ama güvenli)
-        mutate('/api/notifications');
-
-      } catch (err) {
-        console.error("Bildirimler okundu olarak işaretlenemedi:", err);
-        // Hata olursa, optimist UI'ı geri al (SWR bunu otomatik yapabilir)
-        mutate('/api/notifications'); 
-      }
-    } else {
-      setIsOpen(!isOpen);
+  const markAllAsRead = async () => {
+    try {
+      // Optimistic UI
+      mutate('/api/notifications', { ...data, unreadCount: 0 }, false);
+      // API isteği
+      await fetch('/api/notifications', { method: 'POST' });
+      // Veriyi yeniden doğrula
+      mutate('/api/notifications');
+    } catch (err) {
+      console.error("Bildirimler okundu olarak işaretlenemedi:", err);
+      mutate('/api/notifications'); // Hata durumunda eski veriyi geri getir
     }
   };
   
-  // Dışarıya tıklandığında menüyü kapatmak için
+  // --- Dışarıya tıklama hook'unu güncelliyoruz ---
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Eğer menü açıksa ve tıklanan yer menünün içinde değilse, kapat.
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      // Eğer tıklanan yer, sarmalayıcı div'in (wrapperRef) içinde değilse menüyü kapat.
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-    // Sadece menü açıkken dinleyiciyi ekle
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    // Cleanup fonksiyonu: Component kaldırıldığında veya menü kapandığında dinleyiciyi kaldır.
+    
+    // Her zaman dinleyiciyi ekle
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Cleanup fonksiyonu
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]); // Bu effect, isOpen state'i değiştiğinde çalışır.
-
+  }, [wrapperRef]); // Ref'i bağımlılığa eklemeye gerek yok, sadece bir kez çalışması yeterli.
 
   return (
-    <div className="relative">
-      {/* Zil İkonu Butonu (handleOpen yerine setIsOpen(!isOpen) kullanabiliriz veya handleOpen kalabilir) */}
+    // Ana sarmalayıcı div, ref'i burada kullanıyoruz
+    <div className="relative" ref={wrapperRef}>
+      {/* Zil İkonu Butonu */}
       <button
-        onClick={handleOpen}
-        className="notification-bell text-prestij-text-accent hover:text-prestij-purple transition-colors p-1.5 rounded-full hover:bg-prestij-purple/10 relative"
+        onClick={handleToggle} // Artık yeni toggle fonksiyonunu çağırıyor
+        className="notification-bell ..."
         aria-label={`Bildirimler (${unreadCount} okunmamış)`}
       >
         <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -108,9 +104,10 @@ export default function NotificationBell() {
           <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-prestij-dark-900" />
         )}
       </button>
-{/* --- ANİMASYONLU DROPDOWN MENÜ --- */}
+
+      {/* Animasyonlu Dropdown Menü */}
       <Transition
-        as={Fragment} // Ekstra bir div render etmemek için
+        as={Fragment}
         show={isOpen}
         enter="transition ease-out duration-100"
         enterFrom="transform opacity-0 scale-95 -translate-y-2" // Başlangıç: Yukarıda, küçük ve şeffaf
@@ -120,7 +117,6 @@ export default function NotificationBell() {
         leaveTo="transform opacity-0 scale-95 -translate-y-2"   // Bitiş: Yukarıda, küçük ve şeffaf
       >
         <div 
-          ref={dropdownRef} // Dışarıya tıklamayı algılamak için ref'i buraya ata
           className="absolute right-0 mt-2 w-80 sm:w-96 bg-prestij-sidebar-bg rounded-lg shadow-2xl border border-prestij-border-dark z-50"
         >
           <div className="p-3 border-b border-prestij-border-dark flex justify-between items-center">
