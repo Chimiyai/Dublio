@@ -30,6 +30,10 @@
                         page.tsx
                 yeni/
                     page.tsx
+        animeler/
+            page.tsx
+            [slug]/
+                page.tsx
         api/
             admin/
                 cloudinary-utils/
@@ -56,6 +60,14 @@
                 users/
                     [userId]/
                         route.ts
+            animeler/
+                route.ts
+            artists/
+                [artistId]/
+                    favorite/
+                        route.ts
+                    like/
+                        route.ts
             auth/
                 [...nextauth]/
                     route.ts
@@ -75,6 +87,8 @@
                     route.ts
                 [userId]/
                     route.ts
+            oyunlar/
+                route.ts
             profile/
                 route.ts
                 email/
@@ -113,12 +127,21 @@
                         route.ts
                     overview-stats/
                         route.ts
+        gizlilik-politikasi/
+            page.tsx
+        hakkimizda/
+            page.tsx
+        kadromuz/
+            page.tsx
+        kullanim-kosullari/
+            page.tsx
         mesajlar/
             layout.tsx
             page.tsx
             [userId]/
                 page.tsx
         oyunlar/
+            page.tsx
             [slug]/
                 page.tsx
         profil/
@@ -166,8 +189,20 @@
             ProjectPublishSettings.tsx
             ProjectsTable.tsx
             UpdateUserRole.tsx
+        animes/
+            AnimesPageClient.tsx
+            AnimeTabs.tsx
+        artists/
+            ArtistInteractionButtons.tsx
+        auth/
+            GirisPageClient.tsx
         game/
             GameTabs.tsx
+        games/
+            FilterSidebar.tsx
+            GamesPageClient.tsx
+            ProjectGrid.tsx
+            SortDropdown.tsx
         home/
             DubbedAnimeSection.tsx
             DubbedGamesSection.tsx
@@ -207,20 +242,24 @@
             UserProfileInfo.tsx
             UserProfileStatsBar.tsx
             UserProfileTabs.tsx
+            VerifyEmailClientContent.tsx
         project/
             CommentsSection.tsx
             ProjectInteractionButtons.tsx
         ui/
             button.tsx
             card.tsx
+            ClientToaster.tsx
             DropdownControl.tsx
             input.tsx
+            Pagination.tsx
             PopularContentCard.tsx
             PopularContentCardPlaceholder.tsx
             SliderCard.tsx
     data/
         showcaseData.ts
     lib/
+        authOptions.ts
         cloudinary.ts
         prisma.ts
         utils.ts

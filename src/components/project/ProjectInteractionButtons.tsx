@@ -175,7 +175,7 @@ export default function ProjectInteractionButtons({
   };
 
   const disabledClass = "opacity-60 cursor-not-allowed";
-  const activeLikeClass = "bg-prestij-600 hover:bg-prestij-700"; // Aktif like için özel stil
+  const activeLikeClass = "bg-green-500 hover:bg-green-600"; // Aktif like için yeşil renk
   const activeDislikeClass = "bg-red-600 hover:bg-red-700"; // Aktif dislike için özel stil
   const activeFavoriteClass = "bg-yellow-500 hover:bg-yellow-600"; // Aktif favori için özel stil
 

@@ -17,10 +17,9 @@ interface CurrentAssignment {
 
 // Props tipi
 interface AddProjectFormProps {
-  allArtists: DubbingArtist[]; // <-- TÜM DubbingArtist ALANLARINI BEKLİYOR
-  availableRoles: RoleInProject[];
+    allArtists: DubbingArtist[]; 
+    availableRoles: RoleInProject[];
 }
-
 
 export default function AddProjectForm({ allArtists, availableRoles }: AddProjectFormProps) {
   const router = useRouter();
@@ -28,13 +27,13 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
   const [slug, setSlug] = useState('');
   const [type, setType] = useState<'oyun' | 'anime'>('oyun');
   const [description, setDescription] = useState('');
-  const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [coverImagePublicId, setCoverImagePublicId] = useState<string | null>(null);
+  const [coverImage, setCoverImage] = useState<string | null>(null); // Bu URL.createObjectURL() sonucu
+  const [coverImagePublicId, setCoverImagePublicId] = useState<string | null>(null); // Bu Cloudinary ID'si olacak
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
   const [releaseDate, setReleaseDate] = useState('');
   const [isPublished, setIsPublished] = useState(true);
+  const [trailerUrl, setTrailerUrl] = useState(''); // YENİ STATE
 
-  // Sanatçı atama için state'ler (EditProjectForm'dan alındı)
   const [currentAssignments, setCurrentAssignments] = useState<CurrentAssignment[]>([]);
   const [selectedArtistToAdd, setSelectedArtistToAdd] = useState<{ value: number; label: string } | null>(null);
   const [selectedRoleToAdd, setSelectedRoleToAdd] = useState<RoleInProject | ''>('');
@@ -45,47 +44,47 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
   const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const generateSlug = (text: string) => { /* ... (aynı) ... */ 
-    return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
-  };
+  const generateSlug = (text: string) => { 
+        return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/--+/g, '-');
+    };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    setTitle(newTitle);
-    setSlug(generateSlug(newTitle));
-  };
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTitle = e.target.value;
+        setTitle(newTitle);
+        setSlug(generateSlug(newTitle));
+    };
 
-  // Sanatçı atama fonksiyonları (EditProjectForm'dan alındı ve uyarlandı)
-  const addAssignment = () => {
-    if (!selectedArtistToAdd || !selectedRoleToAdd) {
-      setFormErrors((prev: any) => ({ ...prev, assignments: ["Lütfen bir sanatçı ve rol seçin."] }));
-      return;
-    }
-    const exists = currentAssignments.some(
-      a => a.artistId === selectedArtistToAdd.value && a.role === selectedRoleToAdd
-    );
-    if (exists) {
-      setFormErrors((prev: any) => ({ ...prev, assignments: ["Bu sanatçı bu rolle zaten atanmış."] }));
-      return;
-    }
-    setCurrentAssignments(prev => [
-      ...prev,
-      {
-        artistId: selectedArtistToAdd.value,
-        role: selectedRoleToAdd,
-        artistName: selectedArtistToAdd.label
-      }
-    ]);
-    setFormErrors((prev: any) => ({ ...prev, assignments: undefined }));
-    setSelectedArtistToAdd(null);
-    setSelectedRoleToAdd('');
-  };
+    const addAssignment = () => {
+        if (!selectedArtistToAdd || !selectedRoleToAdd) {
+        setFormErrors((prev: any) => ({ ...prev, assignments: ["Lütfen bir sanatçı ve rol seçin."] }));
+        return;
+        }
+        const exists = currentAssignments.some(
+        a => a.artistId === selectedArtistToAdd.value && a.role === selectedRoleToAdd
+        );
+        if (exists) {
+        setFormErrors((prev: any) => ({ ...prev, assignments: ["Bu sanatçı bu rolle zaten atanmış."] }));
+        return;
+        }
+        setCurrentAssignments(prev => [
+        ...prev,
+        {
+            artistId: selectedArtistToAdd.value,
+            role: selectedRoleToAdd,
+            artistName: selectedArtistToAdd.label
+        }
+        ]);
+        setFormErrors((prev: any) => ({ ...prev, assignments: undefined }));
+        setSelectedArtistToAdd(null);
+        setSelectedRoleToAdd('');
+    };
 
-  const removeAssignment = (artistId: number, role: RoleInProject) => {
-    setCurrentAssignments(prev =>
-      prev.filter(a => !(a.artistId === artistId && a.role === role))
-    );
-  };
+    const removeAssignment = (artistId: number, role: RoleInProject) => {
+        setCurrentAssignments(prev =>
+        prev.filter(a => !(a.artistId === artistId && a.role === role))
+        );
+    };
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -93,12 +92,10 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
     setSuccess(null);
     setFormErrors({});
 
-    // Temel zorunlu alan kontrolü (API zaten Zod ile yapacak)
     if (!title || !slug || !type || !releaseDate) {
       setError('Başlık, slug, tür ve yayın tarihi alanları zorunludur.');
       return;
     }
-    // ... (releaseDateObj kontrolü aynı)
     let releaseDateObj;
     try {
         releaseDateObj = new Date(releaseDate);
@@ -113,6 +110,27 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
 
     startTransition(async () => {
       try {
+        // Eğer kapak resmi seçildiyse önce onu yükle
+        let finalCoverImagePublicId = null;
+        if (selectedCoverFile) {
+            const imageFormData = new FormData();
+            imageFormData.append('imageFile', selectedCoverFile);
+            imageFormData.append('uploadContext', 'projectCover');
+            imageFormData.append('identifier', slug || title || `new-cover-${Date.now()}`);
+            imageFormData.append('folder', 'project_covers');
+
+            const imageUploadResponse = await fetch('/api/admin/projects/cover-image', {
+                method: 'POST',
+                body: imageFormData,
+            });
+            const imageUploadData = await imageUploadResponse.json();
+            if (!imageUploadResponse.ok) {
+                throw new Error(imageUploadData.message || 'Kapak resmi yüklenemedi.');
+            }
+            finalCoverImagePublicId = imageUploadData.publicId;
+        }
+
+
         const assignmentsForApi = currentAssignments.map(({ artistId, role }) => ({ artistId, role }));
 
         const response = await fetch('/api/admin/projects', {
@@ -123,42 +141,54 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
             slug,
             type,
             description: description || null,
-            coverImage: coverImage,
-            coverImagePublicId: coverImagePublicId,
+            // coverImage: coverImage, // Bu preview URL'iydi, bunun yerine publicId'yi gönderiyoruz
+            coverImagePublicId: finalCoverImagePublicId, // Yüklenen resmin ID'si
             releaseDate: releaseDateObj.toISOString(),
             isPublished,
-            assignments: assignmentsForApi, // Atamaları API'ye gönder
+            assignments: assignmentsForApi,
+            trailerUrl: trailerUrl.trim() !== '' ? trailerUrl.trim() : null, // YENİ: API'ye gönder
           }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          if (data.errors) { // Zod'dan gelen hatalar
+          if (data.errors) {
             setFormErrors(data.errors);
             setError("Lütfen formdaki hataları düzeltin.");
           } else {
             setError(data.message || 'Proje oluşturulamadı.');
           }
-          return; // Hata varsa burada dur
+          return;
         }
 
-        setSuccess('Proje başarıyla oluşturuldu! Proje listesine yönlendiriliyorsunuz...');
-        setTimeout(() => {
-          router.push('/admin/projeler');
-          router.refresh();
-        }, 2000);
-
+        setSuccess('Proje başarıyla oluşturuldu! Düzenleme sayfasına yönlendiriliyorsunuz...');
+        // Yeni proje oluşturulduktan sonra edit sayfasına yönlendirmek daha iyi olabilir.
+        // Çünkü karakterler, banner vs. orada eklenecek.
+        // API response'dan dönen slug'ı kullan.
+        if (data.slug) {
+            setTimeout(() => {
+                router.push(`/admin/projeler/duzenle/${data.slug}`);
+                // router.refresh(); // Zaten yönlendirme yapılıyor, refresh'e gerek yok
+            }, 2000);
+        } else {
+            // Slug dönmezse (beklenmedik durum), proje listesine yönlendir.
+            setTimeout(() => {
+                router.push('/admin/projeler');
+                router.refresh();
+            }, 2000);
+        }
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message || 'Bir hata oluştu.');
       }
     });
   };
   
-  const artistOptions = allArtists.map(artist => ({
-    value: artist.id,
-    label: `${artist.firstName} ${artist.lastName}`
-  }));
+  // ... (artistOptions tanımı)
+    const artistOptions = allArtists.map(artist => ({
+        value: artist.id,
+        label: `${artist.firstName} ${artist.lastName}`
+    }));
 
   return (
     <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow-xl rounded-lg p-6 md:p-8 space-y-6">
@@ -191,17 +221,36 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
           {formErrors.description && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.description) ? formErrors.description.join(', ') : formErrors.description}</p>}
         </div>
         
+        {/* YENİ FRAGMAN URL INPUT ALANI */}
+        <div>
+            <label htmlFor="trailerUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Fragman URL (YouTube, Cloudinary vb.)
+            </label>
+            <input
+                type="url"
+                name="trailerUrl"
+                id="trailerUrl"
+                value={trailerUrl}
+                onChange={(e) => setTrailerUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200"
+            />
+            {formErrors.trailerUrl && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.trailerUrl) ? formErrors.trailerUrl.join(', ') : formErrors.trailerUrl}</p>}
+        </div>
+        {/* YENİ FRAGMAN URL INPUT ALANI SONU */}
+
         <ImageUploader
-  currentImagePublicId={coverImagePublicId} // Mevcut resmi göster (yeni projede null olacak)
-  onFileSelect={(file) => {                 // Sadece dosyayı seç
-      setSelectedCoverFile(file);
-      if (file) setCoverImagePublicId(URL.createObjectURL(file)); // Önizleme
-      else setCoverImagePublicId(null);
-  }}
-  aspectRatio="aspect-[16/9]"
-  label="Kapak Resmi Yükle"
-  // onUploadComplete prop'u kaldırıldı, yükleme handleSubmit'te
-/>
+          currentImagePublicId={coverImage} // Bu önizleme URL'i olacak (URL.createObjectURL)
+          onFileSelect={(file) => {
+              setSelectedCoverFile(file);
+              if (file) setCoverImage(URL.createObjectURL(file)); // Önizleme için set et
+              else setCoverImage(null);
+              // setCoverImagePublicId(null); // Yeni proje için public ID başta null olur
+          }}
+          aspectRatio="aspect-[16/9]"
+          label="Kapak Resmi Yükle"
+        />
+        {formErrors.coverImagePublicId && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.coverImagePublicId) ? formErrors.coverImagePublicId.join(', ') : formErrors.coverImagePublicId}</p>}
         {formErrors.coverImage && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.coverImage) ? formErrors.coverImage.join(', ') : formErrors.coverImage}</p>}
         
         <div>
@@ -220,9 +269,10 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
           {formErrors.isPublished && <p className="mt-1 text-xs text-red-600">{Array.isArray(formErrors.isPublished) ? formErrors.isPublished.join(', ') : formErrors.isPublished}</p>}
         </div>
 
-        {/* Sanatçı Atama Bölümü (EditProjectForm'dan alındı ve uyarlandı) */}
+        {/* Sanatçı Atama Bölümü */}
         <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8">
             <h3 className="text-lg font-semibold leading-6 text-gray-900 dark:text-gray-100">Proje Katılımcıları ve Rolleri</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Yeni proje kaydedildikten sonra, düzenleme sayfasından karakterler ve daha detaylı katılımcı rolleri (örn: seslendirilen karakter) yönetilebilir.</p>
             {formErrors.assignments && <p className="mt-2 text-sm text-red-600">{Array.isArray(formErrors.assignments) ? formErrors.assignments.join(', ') : formErrors.assignments}</p>}
 
             <div className="mt-4 mb-6 space-y-2">
@@ -250,8 +300,8 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
                 <div className='flex-grow'>
                     <label htmlFor='select-artist-to-add-new' className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sanatçı Seç</label>
                     <Select
-                        instanceId="select-artist-to-add-new"
-                        inputId='select-artist-to-add-new'
+                        instanceId="select-artist-to-add-new-addform" // Farklı instanceId
+                        inputId='select-artist-to-add-new-addform'
                         options={artistOptions}
                         value={selectedArtistToAdd}
                         onChange={(option) => setSelectedArtistToAdd(option)}
@@ -260,6 +310,7 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
                         isDisabled={isPending}
                         className="text-sm react-select-container"
                         classNamePrefix="react-select"
+                        // Gerekirse react-select için dark mode stilleri eklenebilir
                     />
                 </div>
                 <div className='w-full sm:w-auto'>
@@ -276,6 +327,7 @@ export default function AddProjectForm({ allArtists, availableRoles }: AddProjec
                 </button>
             </div>
         </div>
+
 
         <div className="pt-5">
           <div className="flex justify-end space-x-3">

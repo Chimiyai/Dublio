@@ -6,11 +6,6 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
-interface CustomPageProps {
-  params: { artistId: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ artistId: string }> }): Promise<Metadata> {
   const { artistId } = await params;
   const artistIdAsNumber = parseInt(artistId, 10);

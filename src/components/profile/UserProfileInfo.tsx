@@ -3,9 +3,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Yönlendirme için useRouter hook'unu import et
+import { useState } from 'react'; // Loading state'i için useState'i import et
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
 import { UserCircleIcon, PencilSquareIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast'; // Geri bildirim için
 
 interface ProfileImageSizes {
   base: { w: string; h: string };
@@ -14,21 +17,57 @@ interface ProfileImageSizes {
 
 interface UserProfileInfoProps {
   user: {
+    id: number; // <<--- KULLANICI ID'Sİ ARTIK ZORUNLU
     username: string;
     bio: string | null;
     profileImagePublicId: string | null;
   };
   isOwnProfile: boolean;
-  profileImageSizes: ProfileImageSizes; // Yeni prop
+  profileImageSizes: ProfileImageSizes;
 }
 
 const UserProfileInfo: React.FC<UserProfileInfoProps> = ({
   user,
   isOwnProfile,
-  profileImageSizes, // Prop'u al
+  profileImageSizes,
 }) => {
+  const router = useRouter(); // useRouter hook'unu kullan
+  const [isLoading, setIsLoading] = useState(false); // Buton için yükleniyor durumu
+
   const profileImageId = user.profileImagePublicId;
   const defaultBio = "Selam ;)";
+
+  const handleSendMessage = async () => {
+    setIsLoading(true);
+    // Bu fonksiyon, bir sohbet başlatmak veya mevcut sohbete gitmek için API'ye istek gönderecek.
+    // En basit yöntem, direkt olarak sohbet sayfasına yönlendirmektir.
+    // Sohbet sayfanızın URL yapısının /mesajlar/[userId] olduğunu varsayıyorum.
+    // [userId], mesaj gönderilecek kişinin ID'sidir.
+
+    try {
+      // Normalde burada bir API çağrısı ile arka planda sohbet oluşturulur veya kontrol edilir.
+      // const response = await fetch('/api/messages/conversations', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ recipientId: user.id }),
+      // });
+      // const data = await response.json();
+      // if (!response.ok) {
+      //   throw new Error(data.message || 'Sohbet başlatılamadı.');
+      // }
+      
+      // Şimdilik API çağrısını atlayıp doğrudan yönlendirme yapalım.
+      // Mesajlar sayfası, gerekirse sohbetin varlığını kendi içinde kontrol edebilir.
+      // VEYA API çağrısı başarılı olduktan sonra yönlendirme yapılır.
+
+      router.push(`/mesajlar/${user.id}`);
+
+    } catch (error) {
+      toast.error((error as Error).message || 'Bir hata oluştu.');
+      setIsLoading(false); // Hata durumunda yükleniyor durumunu kapat
+    }
+    // Yönlendirme sonrası setIsLoading(false) demeye gerek yok, çünkü sayfa değişmiş olacak.
+  };
 
   return (
     <div className="flex flex-col items-start gap-4">
@@ -123,13 +162,18 @@ const UserProfileInfo: React.FC<UserProfileInfoProps> = ({
         </p>
       </div>
 
-      {/* Mesaj Gönder Butonu - Biyografinin altında */}
+      {/* Mesaj Gönder Butonu - Artık işlevsel */}
       {!isOwnProfile && (
-        <button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 
-                         text-white text-sm font-medium py-2 px-4 rounded-md 
-                         transition-colors mt-2">
+        <button 
+          onClick={handleSendMessage}
+          disabled={isLoading}
+          className={cn(
+            "flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors mt-2",
+            isLoading && "opacity-70 cursor-not-allowed" // Yüklenirken stil
+          )}
+        >
           <ChatBubbleLeftEllipsisIcon className="w-5 h-5" />
-          Mesaj Gönder
+          {isLoading ? 'Yönlendiriliyor...' : 'Mesaj Gönder'}
         </button>
       )}
     </div>

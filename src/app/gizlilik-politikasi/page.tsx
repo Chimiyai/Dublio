@@ -17,7 +17,7 @@ export default function GizlilikPolitikasiPage() {
           </h1>
 
           <p className="text-sm text-prestij-text-muted mb-6">
-            Son Güncelleme: [31.05.2025] {/* Bu tarihi güncelleyin */}
+            Son Güncelleme: [31.05.2025]
           </p>
 
           <section className="space-y-4">

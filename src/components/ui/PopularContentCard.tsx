@@ -13,16 +13,19 @@ import { HandThumbUpIcon, HandThumbDownIcon, HeartIcon as SolidHeartIcon } from 
 export interface PopularContentCardProps {
   slug: string;
   title: string;
-  type: 'Oyun' | 'Anime';
-  bannerImageUrl: string | null | undefined;
-  coverImageUrl: string | null | undefined; // Bu, sol taraftaki küçük resim için ID
+  type: 'Oyun' | 'Anime'; // Bu zaten doğru
+  bannerImageUrl: string | null | undefined; // string | null yeterli olabilir, undefined'ı ?? ile hallederiz
+  coverImageUrl: string | null | undefined;  // string | null yeterli olabilir
   description: string | null;
   date: string | null;
   likes: number;
-  dislikes: number;
-  favorites: number;
-  itemTypePath: 'oyunlar' | 'animeler';
+  dislikes: number;    // Zorunlu mu, opsiyonel mi?
+  favorites: number;   // Zorunlu mu, opsiyonel mi?
+  itemTypePath: 'oyunlar' | 'animeler' | 'projeler'; // Bu da doğru
+  price?: number | null;
+  currency?: string | null;
 }
+
 
 const PopularContentCard: React.FC<PopularContentCardProps> = ({
   slug,
