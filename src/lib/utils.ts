@@ -7,23 +7,42 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(
-  dateStringOrDate: string | Date | null | undefined,
-  options?: Intl.DateTimeFormatOptions
-): string | null {
-  if (!dateStringOrDate) {
-    return null;
+export function formatReportStatus(status: string): string {
+  switch (status.toLowerCase()) {
+    case 'pending':
+      return 'Beklemede';
+    case 'reviewed':
+      return 'İnceleniyor';
+    case 'resolved':
+      return 'Çözüldü';
+    default:
+      // Beklenmedik bir durum olursa, kelimeyi büyük harfle başlatıp döndür
+      return status.charAt(0).toUpperCase() + status.slice(1);
   }
+}
+
+export function formatDate(
+  dateInput: string | Date | null | undefined,
+  options?: Intl.DateTimeFormatOptions
+): string { // Artık string | null yerine string dönmesi daha tutarlı
+  if (!dateInput) {
+    return "Tarih Bilinmiyor";
+  }
+  
   try {
-    const date = new Date(dateStringOrDate);
+    // Gelen input zaten bir Date objesi mi, yoksa bir string mi diye kontrol et
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+
     if (isNaN(date.getTime())) {
-      return "Bilinmiyor";
+      return "Geçersiz Tarih";
     }
+
     const defaultOptions: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'long',
       day: 'numeric',
+      month: 'long', // veya 'short'
+      year: 'numeric',
     };
+
     return new Intl.DateTimeFormat('tr-TR', { ...defaultOptions, ...options }).format(date);
   } catch (error) {
     return "Hatalı Tarih";

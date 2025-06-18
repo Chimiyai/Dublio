@@ -5,6 +5,8 @@ import ProjectsPageClient from '@/components/projects/ProjectsPageClient'; // YE
 import prisma from '@/lib/prisma';
 import { Category } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Türkçe Dublaj Projeler | PrestiJ Studio',
   description: 'PrestiJ Studio tarafından Türkçe dublajı yapılan tüm oyun ve animeleri keşfedin, filtreleyin ve sıralayın.',

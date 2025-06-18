@@ -40,22 +40,28 @@ export async function PATCH(request: NextRequest) {
 
     const { currentPassword, newPassword } = parsedBody.data;
 
-    // 2. Kullanıcıyı ve mevcut şifresini DB'den çek
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { password: true } // Sadece hash'lenmiş şifreyi çek
+        select: { password: true }
     });
 
-    if (!user) {
-        return NextResponse.json({ message: 'Kullanıcı bulunamadı.' }, { status: 404 });
+    // --- DÜZELTME BURADA ---
+    if (!user || !user.password) {
+        // Kullanıcı bulunamazsa veya bir şekilde veritabanında şifresi yoksa.
+        return NextResponse.json(
+            { message: 'Kullanıcı bulunamadı veya şifre bilgisi eksik.' }, 
+            { status: 404 }
+        );
     }
 
-    // 3. Mevcut şifreyi doğrula
+    // Artık user.password'ın null olmadığını biliyoruz.
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    // -----------------------
+
     if (!isCurrentPasswordValid) {
         return NextResponse.json(
             { message: 'Mevcut şifre yanlış.', errors: { currentPassword: ['Mevcut şifreniz hatalı.'] }}, 
-            { status: 400 } // Bad Request veya 401 Unauthorized da düşünülebilir
+            { status: 400 }
         );
     }
 

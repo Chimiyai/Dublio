@@ -132,6 +132,22 @@ export async function POST(
   }
 
   try {
+    // --- YENİ ENGELLEME KONTROLÜ ---
+    const blockExists = await prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          // Ben onu engelledim mi?
+          { blockerId: senderId, blockingId: receiverId },
+          // O beni engelledi mi?
+          { blockerId: receiverId, blockingId: senderId },
+        ],
+      },
+    });
+
+    if (blockExists) {
+      return NextResponse.json({ message: 'Engellenen bir kullanıcıya mesaj gönderemezsiniz.' }, { status: 403 });
+    }
+    // -----------------------------
     const body = await request.json();
     const validation = createMessageSchema.safeParse(body);
 

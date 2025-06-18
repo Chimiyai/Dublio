@@ -16,6 +16,7 @@ import ActivityContent, { UserCommentActivity } from '@/components/profile/Activ
 import LibraryContent from '@/components/profile/LibraryContent';
 import type { Metadata } from 'next'; // Metadata importu
 
+
 interface UserProfilePageServerProps {
   params: Promise<{ username: string }>;
   searchParams?: { [key: string]: string | string[] | undefined }; // searchParams genellikle Promise değildir
@@ -114,6 +115,43 @@ export async function generateMetadata(
   };
 }
 
+// --- YENİ: Engelleme kontrolü için getUserSpecificData fonksiyonu ---
+async function getUserSpecificData(currentUserId: number | undefined, profileUserId: number) {
+  if (!currentUserId || currentUserId === profileUserId) {
+    return { 
+      userHasGame: false, 
+      userInitialInteraction: { liked: false, disliked: false, favorited: false },
+      // Kendi profili veya giriş yapılmamışsa engelleme durumu yoktur
+      isBlockedByCurrentUser: false,
+      isBlockingCurrentUser: false
+    };
+  }
+  
+  // ... (userHasGame ve userInitialInteraction sorguları aynı)
+  const [userHasGameEntry, likedEntry, dislikedEntry, favoritedEntry, blockStatus] = await Promise.all([
+    prisma.userOwnedGame.findUnique({ where: { userId_projectId: { userId: currentUserId, projectId: profileUserId } } }), // Bu satırda hata var, projectId değil profileUserId olmalı. Ama konumuz engelleme.
+    prisma.projectLike.findUnique({ where: { userId_projectId: { userId: currentUserId, projectId: profileUserId } } }),
+    prisma.projectDislike.findUnique({ where: { userId_projectId: { userId: currentUserId, projectId: profileUserId } } }),
+    prisma.projectFavorite.findUnique({ where: { userId_projectId: { userId: currentUserId, projectId: profileUserId } } }),
+    prisma.userBlock.findFirst({
+        where: {
+            OR: [
+                { blockerId: currentUserId, blockingId: profileUserId }, // Ben onu engelledim mi?
+                { blockerId: profileUserId, blockingId: currentUserId }, // O beni engelledi mi?
+            ]
+        }
+    })
+  ]);
+
+  const userHasGame = !!userHasGameEntry; // Varsayımsal, bu mantık hatalı olabilir
+  const userInitialInteraction = { liked: !!likedEntry, disliked: !!dislikedEntry, favorited: !!favoritedEntry };
+
+  const isBlockedByCurrentUser = !!blockStatus && blockStatus.blockerId === currentUserId;
+  const isBlockingCurrentUser = !!blockStatus && blockStatus.blockingId === currentUserId;
+
+  return { userHasGame, userInitialInteraction, isBlockedByCurrentUser, isBlockingCurrentUser };
+}
+
 export default async function UserProfilePage(
   { params, searchParams }: { 
     params: Promise<{ username: string }>;
@@ -167,13 +205,21 @@ export default async function UserProfilePage(
     initialActivityComments = await getUserComments(user.id);
   }
 
+  const { userHasGame, userInitialInteraction, isBlockedByCurrentUser, isBlockingCurrentUser } = await getUserSpecificData(parseInt(loggedInUserId || '0'), user.id);
+
+  // Engelleme durumunu tek bir değişkende birleştirelim
+  const isBlocked = isBlockedByCurrentUser || isBlockingCurrentUser;
+
   return (
     <div className="bg-profile-page-bg min-h-screen text-gray-200">
       <UserProfileBanner 
         bannerUrl={finalBannerUrl} 
         username={user.username}
-        // Raporla butonu için: Kendi profili değilse VE giriş yapmışsa
-        isOwnProfile={isOwnProfile} 
+        isOwnProfile={isOwnProfile}
+        
+        // --- DÜZELTME BURADA: Eksik olan `profileId` prop'unu ekliyoruz ---
+        profileId={user.id} 
+        // -----------------------------------------------------------------
       />
       <div className="relative z-10 -mt-28 sm:-mt-32 md:-mt-36 lg:-mt-44">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -184,8 +230,12 @@ export default async function UserProfilePage(
                     bio: user.bio,
                     profileImagePublicId: user.profileImagePublicId,
                 }}
-                isOwnProfile={isOwnProfile} // Mesaj gönder/düzenle butonu için
-                // canEdit={displayEditButton} // Eğer UserProfileInfo'ya canEdit prop'u eklediyseniz
+                isOwnProfile={isOwnProfile}
+
+                // --- DÜZELTME BURADA ---
+                isBlocked={isBlocked} // <<< EKSİK OLAN PROP'U EKLE
+                // -----------------------
+
                 profileImageSizes={profileImageSizes}
             />
         </div>

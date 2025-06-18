@@ -19,20 +19,29 @@ export const metadata: Metadata = {
 };
 
 // --- YENİ FONKSİYON ---
-// Bu fonksiyon sunucuda çalışarak /public/sounds klasöründeki dosyaları listeler.
-const getSoundFiles = (): string[] => {
+const getSoundFilesAsBase64 = (): { name: string; data: string }[] => {
   try {
-    // process.cwd() projenin kök dizinini verir.
-    const soundsDirectory = path.join(process.cwd(), 'public/sounds');
-    // Dizini oku ve dosya adlarını al
-    const filenames = fs.readdirSync(soundsDirectory);
-    
-    // Her dosya adını, tarayıcının anlayacağı bir URL yoluna çevir.
-    // Örn: "ses1.mp3" -> "/sounds/ses1.mp3"
-    return filenames.map(filename => `/sounds/${filename}`);
+    const soundsDirectory = path.join(process.cwd(), 'public', 'sounds');
+    const filenames = fs.readdirSync(soundsDirectory)
+      .filter(file => file.endsWith('.mp3') || file.endsWith('.wav') || file.endsWith('.ogg'));
+      
+    return filenames.map(filename => {
+      // Dosyanın tam yolunu al
+      const filePath = path.join(soundsDirectory, filename);
+      // Dosyayı oku ve Base64 string'ine çevir
+      const fileBuffer = fs.readFileSync(filePath);
+      const base64Data = fileBuffer.toString('base64');
+      // Dosyanın content-type'ını belirle
+      const mimeType = filename.endsWith('.mp3') ? 'audio/mpeg' : (filename.endsWith('.wav') ? 'audio/wav' : 'audio/ogg');
+      
+      // Data URL formatında döndür: "data:audio/mpeg;base64,S0x..."
+      return {
+        name: filename,
+        data: `data:${mimeType};base64,${base64Data}`
+      };
+    });
   } catch (error) {
-    console.error("Ses dosyaları okunurken hata oluştu:", error);
-    // Hata durumunda boş bir dizi döndür, böylece site çökmez.
+    console.error("Base64 ses dosyaları okunurken hata:", error);
     return [];
   }
 };
@@ -43,9 +52,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // --- YENİ: Ses dosyası listesini burada çağır ---
-  const soundFiles = getSoundFiles();
-  // ---------------------------------------------
+  const soundFilesData = getSoundFilesAsBase64();
 
   return (
     <html lang="tr" className={inter.variable}>
@@ -61,7 +68,7 @@ export default function RootLayout({
           </main>
           <Footer />
         </Providers>
-        <GlobalSoundPlayer soundFiles={soundFiles} />
+        <GlobalSoundPlayer soundFilesData={soundFilesData} />
       </body>
     </html>
   );

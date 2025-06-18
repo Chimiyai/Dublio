@@ -26,6 +26,8 @@ import { cn } from '@/lib/utils';
 import { getCloudinaryImageUrlOptimized } from '@/lib/cloudinary';
 import NotificationBell from './NotificationBell';
 
+export const dynamic = 'force-dynamic';
+
 // Stats için tip tanımı
 interface HeaderStats {
   totalDubbedGames: number;
@@ -448,8 +450,9 @@ return (
                         <UnreadMessagesBadge />
                     </Link>
                 )}
-                <NotificationBell />
-
+                {session?.user && ( // Sadece giriş yapmışsa göster
+                    <NotificationBell />
+                )}
                 {isLoadingSession ? (
                     <div className="h-8 w-8 bg-prestij-bg-button/50 animate-pulse rounded-full"></div>
                 ) : session?.user ? (
@@ -542,7 +545,7 @@ return (
 
                                 {/* Profil linki */}
 <Link
-    href={`/profil/${session.user.name || session.user.id}`}
+    href={`/profil/${session.user.username || session.user.id}`}
     className="flex items-center px-4 py-2.5 text-sm text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple text-left transition-colors rounded-md mx-2 w-[calc(100%-16px)]" // w-[calc(100%-16px)] ve mx-2 ekledik
     role="menuitem"
     onClick={() => setIsProfileDropdownOpen(false)}

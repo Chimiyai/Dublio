@@ -1,10 +1,11 @@
 // src/components/projects/ProjectGrid.tsx
 'use client';
 
-import { ProjectForCard } from './ProjectsPageClient';
-import PopularContentCard from '@/components/ui/PopularContentCard'; // Doğru yolu teyit et
+import { ProjectForCard } from './ProjectsPageClient'; // ProjectsPageClient'ten gelen tip
+import PopularContentCard from '@/components/ui/PopularContentCard'; // Kullanmak istediğimiz kart
+import PopularContentCardPlaceholder from '@/components/ui/PopularContentCardPlaceholder'; // Yükleniyor durumu için
 import { PhotoIcon } from '@heroicons/react/24/outline';
-import { formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils'; // Tarih formatlama için bu fonksiyonun var olduğunu varsayıyoruz
 
 interface ProjectGridProps {
   projects: ProjectForCard[];
@@ -12,23 +13,19 @@ interface ProjectGridProps {
 }
 
 export default function ProjectGrid({ projects, isLoading }: ProjectGridProps) {
-  if (isLoading && projects.length === 0) {
+  // Yükleniyor durumu için iskelet (placeholder) göster
+  if (isLoading) {
     return (
-      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
+      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-x-5 gap-y-8">
         {[...Array(8)].map((_, i) => (
-          <div key={`loading-grid-${i}`} className="rounded-xl overflow-hidden bg-prestij-sidebar-bg shadow-lg animate-pulse">
-            <div className="w-full aspect-[3/4] bg-prestij-input-bg"></div>
-            <div className="p-4 space-y-3">
-              <div className="h-5 bg-prestij-input-bg rounded w-3/4"></div>
-              <div className="h-4 bg-prestij-input-bg rounded w-1/2"></div>
-            </div>
-          </div>
+          <PopularContentCardPlaceholder key={`placeholder-${i}`} />
         ))}
       </div>
     );
   }
 
-  if (!isLoading && projects.length === 0) {
+  // Sonuç bulunamadı durumu
+  if (projects.length === 0) {
     return (
       <div className="col-span-full text-center py-16">
         <PhotoIcon className="w-20 h-20 text-prestij-text-muted mx-auto mb-4" />
@@ -40,29 +37,33 @@ export default function ProjectGrid({ projects, isLoading }: ProjectGridProps) {
     );
   }
 
+  // Projeleri `PopularContentCard` ile listele
   return (
-    <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8">
-      {projects.map(project => ( // 'project' objesi ProjectForCard tipinde
+    <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-x-5 gap-y-8">
+      {projects.map(project => (
         <PopularContentCard
-      key={project.id}
-      slug={project.slug}
-      title={project.title}
-      type={project.type === 'oyun' ? 'Oyun' : 'Anime'}
-      coverImageUrl={project.coverImagePublicId}
-      bannerImageUrl={project.bannerImagePublicId}
-      description={project.description  ?? null}
-      date={project.releaseDate ? new Date(project.releaseDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric'}) : null}
-      
-      // === DÜZELTME BURADA ===
-      likes={project.likeCount}       // `likes` prop'una `project.likeCount` değerini ata
-      dislikes={project.dislikeCount}   // `dislikes` prop'una `project.dislikeCount` değerini ata
-      favorites={project.favoriteCount} // `favorites` prop'una `project.favoriteCount` değerini ata
-      // =======================
+          key={project.id}
+          slug={project.slug}
+          title={project.title}
+          // `project.type` ('oyun'/'anime') string'ini `PopularContentCard`'ın beklediği
+          // büyük harfli tipe ('Oyun'/'Anime') çeviriyoruz.
+          type={project.type.charAt(0).toUpperCase() + project.type.slice(1) as 'Oyun' | 'Anime'}
+          
+          // Prop isimlerini doğru bir şekilde eşleştiriyoruz.
+          bannerImageUrl={project.bannerImagePublicId}
+          coverImageUrl={project.coverImagePublicId}
+          description={project.description}
+          date={project.releaseDate ? formatDate(new Date(project.releaseDate)) : "Bilinmiyor"}
+          
+          likes={project.likeCount}
+          dislikes={project.dislikeCount}
+          favorites={project.favoriteCount}
+          
+          price={project.price}
+          currency={project.currency}
 
-      itemTypePath="projeler"
-      price={project.price}
-      currency={project.currency}
-    />
+          itemTypePath="projeler" // Artık tüm linkler /projeler üzerinden
+        />
       ))}
     </div>
   );
