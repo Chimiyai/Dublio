@@ -159,7 +159,7 @@ const PopularContentSection = () => {
         {isLoading && <p className="text-center text-prestij-text-dark py-10">İçerikler yükleniyor...</p>}
         {!isLoading && error && <p className="text-center text-red-500 py-10">Hata: {error}</p>}
         {!isLoading && !error && displayedItems.length > 0 && (
-          <div className="popular-games-grid grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+          <div className="popular-games-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mx-auto px-4">
             {displayedItems.map((item) => (
               console.log("PopularContentSection - item.type from API:", item.type, "item.title:", item.title),
               <PopularContentCard

@@ -1,69 +1,62 @@
 // src/middleware.ts
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const { pathname } = req.nextUrl;
+  const url = req.nextUrl.clone();
 
-  // NextAuth API rotalarını her zaman geç
-  if (pathname.startsWith('/api/auth')) {
+  // API ve statik dosyalara her zaman izin ver
+  if (pathname.startsWith('/api/') || pathname.startsWith('/_next') || pathname.includes('.')) {
     return NextResponse.next();
   }
+
+  // --- KULLANICI GİRİŞ YAPMIŞ MI? ---
+  const isLoggedIn = !!token;
   
-  // Korumalı admin rotaları
-  if (pathname.startsWith('/admin')) {
-    console.log("[Middleware ÇALIŞIYOR] Path:", pathname);
-    console.log("[Middleware] Token:", token ? `ID: ${token.sub}, Rol: ${token.role}` : "Token yok");
-    console.log("[Middleware] /admin yolu tespit edildi.");
-    if (!token || token.role !== 'admin') {
-      console.log(`[Middleware] /admin için ROL YANLIŞ (${token?.role || 'yok'}). Ana sayfaya yönlendiriliyor.`);
-      const url = req.nextUrl.clone();
-      url.pathname = '/'; // Ana sayfaya yönlendir
-      return NextResponse.redirect(url);
-    }
-    console.log("[Middleware] Admin erişimi onaylandı:", pathname);
-    return NextResponse.next(); // Admin ise devam et
+  // --- BAN DURUMUNU KONTROL ET ---
+  const isBanned = token?.isBanned ?? false;
+  const banExpires = token?.banExpiresAt ? new Date(token.banExpiresAt as string) : null;
+  const isBanActive = isBanned && (!banExpires || banExpires > new Date());
+  
+  // --- KORUMALI SAYFALARI TANIMLA ---
+  // Banlı bir kullanıcının GİREBİLECEĞİ sayfalar dışındaki her yer korunacak
+  const bannedUserAllowedPaths = ['/', '/banlandiniz']; // Anasayfa ve ban sayfası
+  const isAdminPage = pathname.startsWith('/admin');
+  const isLoginPage = pathname.startsWith('/giris');
+  const isProtectedRoute = !bannedUserAllowedPaths.includes(pathname) && !isAdminPage && !isLoginPage;
+
+  // --- YENİ VE BASİT KURALLAR ---
+
+  // 1. BANLI KULLANICI KONTROLÜ
+  // Eğer kullanıcı banlıysa VE girmeye çalıştığı sayfa izin verilenler arasında DEĞİLSE
+  if (isBanActive && !bannedUserAllowedPaths.includes(pathname)) {
+    url.pathname = '/banlandiniz'; // Onu ban sayfasına yönlendir
+    return NextResponse.redirect(url);
   }
 
-  // --- YENİ: Korumalı profil rotası ---
-  if (pathname.startsWith('/profil')) {
-      // Eğer token yoksa (giriş yapılmamışsa) giriş sayfasına yönlendir
-      if (!token) {
-          console.log(`[Middleware] /profil için GİRİŞ YAPILMAMIŞ. Giriş sayfasına yönlendiriliyor.`);
-          const url = req.nextUrl.clone();
-          // callbackUrl ekleyerek giriş sonrası profile yönlendirebiliriz
-          url.pathname = '/giris'; 
-          url.searchParams.set('callbackUrl', pathname); // Giriş sonrası buraya dön
-          return NextResponse.redirect(url);
-      }
-      // Giriş yapılmışsa devam et (herhangi bir rol olabilir)
-       console.log(`[Middleware] /profil erişimi onaylandı: ${token.name}`);
-      return NextResponse.next();
+  // 2. GİRİŞ YAPMAMIŞ KULLANICI KONTROLÜ
+  // Eğer giriş yapmamışsa VE korumalı bir sayfaya girmeye çalışıyorsa
+  if (!isLoggedIn && (isAdminPage || isProtectedRoute)) {
+    url.pathname = '/giris';
+    url.searchParams.set('callbackUrl', req.nextUrl.pathname);
+    return NextResponse.redirect(url);
   }
-  // ---------------------------------
-// --- YENİ: Korumalı mesajlar rotası ---
-if (pathname.startsWith('/mesajlar')) {
-  if (!token) {
-      console.log(`[Middleware] /mesajlar için GİRİŞ YAPILMAMIŞ. Giriş sayfasına yönlendiriliyor.`);
-      const url = req.nextUrl.clone();
-      url.pathname = '/giris'; 
-      url.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(url);
+
+  // 3. ADMIN YETKİ KONTROLÜ
+  // Eğer admin sayfasına girmeye çalışıyor ama rolü admin değilse
+  if (isAdminPage && token?.role !== 'admin') {
+    url.pathname = '/'; // Anasayfaya yönlendir
+    return NextResponse.redirect(url);
   }
-   console.log(`[Middleware] /mesajlar erişimi onaylandı: ${token.name}`);
+
+  // Hiçbir kurala takılmadıysa, isteğe izin ver
   return NextResponse.next();
 }
-// ---------------------------------
-return NextResponse.next();
-}
 
-// Middleware'in hangi yollarda çalışacağını belirtir
+// config objesi aynı kalabilir
 export const config = {
-  matcher: [
-    '/admin/:path*', // Admin sayfaları
-    '/profil/:path*', // Profil sayfaları (YENİ)
-    '/mesajlar/:path*', // Mesaj sayfaları (YENİ)
-  ],
-}
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|images|sounds).*)'],
+};

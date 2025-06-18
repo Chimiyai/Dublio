@@ -92,7 +92,7 @@ export default function NotificationBell() {
 
   return (
     // Ana sarmalayıcı div, ref'i burada kullanıyoruz
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative text-prestij-text-accent hover:text-prestij-purple transition-colors p-1 mt-1 mr-2 rounded-full hover:bg-prestij-purple/10" ref={wrapperRef}>
       {/* Zil İkonu Butonu */}
       <button
         onClick={handleToggle} // Artık yeni toggle fonksiyonunu çağırıyor

@@ -10,12 +10,35 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
   }
   const currentUserId = parseInt(session.user.id);
+try {
+    // --- YENİ ENGELLEME KONTROLÜ ---
+    // Bu kullanıcının engellediği veya bu kullanıcıyı engellemiş olan tüm ID'leri al
+    const blockedUserRecords = await prisma.userBlock.findMany({
+      where: {
+        OR: [
+          { blockerId: currentUserId },
+          { blockingId: currentUserId },
+        ],
+      },
+    });
+    const blockedUserIds = blockedUserRecords.map(block => 
+      block.blockerId === currentUserId ? block.blockingId : block.blockerId
+    );
+    // -----------------------------
 
-  try {
-    // 1. Bu kullanıcının mesajlaştığı tüm kişilerin ID'lerini bul.
+    // Mesajlaşma ortaklarını bulurken, engellenenleri hariç tut
     const messages = await prisma.message.findMany({
       where: {
-        OR: [{ senderId: currentUserId }, { receiverId: currentUserId }],
+        OR: [
+          { senderId: currentUserId },
+          { receiverId: currentUserId },
+        ],
+        // --- YENİ FİLTRE ---
+        // Gönderen veya alıcı, engellenenler listesinde OLMAMALI
+        NOT: {
+            senderId: { in: blockedUserIds },
+            receiverId: { in: blockedUserIds },
+        }
       },
       select: { senderId: true, receiverId: true },
     });

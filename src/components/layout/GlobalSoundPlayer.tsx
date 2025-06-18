@@ -3,84 +3,73 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 
-interface GlobalSoundPlayerProps {
-  soundFiles: string[];
+// Gelen prop'un tipi
+interface SoundData {
+  name: string;
+  data: string;
 }
 
-export default function GlobalSoundPlayer({ soundFiles }: GlobalSoundPlayerProps) {
-  // Web Audio API'nin ana kontrolcüsü olan AudioContext'i bir kere oluşturup tekrar kullanacağız.
-  // useRef ile saklıyoruz ki her render'da yeniden oluşmasın.
+interface GlobalSoundPlayerProps {
+  soundFilesData: SoundData[];
+}
+
+export default function GlobalSoundPlayer({ soundFilesData }: GlobalSoundPlayerProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Component ilk yüklendiğinde AudioContext'i oluştur.
   useEffect(() => {
-    // `window.AudioContext` tarayıcıya özel bir API olduğu için `window` kontrolü yaparız.
-    if (!audioContextRef.current) {
+    if (typeof window !== 'undefined' && !audioContextRef.current) {
       audioContextRef.current = new window.AudioContext();
     }
   }, []);
 
   const playRandomSound = useCallback(async () => {
     const audioContext = audioContextRef.current;
-    if (!audioContext || !soundFiles || soundFiles.length === 0) {
-      return;
-    }
+    if (!audioContext || !soundFilesData || soundFilesData.length === 0) return;
 
-    // AudioContext'in askıya alınmış durumdan çıkması için (tarayıcı politikaları)
     if (audioContext.state === 'suspended') {
       await audioContext.resume();
     }
 
     try {
-      // 1. Rastgele bir ses dosyası seç
-      const randomIndex = Math.floor(Math.random() * soundFiles.length);
-      const randomSoundSrc = soundFiles[randomIndex];
-      
-      // 2. Ses dosyasını fetch ile çek ve veriyi ArrayBuffer olarak al
-      const response = await fetch(randomSoundSrc);
+      // 1. Rastgele bir ses objesi seç
+      const randomIndex = Math.floor(Math.random() * soundFilesData.length);
+      const randomSound = soundFilesData[randomIndex];
+
+      // 2. FETCH'İ KALDIRDIK! Base64 verisini doğrudan ArrayBuffer'a çeviriyoruz.
+      const response = await fetch(randomSound.data); // Data URL'ini fetch etmek en kolay yoldur
       const arrayBuffer = await response.arrayBuffer();
-
-      // 3. Ses verisini Web Audio API'nin anlayacağı formata (AudioBuffer) dönüştür
+      
+      // 3. Ses verisini decode et
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-      // 4. Bu ses verisi için bir kaynak düğümü (source node) oluştur
+      
+      // 4. Kaynak ve efektleri oluştur (bu kısım aynı)
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
 
-      // --- YENİ VE DOĞRU PITCH DEĞİŞİKLİĞİ ---
-      const minPitch = 0.3; // En pes
-      const maxPitch = 2;  // En tiz
-      const randomPlaybackRate = Math.random() * (maxPitch - minPitch) + minPitch;
-      
-      // Kaynak düğümünün çalma hızını ayarla. Bu, yüksek kaliteli bir pitch shifting efekti yaratır.
-      source.playbackRate.value = randomPlaybackRate;
-      // -----------------------------------------
+      // Hem pitch (detune) hem de hızı (playbackRate) rastgele ayarlayalım
+      source.detune.value = (Math.random() * 2400) - 1200; // -1 ve +1 oktav arası
+      source.playbackRate.value = 0.8 + Math.random() * 0.7; // 0.8 ile 1.5 arası hız
 
-      // (Opsiyonel) Ses seviyesini kontrol etmek için bir GainNode ekleyebiliriz
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 0.7; // Ses seviyesini %70 yap
+      gainNode.gain.value = 0.7;
 
-      // Kaynağı -> Ses Seviyesi Kontrolcüsüne -> Hoparlöre bağla
       source.connect(gainNode);
       gainNode.connect(audioContext.destination);
 
-      // 5. Sesi çalmaya başla
       source.start(0);
 
     } catch (error) {
-      console.error("Web Audio API ile ses çalınırken hata:", error);
+      console.error("Web Audio API hatası (Base64 ile):", error);
     }
-  }, [soundFiles]);
+  }, [soundFilesData]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // ... (bu kısım aynı)
       const target = event.target as HTMLElement;
       if (
         event.key.toLowerCase() === 'j' &&
-        target.tagName !== 'INPUT' &&
-        target.tagName !== 'TEXTAREA' &&
-        !target.isContentEditable
+        !target.isContentEditable &&
+        !['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
       ) {
         event.preventDefault();
         playRandomSound();

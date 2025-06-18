@@ -50,19 +50,63 @@ model UserNotification {
   @@map("user_notifications")
 }
 
+model UserReport {
+  id          Int      @id @default(autoincrement())
+  reason      String   // Rapor sebebi (örneğin: "Spam", "Taciz", "Uygunsuz Profil")
+  description String?  // Opsiyonel detaylı açıklama
+  
+  // Raporlayan ve Raporlanan Kullanıcılar
+  reporterId  Int
+  reporter    User     @relation("ReportedByUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  
+  reportedId  Int
+  reported    User     @relation("ReportsAgainstUser", fields: [reportedId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+
+  // Admin tarafından incelendi mi?
+  status      String   @default("pending") // "pending", "reviewed", "resolved"
+
+  @@unique([reporterId, reportedId]) // Bir kullanıcı diğerini sadece bir kez raporlayabilir
+  @@map("user_reports")
+}
+
+model UserBlock {
+  // Engelleyen ve Engellenen Kullanıcılar
+  blockerId   Int
+  blocker     User    @relation("BlockingUsers", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  blockingId  Int
+  blocking    User    @relation("BlockedByUsers", fields: [blockingId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@id([blockerId, blockingId]) // İki alan birlikte birincil anahtar
+  @@map("user_blocks")
+}
+
 model User {
-  id                     Int                     @id @default(autoincrement())
-  email                  String                  @unique
-  username               String                  @unique
-  password               String
-  role                   String                  @default("user")
+  id                     Int      @id @default(autoincrement())
+  email                  String   @unique
+  username               String   @unique
+  password               String?
+  role                   String   @default("user")
   profileImagePublicId   String?
   bannerImagePublicId    String?
   bio                    String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  sentMessages           Message[]               @relation("SentMessages")
-  receivedMessages       Message[]               @relation("ReceivedMessages")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  isBanned               Boolean  @default(false)
+  banExpiresAt           DateTime?
+  banReason              String?
+  
+  // NextAuth.js için ilişkiler
+  accounts      Account[]
+  sessions      Session[]
+
+  // Diğer tüm ilişkiler
+  sentMessages           Message[]        @relation("SentMessages")
+  receivedMessages       Message[]        @relation("ReceivedMessages")
   emailChangeRequests    EmailChangeRequest[]
   comments               Comment[]
   dubbingArtistLikes     DubbingArtistLike[]
@@ -71,10 +115,50 @@ model User {
   projectDislikes        ProjectDislike[]
   projectFavorites       ProjectFavorite[]
   projectRatings         ProjectRating[]
-  ownedGames             UserOwnedGame[] // Kullanıcının sahip olduğu oyunlar
+  ownedGames             UserOwnedGame[]
+  supportRequests        SupportRequest[]
   notifications          UserNotification[]
+  reportsMade            UserReport[]     @relation("ReportedByUser")
+  reportsAgainst         UserReport[]     @relation("ReportsAgainstUser")
+  blocking               UserBlock[]      @relation("BlockingUsers")
+  blockedBy              UserBlock[]      @relation("BlockedByUsers")
 
   @@map("users")
+}
+
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 model EmailChangeRequest {
@@ -90,6 +174,23 @@ model EmailChangeRequest {
   @@index([userId])
   @@map("email_change_requests")
 }
+
+model SupportRequest {
+  id        Int      @id @default(autoincrement())
+  title     String
+  message   String
+  amount    Float?
+  status    String   @default("pending") 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("support_requests")
+}
+
 
 model Project {
   id                  Int       @id @default(autoincrement())
