@@ -4,6 +4,7 @@
     middleware.ts
     app/
         globals.css
+        icon.png
         layout.tsx
         page.tsx
         (auth)/
@@ -14,6 +15,8 @@
                 page.tsx
         admin/
             page.tsx
+            kategoriler/
+                page.tsx
             kullanicilar/
                 page.tsx
             projeler/
@@ -23,6 +26,8 @@
                         page.tsx
                 yeni/
                     page.tsx
+            raporlar/
+                page.tsx
             sanatcilar/
                 page.tsx
                 duzenle/
@@ -30,12 +35,12 @@
                         page.tsx
                 yeni/
                     page.tsx
-        animeler/
-            page.tsx
-            [slug]/
-                page.tsx
         api/
             admin/
+                categories/
+                    route.ts
+                    [id]/
+                        route.ts
                 cloudinary-utils/
                     delete-image/
                         route.ts
@@ -51,6 +56,10 @@
                         route.ts
                         characters/
                             route.ts
+                reports/
+                    route.ts
+                    [reportId]/
+                        route.ts
                 sanatcilar/
                     route.ts
                     profile-image/
@@ -60,8 +69,10 @@
                 users/
                     [userId]/
                         route.ts
-            animeler/
-                route.ts
+                        ban/
+                            route.ts
+                        update-username/
+                            route.ts
             artists/
                 [artistId]/
                     favorite/
@@ -85,10 +96,19 @@
                 route.ts
                 conversations/
                     route.ts
+                mark-as-read/
+                    route.ts
+                unread-count/
+                    route.ts
                 [userId]/
                     route.ts
-            oyunlar/
+            notifications/
                 route.ts
+            payment/
+                create-session/
+                    route.ts
+                webhook/
+                    route.ts
             profile/
                 route.ts
                 email/
@@ -115,18 +135,31 @@
                         route.ts
                     like/
                         route.ts
+            projeler/
+                route.ts
             register/
+                route.ts
+            sounds/
                 route.ts
             stats/
                 route.ts
             users/
                 [userId]/
+                    (actions)/
+                        block/
+                            route.ts
+                        report/
+                            route.ts
                     activity/
                         route.ts
                     favorite-artists/
                         route.ts
+                    library/
+                        route.ts
                     overview-stats/
                         route.ts
+        banlandiniz/
+            page.tsx
         gizlilik-politikasi/
             page.tsx
         hakkimizda/
@@ -140,10 +173,6 @@
             page.tsx
             [userId]/
                 page.tsx
-        oyunlar/
-            page.tsx
-            [slug]/
-                page.tsx
         profil/
             page.tsx
             dogrula/
@@ -152,6 +181,7 @@
             [username]/
                 page.tsx
         projeler/
+            page.tsx
             [slug]/
                 page.tsx
         sanatcilar/
@@ -160,10 +190,12 @@
                 page.tsx
     components/
         ArtistAvatar.tsx
+        DynamicProjectCover.tsx
         Navbar.tsx
         ProjectCardClient.tsx
         ProjectCardCover.tsx
         ProjectCoverImageClient.tsx
+        ProjectDetailContent.tsx
         ProjectDetailCover.tsx
         Providers.tsx
         admin/
@@ -173,6 +205,8 @@
             AddProjectForm.tsx
             AdminArtistAvatar.tsx
             AdminPageLayout.tsx
+            BanUserButton.tsx
+            CategoryManager.tsx
             CoverImageUploader.tsx
             DeleteArtistButton.tsx
             DeleteProjectButton.tsx
@@ -188,21 +222,13 @@
             ProjectPricingFields.tsx
             ProjectPublishSettings.tsx
             ProjectsTable.tsx
+            ReportManager.tsx
             UpdateUserRole.tsx
-        animes/
-            AnimesPageClient.tsx
-            AnimeTabs.tsx
         artists/
             ArtistInteractionButtons.tsx
         auth/
             GirisPageClient.tsx
-        game/
-            GameTabs.tsx
-        games/
-            FilterSidebar.tsx
-            GamesPageClient.tsx
-            ProjectGrid.tsx
-            SortDropdown.tsx
+            SignOutButton.tsx
         home/
             DubbedAnimeSection.tsx
             DubbedGamesSection.tsx
@@ -221,8 +247,11 @@
             TopProjectCardPlaceholder.tsx
         layout/
             Footer.tsx
+            GlobalSoundPlayer.tsx
             Header.tsx
+            NotificationBell.tsx
             SearchOverlay.tsx
+            UnreadMessagesBadge.tsx
         messages/
             ChatWindowClient.tsx
             ConversationsListClient.tsx
@@ -246,6 +275,13 @@
         project/
             CommentsSection.tsx
             ProjectInteractionButtons.tsx
+        projects/
+            FilterSidebar.tsx
+            ProjectDetailContent.tsx
+            ProjectGrid.tsx
+            ProjectsPageClient.tsx
+            ProjectTabs.tsx
+            SortDropdown.tsx
         ui/
             button.tsx
             card.tsx

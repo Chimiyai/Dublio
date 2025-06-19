@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { PhotoIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
-import { useState, Fragment } from 'react'; // Fragment eklendi
+import { useEffect, useState, Fragment } from 'react'; // Fragment eklendi
 import { Dialog, Transition } from '@headlessui/react'; // Dialog ve Transition import edildi
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils'; // cn fonksiyonunu import edelim
@@ -27,6 +27,24 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false); // Engelli mi?
+  
+  const fetchBlockStatus = async () => {
+    try {
+      const res = await fetch(`/api/users/${profileId}/block-status`);
+      const data = await res.json();
+      setIsBlocked(!!data.isBlocked);
+    } catch {
+      setIsBlocked(false);
+    }
+  };
+
+  // --- ENGEL DURUMUNU BACKEND'DEN ÇEK ---
+  useEffect(() => {
+    if (!isOwnProfile && profileId) {
+      fetchBlockStatus();
+    }
+  }, [profileId, isOwnProfile]);
   
   // Raporlama modalını açan fonksiyon
   const openReportModal = () => {
@@ -42,7 +60,6 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
         setReportDescription('');
     }, 300); // Kapanış animasyonu sonrası
   };
-
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +90,25 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
     }
   };
 
-  const handleBlock = async () => { /* ... (Bu fonksiyon aynı kalabilir) ... */ };
+  const handleBlock = async () => {
+    const toastId = toast.loading(isBlocked ? "Engel kaldırılıyor..." : "Kullanıcı engelleniyor...");
+    try {
+      // ARTIK BODY GÖNDERMİYORUZ. API KENDİSİ KARAR VERECEK.
+      const response = await fetch(`/api/users/${profileId}/block`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      toast.success(data.message, { id: toastId });
+      setIsOptionsMenuOpen(false);
+      // Engel durumunu anında güncellemek için state'i tersine çevirebiliriz.
+      // Veya sunucudan taze veri çekebiliriz. İkisi de olur.
+      setIsBlocked(!isBlocked); // Optimistic UI update
+      // fetchBlockStatus(); // Veya sunucudan tekrar çekerek %100 doğrulama
+    } catch (error) {
+      toast.error((error as Error).message, { id: toastId });
+    }
+};
 
   const reportReasons = ["Spam veya Alakasız İçerik", "Taciz veya Zorbalık", "Uygunsuz Profil Bilgileri (İsim, Resim, Bio)", "Taklitçilik", "Diğer"];
 
@@ -121,10 +156,10 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
                   Kullanıcıyı Raporla
                 </button>
                 <button
-                  onClick={handleBlock} // YENİ FONKSİYON
+                  onClick={handleBlock}
                   className="block w-full text-left px-4 py-2 text-xs text-gray-300 hover:bg-gray-700/50 hover:text-white"
                 >
-                  Kullanıcıyı Engelle/Engeli Kaldır
+                  {isBlocked ? "Engeli Kaldır" : "Kullanıcıyı Engelle"}
                 </button>
                 {/* Başka seçenekler eklenebilir */}
               </div>
