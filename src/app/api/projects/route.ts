@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client'; // Prisma tiplerini import et
 
+export const dynamic = 'force-dynamic';
+
 // Prisma'dan dönen proje için bir tip (API'den dönen veri yapısıyla eşleşmeli)
 interface PrismaCategory {
   id: number; // Şemanızda Int, bu yüzden number olmalı
