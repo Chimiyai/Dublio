@@ -108,7 +108,7 @@ export default function Navbar() {
     { label: 'Oyunlar', dropdownId: 'oyunlarDropdown', dropdownContent: oyunlarDropdownContent },
     { label: 'Animeler', dropdownId: 'animelerDropdown', dropdownContent: animelerDropdownContent },
     { label: 'Kadromuz', href: '/kadromuz' },
-    { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/8Uh4yrXeBg' },
+    { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/9hX4GJtEsX' },
   ];
 
   return (

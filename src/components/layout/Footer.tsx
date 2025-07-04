@@ -72,7 +72,7 @@ const Footer = () => {
   const socialLinks = [
     { label: "Instagram", href: "https://www.instagram.com/prestij_studios/", iconClass: "fab fa-instagram" },
     { label: "TikTok", href: "https://www.tiktok.com/@prestijstudiofficial", iconClass: "fab fa-tiktok" },
-    { label: "Discord", target:'_blank', href: "https://discord.gg/8Uh4yrXeBg", iconClass: "fab fa-discord" },
+    { label: "Discord", target:'_blank', href: "https://discord.gg/9hX4GJtEsX", iconClass: "fab fa-discord" },
     { label: "Youtube", target:'_blank', href: "https://www.youtube.com/channel/UCuChIjgg-T3q1V6sPpPApdQ", iconClass: "fab fa-youtube" },
   ];
 

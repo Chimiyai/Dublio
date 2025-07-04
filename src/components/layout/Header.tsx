@@ -39,7 +39,7 @@ const navLinksData = [
   { label: 'Oyunlar', href: 'oyunlar', dropdownId: 'oyunlarDropdown' },
   { label: 'Animeler', href: 'animeler', dropdownId: 'animelerDropdown' },
   { label: 'Kadromuz', href: '/kadromuz' },
-  { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/8Uh4yrXeBg' },
+  { label: 'Bize Katıl!', target:'_blank', href: 'https://discord.gg/9hX4GJtEsX' },
 ];
 
 // Tip tanımlamalarını ekleyelim (isteğe bağlı ama iyi pratik)
@@ -284,7 +284,7 @@ const handleDownloadClick = () => {
     { label: 'Oyunlar', href: '/oyunlar', dropdownId: 'oyunlarDropdown' },
     { label: 'Animeler', href: '/animeler', dropdownId: 'animelerDropdown' },
     { label: 'Kadromuz', href: '/kadromuz' },
-    { label: 'Bize Katıl!', href: 'https://discord.gg/8Uh4yrXeBg' },
+    { label: 'Bize Katıl!', href: 'https://discord.gg/9hX4GJtEsX' },
   ];
 
   if (session?.user) {
@@ -311,7 +311,7 @@ const handleDownloadClick = () => {
       });
     }
     mainItems.push({ label: 'Kadromuz', action: 'link', href: '/kadromuz' });
-    mainItems.push({ label: 'Bize Katıl!', action: 'link', href: 'https://discord.gg/8Uh4yrXeBg' });
+    mainItems.push({ label: 'Bize Katıl!', action: 'link', href: 'https://discord.gg/9hX4GJtEsX' });
 
     if (session?.user?.role === 'admin' && !isLoadingSession) {
       mainItems.push({ label: 'Admin Paneli', action: 'link', href: '/admin' });
