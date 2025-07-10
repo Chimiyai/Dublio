@@ -70,20 +70,11 @@ export default function ProjectDetailContent({
     toast.loading('Ödeme sayfasına yönlendiriliyorsunuz...');
 
     try {
-      const response = await fetch('/api/payment/create-session', {
+      // YENİ API ROTASINI ÇAĞIR
+      const response = await fetch('/api/payment/shopier', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId: project.id,
-          title: project.title,
-          price: project.price,
-          currency: project.currency || 'TRY',
-          // Başarılı ve iptal URL'lerini de backend'e gönderebiliriz
-          successUrl: window.location.href, // Mevcut sayfa URL'i
-          cancelUrl: window.location.href, // Mevcut sayfa URL'i
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id }),
       });
 
       const sessionData = await response.json();
@@ -93,11 +84,16 @@ export default function ProjectDetailContent({
         throw new Error(sessionData.message || 'Ödeme oturumu oluşturulamadı.');
       }
 
-      if (sessionData.checkoutUrl) {
-        // Kullanıcıyı Pytr'ın ödeme sayfasına yönlendir
-        window.location.href = sessionData.checkoutUrl;
+      if (sessionData.paymentHTML) {
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(sessionData.paymentHTML);
+          newWindow.document.close();
+        } else {
+          throw new Error('Tarayıcı yeni pencere açmayı engelledi. Lütfen popup engelleyiciyi devre dışı bırakın.');
+        }
       } else {
-        throw new Error('Ödeme URL\'i alınamadı.');
+        throw new Error('Ödeme formu alınamadı.');
       }
 
     } catch (error) {
