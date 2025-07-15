@@ -70,8 +70,8 @@ const Footer = () => {
     { label: "Site Hakkında", href: "/hakkimizda" }, // Gerçek yolları kullanın
   ];
   const socialLinks = [
-    { label: "Instagram", href: "https://www.instagram.com/prestij_studios/", iconClass: "fab fa-instagram" },
-    { label: "TikTok", href: "https://www.tiktok.com/@prestijstudiofficial", iconClass: "fab fa-tiktok" },
+    { label: "Instagram", href: "https://www.instagram.com/dublio_studios/", iconClass: "fab fa-instagram" },
+    { label: "TikTok", href: "https://www.tiktok.com/@dubliostudiofficial", iconClass: "fab fa-tiktok" },
     { label: "Discord", target:'_blank', href: "https://discord.gg/9hX4GJtEsX", iconClass: "fab fa-discord" },
     { label: "Youtube", target:'_blank', href: "https://www.youtube.com/channel/UCuChIjgg-T3q1V6sPpPApdQ", iconClass: "fab fa-youtube" },
   ];
@@ -188,8 +188,8 @@ const Footer = () => {
               ))}
             </div>
             <p className="contact-label text-footer-contact-label-text text-xs mb-1 mt-4">E-Mail</p>
-            <a href="mailto:iletisim@prestijstudio.com" className="email-link text-footer-link-text hover:text-footer-link-hover-text hover:underline font-medium transition-colors break-all text-xs sm:text-sm">
-              iletisim@prestijstudio.com {/* Gerçek mail adresi */}
+            <a href="mailto:iletisim@dubliostudio.com" className="email-link text-footer-link-text hover:text-footer-link-hover-text hover:underline font-medium transition-colors break-all text-xs sm:text-sm">
+              iletisim@dubliostudio.com {/* Gerçek mail adresi */}
             </a>
           </div>
         </div>

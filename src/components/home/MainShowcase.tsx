@@ -95,9 +95,9 @@ const MainShowcase: React.FC<MainShowcaseProps> = (props) => {
 
   let categoryTypeClass = 'bg-gray-700';
   const normalizedCategory = displayData.category.toLowerCase();
-  if (normalizedCategory === 'oyun') categoryTypeClass = 'bg-prestij-type-game';
-  else if (normalizedCategory === 'anime') categoryTypeClass = 'bg-prestij-type-anime';
-  else if (normalizedCategory === 'öne çıkan') categoryTypeClass = 'bg-prestij-purple';
+  if (normalizedCategory === 'oyun') categoryTypeClass = 'bg-dublio-type-game';
+  else if (normalizedCategory === 'anime') categoryTypeClass = 'bg-dublio-type-anime';
+  else if (normalizedCategory === 'öne çıkan') categoryTypeClass = 'bg-dublio-purple';
 
   const visualWrapperClasses = cn(
     "hero-main-visual-wrapper absolute inset-0 overflow-hidden z-[1]",
@@ -136,9 +136,9 @@ const MainShowcase: React.FC<MainShowcaseProps> = (props) => {
       href={displayData.detailsUrl}
       className="hero-main-showcase-link group block rounded-lg sm:rounded-xl overflow-hidden relative shadow-lg w-full h-full
                  transition-transform duration-300 ease-out hover:-translate-y-1 sm:hover:-translate-y-1.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)] sm:hover:shadow-[0_12px_35px_rgba(0,0,0,0.2)]
-                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-prestij-purple focus-visible:ring-offset-2 focus-visible:ring-offset-prestij-bg-dark-3"
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dublio-purple focus-visible:ring-offset-2 focus-visible:ring-offset-dublio-bg-dark-3"
     >
-      <div className="hero-main-showcase w-full h-full relative flex bg-prestij-bg-dark-2 aspect-[4/3] xs:aspect-[16/9] sm:aspect-video lg:aspect-[16/7.5] overflow-hidden">
+      <div className="hero-main-showcase w-full h-full relative flex bg-dublio-bg-dark-2 aspect-[4/3] xs:aspect-[16/9] sm:aspect-video lg:aspect-[16/7.5] overflow-hidden">
         <div className={visualWrapperClasses}>
           <Image
             key={`banner-${displayData.key}`} // Bu key önemli, src değişince Image'ın yeniden render olmasını sağlar
@@ -219,9 +219,9 @@ const MainShowcase: React.FC<MainShowcaseProps> = (props) => {
             </p>
             <div className="hero-main-actions flex flex-row items-center gap-2 sm:gap-3">
   <button className={cn(
-    "btn btn-primary btn-play-now bg-prestij-purple text-white border-none",
+    "btn btn-primary btn-play-now bg-dublio-purple text-white border-none",
     "font-medium rounded-md uppercase tracking-wider whitespace-nowrap",
-    "hover:bg-prestij-purple-darker hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(139,78,255,0.3)]",
+    "hover:bg-dublio-purple-darker hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(139,78,255,0.3)]",
     "transition-all duration-200",
     "text-[0.7em] py-1.5 px-3", // Daha küçük padding ve font
     "sm:text-[0.75em] sm:py-2 sm:px-4",

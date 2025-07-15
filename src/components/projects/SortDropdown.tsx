@@ -48,9 +48,9 @@ export default function SortDropdown({ value, onChange, options }: SortDropdownP
   return (
     <Menu as="div" className="relative inline-block text-left z-10"> {/* z-index eklendi */}
       <div>
-        <Menu.Button className="inline-flex w-full min-w-[220px] sm:min-w-[240px] justify-between items-center gap-x-1.5 rounded-md bg-prestij-input-bg px-3 py-2 text-xs sm:text-sm font-medium text-prestij-text-secondary hover:bg-prestij-input-bg/80 shadow-sm ring-1 ring-inset ring-prestij-border-dark focus:outline-none focus:ring-2 focus:ring-prestij-500">
+        <Menu.Button className="inline-flex w-full min-w-[220px] sm:min-w-[240px] justify-between items-center gap-x-1.5 rounded-md bg-dublio-input-bg px-3 py-2 text-xs sm:text-sm font-medium text-dublio-text-secondary hover:bg-dublio-input-bg/80 shadow-sm ring-1 ring-inset ring-dublio-border-dark focus:outline-none focus:ring-2 focus:ring-dublio-500">
           <span className="truncate">{buttonLabel}</span>
-          <ChevronDownIcon className="-mr-1 h-5 w-5 text-prestij-text-muted" aria-hidden="true" />
+          <ChevronDownIcon className="-mr-1 h-5 w-5 text-dublio-text-muted" aria-hidden="true" />
         </Menu.Button>
       </div>
 
@@ -63,14 +63,14 @@ export default function SortDropdown({ value, onChange, options }: SortDropdownP
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute right-0 z-20 mt-2 w-64 origin-top-right rounded-md bg-prestij-sidebar-bg shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-prestij-input-bg">
+        <Menu.Items className="absolute right-0 z-20 mt-2 w-64 origin-top-right rounded-md bg-dublio-sidebar-bg shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-dublio-border-dark scrollbar-track-dublio-input-bg">
           <div className="py-1">
             {groupOrder.map((groupName, groupIndex) => {
               if (!groupedOptions[groupName]) return null;
               return (
                 <div key={groupName} className="px-1 py-1">
                   {groupOrder.length > 1 && ( // Her zaman grup başlığını göster
-                    <div className="px-3 pt-1 pb-2 text-xs font-semibold text-prestij-text-muted uppercase tracking-wider">
+                    <div className="px-3 pt-1 pb-2 text-xs font-semibold text-dublio-text-muted uppercase tracking-wider">
                       {groupName}
                     </div>
                   )}
@@ -81,14 +81,14 @@ export default function SortDropdown({ value, onChange, options }: SortDropdownP
                           onClick={() => onChange(option.value)}
                           className={cn(
                             'group flex w-full items-center rounded-md px-3 py-2 text-sm text-left', // text-left eklendi
-                            active ? 'bg-prestij-input-bg text-prestij-text-primary' : 'text-prestij-text-secondary',
+                            active ? 'bg-dublio-input-bg text-dublio-text-primary' : 'text-dublio-text-secondary',
                             value === option.value
-                              ? 'font-semibold text-prestij-400'
+                              ? 'font-semibold text-dublio-400'
                               : ''
                           )}
                         >
                           {value === option.value && (
-                            <CheckIcon className="mr-2 h-4 w-4 text-prestij-500 flex-shrink-0" aria-hidden="true" />
+                            <CheckIcon className="mr-2 h-4 w-4 text-dublio-500 flex-shrink-0" aria-hidden="true" />
                           )}
                           <span className={cn(value === option.value ? '' : 'ml-6')}>
                             {option.label}
@@ -99,7 +99,7 @@ export default function SortDropdown({ value, onChange, options }: SortDropdownP
                   ))}
                   {/* Gruplar arası ayırıcı (son grup hariç) */}
                   {groupIndex < groupOrder.length - 1 && (
-                     <div className="my-1 h-px bg-prestij-border-dark/50 mx-3"></div>
+                     <div className="my-1 h-px bg-dublio-border-dark/50 mx-3"></div>
                   )}
                 </div>
               );

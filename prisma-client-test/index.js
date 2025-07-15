@@ -167,7 +167,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\prestij-dublaj-sitesi\\prisma-client-test",
+      "value": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\dublio-dublaj-sitesi\\prisma-client-test",
       "fromEnvVar": null
     },
     "config": {
@@ -181,7 +181,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\prestij-dublaj-sitesi\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\dublio-dublaj-sitesi\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

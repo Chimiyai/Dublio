@@ -120,7 +120,7 @@ const HeroSection = () => {
 
   if (isLoading) {
     return (
-      <section className="hero-section bg-prestij-bg-dark-3 py-8 mb-12 overflow-hidden">
+      <section className="hero-section bg-dublio-bg-dark-3 py-8 mb-12 overflow-hidden">
         <div className="container mx-auto px-4">
           {/* Üstteki 3 Favori Kart Placeholder */}
           <div className="top-projects-row flex flex-col md:flex-row justify-center md:justify-between gap-5 mb-8">
@@ -146,7 +146,7 @@ const HeroSection = () => {
   }
 
   return (
-    <section className="hero-section bg-prestij-bg-dark-3 py-8 overflow-hidden">
+    <section className="hero-section bg-dublio-bg-dark-3 py-8 overflow-hidden">
       <div className="container mx-auto px-4">
       {topProjects.length > 0 && (
           <div className="top-projects-row flex flex-col md:flex-row justify-center md:justify-between gap-5 mb-8">
@@ -169,7 +169,7 @@ const HeroSection = () => {
       )}
       {!isLoading && topProjects.length === 0 && sideListData.length === 0 && (
         <div className="min-h-[100px] flex justify-center items-center mb-8">
-            <p className="text-prestij-text-dark">Şu anda öne çıkan proje bulunmuyor.</p>
+            <p className="text-dublio-text-dark">Şu anda öne çıkan proje bulunmuyor.</p>
         </div>
       )}
 
@@ -209,7 +209,7 @@ const HeroSection = () => {
                 );
             })()
         ) : (
-            !isLoading && <div className="min-h-[400px] flex justify-center items-center"><p className="text-prestij-text-dark">Gösterilecek ana içerik bulunamadı.</p></div>
+            !isLoading && <div className="min-h-[400px] flex justify-center items-center"><p className="text-dublio-text-dark">Gösterilecek ana içerik bulunamadı.</p></div>
         )}
       </div>
     </section>

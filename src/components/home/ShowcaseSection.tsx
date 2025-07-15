@@ -36,15 +36,15 @@ const ShowcaseSection: React.FC<ShowcaseSectionProps> = ({
   // Eğer hiç item yoksa ve yükleme de bitmişse, bölümü hiç gösterme veya mesaj göster
   if (items.length === 0) {
     return (
-      <section className={`showcase-section py-[20px] md:pb-[40px] bg-prestij-bg-dark-section`}>
+      <section className={`showcase-section py-[20px] md:pb-[40px] bg-dublio-bg-dark-section`}>
         <div className="container mx-auto">
           <div className="section-header flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 px-4 sm:px-0">
-            <h2 className="section-title text-[1.6em] sm:text-[1.8em] font-semibold text-prestij-text-primary mb-2 sm:mb-0">
+            <h2 className="section-title text-[1.6em] sm:text-[1.8em] font-semibold text-dublio-text-primary mb-2 sm:mb-0">
               {sectionTitle}
             </h2>
             {/* Meta bilgisi ve istek butonu gösterilmeyebilir */}
           </div>
-          <p className="text-center text-prestij-text-dark py-8">Bu bölümde gösterilecek içerik bulunmuyor.</p>
+          <p className="text-center text-dublio-text-dark py-8">Bu bölümde gösterilecek içerik bulunmuyor.</p>
         </div>
       </section>
     );
@@ -52,7 +52,7 @@ const ShowcaseSection: React.FC<ShowcaseSectionProps> = ({
 
   return (
     // Orijinal CSS: .showcase-section { padding: 20px 0 40px 0; }
-    <section className={`showcase-section py-[20px] md:pb-[40px] bg-prestij-bg-dark-section `}>
+    <section className={`showcase-section py-[20px] md:pb-[40px] bg-dublio-bg-dark-section `}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-8 md:pt-10"> {/* Container padding'leri */}
         {/* Orijinal CSS: .showcase-section .section-header */}
         <div className="section-header flex flex-col sm:flex-row justify-between items-start sm:items-center mb-[30px]">
@@ -71,7 +71,7 @@ const ShowcaseSection: React.FC<ShowcaseSectionProps> = ({
               className="btn-dub-request text-[0.75em] sm:text-[0.85em] font-medium py-[6px] px-3 sm:py-2 sm:px-[18px]
                          bg-[#231B36] text-[#D1D1D1] border border-[#28282C] rounded-md
                          transition-colors duration-200 ease-in-out
-                         hover:bg-prestij-purple hover:border-prestij-purple hover:text-white"
+                         hover:bg-dublio-purple hover:border-dublio-purple hover:text-white"
             >
               Dublaj İsteği Gönder
             </Link>

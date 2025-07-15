@@ -56,11 +56,11 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ userId }) => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-5 animate-pulse">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="rounded-xl overflow-hidden bg-prestij-sidebar-bg/50 shadow-lg">
-                <div className="w-full aspect-[3/4] bg-prestij-input-bg/50"></div>
+            <div key={i} className="rounded-xl overflow-hidden bg-dublio-sidebar-bg/50 shadow-lg">
+                <div className="w-full aspect-[3/4] bg-dublio-input-bg/50"></div>
                 <div className="p-4 space-y-3">
-                  <div className="h-5 bg-prestij-input-bg/50 rounded w-3/4"></div>
-                  <div className="h-4 bg-prestij-input-bg/50 rounded w-1/2"></div>
+                  <div className="h-5 bg-dublio-input-bg/50 rounded w-3/4"></div>
+                  <div className="h-4 bg-dublio-input-bg/50 rounded w-1/2"></div>
                 </div>
             </div>
           ))}
@@ -77,7 +77,7 @@ const LibraryContent: React.FC<LibraryContentProps> = ({ userId }) => {
         <span className="text-sm text-gray-400 mt-1 sm:mt-0">Toplam {libraryItems.length} Oyun</span>
       </div>
        {libraryItems.length === 0 ? (
-        <div className="text-center text-gray-400 py-16 px-6 bg-prestij-sidebar-bg/30 rounded-lg">
+        <div className="text-center text-gray-400 py-16 px-6 bg-dublio-sidebar-bg/30 rounded-lg">
           <PhotoIcon className="w-16 h-16 mx-auto text-gray-500 mb-4" />
           <h3 className="text-lg font-semibold text-white">Kütüphane Boş</h3>
           <p className="mt-1 text-sm">Satın aldığınız ücretli oyunlar burada görünecektir.</p>

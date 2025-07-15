@@ -25,7 +25,7 @@ const SideShowcaseItem: React.FC<SideShowcaseItemProps> = ({
   // releaseDate // Eğer prop olarak alırsan
 }) => {
   const typeNormalized = type.toLowerCase();
-  const typeBgClass = typeNormalized === 'oyun' ? 'bg-prestij-type-game' : typeNormalized === 'anime' ? 'bg-prestij-type-anime' : 'bg-gray-500';
+  const typeBgClass = typeNormalized === 'oyun' ? 'bg-dublio-type-game' : typeNormalized === 'anime' ? 'bg-dublio-type-anime' : 'bg-gray-500';
 
   const finalCoverUrl: string | StaticImageData = getCloudinaryImageUrlOptimized(coverUrl, { width: 65, height: 65, crop: 'thumb' }, 'cover');
   const finalBannerUrl: string | StaticImageData = getCloudinaryImageUrlOptimized(bannerUrl, { width: 196, height: 65, crop: 'fill' }, 'banner');
@@ -34,16 +34,16 @@ const SideShowcaseItem: React.FC<SideShowcaseItemProps> = ({
     <button
       onClick={onClick}
       className={cn(
-        "side-list-item-link block w-full rounded-lg relative overflow-hidden bg-prestij-bg-card-2 group h-full",
+        "side-list-item-link block w-full rounded-lg relative overflow-hidden bg-dublio-bg-card-2 group h-full",
         "transition-all duration-300 ease-out",
         "hover:-translate-y-1 hover:shadow-xl",
-        isActive && "ring-2 ring-prestij-purple shadow-lg z-10"
+        isActive && "ring-2 ring-dublio-purple shadow-lg z-10"
       )}
       style={{ minHeight: '65px' }}
     >
       <div className={cn(
           "absolute -inset-2 opacity-0 transition-opacity duration-300 ease-out pointer-events-none rounded-xl",
-          "bg-gradient-radial from-prestij-purple/20 via-prestij-purple/5 to-transparent",
+          "bg-gradient-radial from-dublio-purple/20 via-dublio-purple/5 to-transparent",
           isActive ? "opacity-60 scale-105" : "group-hover:opacity-40"
       )}></div>
       
@@ -60,7 +60,7 @@ const SideShowcaseItem: React.FC<SideShowcaseItemProps> = ({
           <span className={`${typeBgClass} text-white inline-block self-start text-[0.65em] font-semibold rounded px-[6px] py-[2px] leading-none mb-0.5`}>
             {type}
           </span>
-          <span className="side-item-title text-prestij-text-secondary text-[0.9em] font-medium truncate text-shadow-sm leading-tight" title={cardTitle}>
+          <span className="side-item-title text-dublio-text-secondary text-[0.9em] font-medium truncate text-shadow-sm leading-tight" title={cardTitle}>
             {cardTitle}
           </span>
           {/* Eğer buraya tarih eklenecekse: */}

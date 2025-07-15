@@ -43,12 +43,12 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
 
 
   return (
-    <nav className="flex items-center justify-between border-t border-prestij-border-dark px-4 py-3 sm:px-6" aria-label="Pagination">
+    <nav className="flex items-center justify-between border-t border-dublio-border-dark px-4 py-3 sm:px-6" aria-label="Pagination">
       <div className="flex flex-1 justify-between sm:justify-end">
         <button
           onClick={handlePrevious}
           disabled={currentPage === 1}
-          className="relative inline-flex items-center rounded-md bg-prestij-input-bg px-3 py-2 text-sm font-medium text-prestij-text-secondary hover:bg-prestij-input-bg/80 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative inline-flex items-center rounded-md bg-dublio-input-bg px-3 py-2 text-sm font-medium text-dublio-text-secondary hover:bg-dublio-input-bg/80 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeftIcon className="h-5 w-5 mr-1" aria-hidden="true" />
           Önceki
@@ -64,14 +64,14 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
                     aria-current={currentPage === page ? 'page' : undefined}
                     className={`relative inline-flex items-center px-3 py-1.5 mx-0.5 text-xs font-medium rounded-md transition-colors
                     ${ currentPage === page 
-                        ? 'z-10 bg-prestij-500 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-prestij-500' 
-                        : 'text-prestij-text-secondary hover:bg-prestij-input-bg/70'
+                        ? 'z-10 bg-dublio-500 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dublio-500' 
+                        : 'text-dublio-text-secondary hover:bg-dublio-input-bg/70'
                     }`}
                 >
                     {page}
                 </button>
                 ) : (
-                <span key={`ellipsis-${index}`} className="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-prestij-text-muted">
+                <span key={`ellipsis-${index}`} className="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-dublio-text-muted">
                     ...
                 </span>
                 )
@@ -82,7 +82,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
         <button
           onClick={handleNext}
           disabled={currentPage === totalPages}
-          className="relative ml-3 inline-flex items-center rounded-md bg-prestij-input-bg px-3 py-2 text-sm font-medium text-prestij-text-secondary hover:bg-prestij-input-bg/80 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative ml-3 inline-flex items-center rounded-md bg-dublio-input-bg px-3 py-2 text-sm font-medium text-dublio-text-secondary hover:bg-dublio-input-bg/80 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Sonraki
           <ChevronRightIcon className="h-5 w-5 ml-1" aria-hidden="true" />

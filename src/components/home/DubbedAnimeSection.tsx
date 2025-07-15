@@ -67,7 +67,7 @@ const DubbedAnimeSection = () => {
   }, []);
 
   if (isLoading) {
-    return <div className="container mx-auto py-8 text-center text-prestij-text-dark">Animeler yükleniyor...</div>;
+    return <div className="container mx-auto py-8 text-center text-dublio-text-dark">Animeler yükleniyor...</div>;
   }
 
   if (error) {
@@ -86,7 +86,7 @@ const DubbedAnimeSection = () => {
   }));
 
   if (showcaseItems.length === 0 && !isLoading) {
-     return <div className="container mx-auto py-8 text-center text-prestij-text-dark">Gösterilecek anime projesi bulunamadı.</div>;
+     return <div className="container mx-auto py-8 text-center text-dublio-text-dark">Gösterilecek anime projesi bulunamadı.</div>;
   }
 
   return (

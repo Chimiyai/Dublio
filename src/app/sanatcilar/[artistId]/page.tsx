@@ -171,9 +171,9 @@ export default async function ArtistDetailPage(
   const uniqueProjectsToDisplay = Array.from(groupedProjects.values());
 
   return (
-    <div className="bg-prestij-dark-900 min-h-screen py-8">
+    <div className="bg-dublio-dark-900 min-h-screen py-8">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center md:items-start mb-10 md:mb-12 bg-prestij-sidebar-bg p-6 sm:p-8 rounded-xl shadow-2xl">
+        <div className="flex flex-col md:flex-row items-center md:items-start mb-10 md:mb-12 bg-dublio-sidebar-bg p-6 sm:p-8 rounded-xl shadow-2xl">
           <div className="relative w-36 h-36 md:w-48 md:h-48 rounded-full mr-[20px]">
       <ArtistAvatar 
         publicId={artist.imagePublicId} // <<== BU DEĞER null VEYA UNDEFINED MI?
@@ -193,7 +193,7 @@ export default async function ArtistDetailPage(
               initialUserFavorited={artist.userFavorited || false} // undefined ise false ata
             />
             {artist.bio && (
-              <div className="mt-4 text-prestij-text-secondary prose prose-sm dark:prose-invert max-w-none md:max-w-xl leading-relaxed">
+              <div className="mt-4 text-dublio-text-secondary prose prose-sm dark:prose-invert max-w-none md:max-w-xl leading-relaxed">
                 <p className="whitespace-pre-line">{artist.bio}</p>
               </div>
             )}
@@ -209,7 +209,7 @@ export default async function ArtistDetailPage(
                 <Link
                   href={project.type === 'oyun' ? `/oyunlar/${project.slug}` : `/animeler/${project.slug}`}
                   key={project.id}
-                  className="group block bg-prestij-card-bg rounded-xl shadow-lg hover:shadow-prestij-500/20 overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1"
+                  className="group block bg-dublio-card-bg rounded-xl shadow-lg hover:shadow-dublio-500/20 overflow-hidden transition-all duration-300 ease-out transform hover:-translate-y-1"
                 >
                   <div className="relative w-full aspect-[3/4]">
                     <ProjectCardCover
@@ -218,10 +218,10 @@ export default async function ArtistDetailPage(
                     />
                   </div>
                   <div className="p-3.5">
-                    <h3 className="text-base font-semibold text-prestij-text-primary mb-1 group-hover:text-prestij-400 transition-colors truncate" title={project.title}>
+                    <h3 className="text-base font-semibold text-dublio-text-primary mb-1 group-hover:text-dublio-400 transition-colors truncate" title={project.title}>
                       {project.title}
                     </h3>
-                    <p className="text-xs text-prestij-text-muted mb-1.5">
+                    <p className="text-xs text-dublio-text-muted mb-1.5">
                       {project.type === 'oyun' ? 'Oyun' : 'Anime'}
                       {project.releaseDate
                         ? ` - ${format(new Date(project.releaseDate), 'yyyy')}`
@@ -230,7 +230,7 @@ export default async function ArtistDetailPage(
                     <div className="text-2xs space-y-0.5">
                       {rolesAndCharacters.map((rc, index) => (
                         <div key={index} className="flex items-center">
-                          <span className="inline-block px-1.5 py-0.5 rounded-sm bg-prestij-input-bg text-prestij-text-secondary mr-1.5 leading-none">
+                          <span className="inline-block px-1.5 py-0.5 rounded-sm bg-dublio-input-bg text-dublio-text-secondary mr-1.5 leading-none">
                             {formatProjectRole(rc.role)}
                           </span>
                           {rc.characters && rc.characters.length > 0 && (
@@ -245,7 +245,7 @@ export default async function ArtistDetailPage(
                 </Link>
               ))}
             </div>
-          ) : ( <p className="text-center text-prestij-text-secondary py-10">
+          ) : ( <p className="text-center text-dublio-text-secondary py-10">
               Bu sanatçının henüz katkıda bulunduğu bir proje bulunmuyor.
             </p> )}
         </div>

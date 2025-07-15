@@ -109,7 +109,7 @@ const PopularContentSection = () => {
                 onClick={() => handleContentTypeChange('Oyun')}
                 className={`btn filter-btn text-sm sm:text-base py-1.5 px-4 sm:px-5 rounded-full border transition-colors
                             ${activeContentType === 'Oyun' 
-                              ? 'bg-prestij-purple text-white border-prestij-purple'
+                              ? 'bg-dublio-purple text-white border-dublio-purple'
                               : 'bg-transparent text-gray-400 border-gray-700 hover:bg-gray-700/50 hover:text-gray-200 hover:border-gray-600'}`}
               >
                 Oyun
@@ -120,7 +120,7 @@ const PopularContentSection = () => {
                 onClick={() => handleContentTypeChange('Anime')}
                 className={`btn filter-btn text-sm sm:text-base py-1.5 px-4 sm:px-5 rounded-full border transition-colors
                             ${activeContentType === 'Anime' 
-                              ? 'bg-prestij-purple text-white border-prestij-purple'
+                              ? 'bg-dublio-purple text-white border-dublio-purple'
                               : 'bg-transparent text-gray-400 border-gray-700 hover:bg-gray-700/50 hover:text-gray-200 hover:border-gray-600'}`}
               >
                 Anime
@@ -156,7 +156,7 @@ const PopularContentSection = () => {
           </div>
         </div>
 
-        {isLoading && <p className="text-center text-prestij-text-dark py-10">İçerikler yükleniyor...</p>}
+        {isLoading && <p className="text-center text-dublio-text-dark py-10">İçerikler yükleniyor...</p>}
         {!isLoading && error && <p className="text-center text-red-500 py-10">Hata: {error}</p>}
         {!isLoading && !error && displayedItems.length > 0 && (
           <div className="popular-games-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mx-auto px-4">
@@ -180,7 +180,7 @@ const PopularContentSection = () => {
           </div>
         )}
         {!isLoading && !error && displayedItems.length === 0 && (
-          <p className="text-center text-prestij-text-muted py-10">Bu kriterlere uygun içerik bulunamadı.</p>
+          <p className="text-center text-dublio-text-muted py-10">Bu kriterlere uygun içerik bulunamadı.</p>
         )}
       </div>
     </section>

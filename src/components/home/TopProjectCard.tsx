@@ -31,7 +31,7 @@ const TopProjectCard: React.FC<TopProjectCardProps> = ({
   description,
 }) => {
   const itemTypePath = type.toLowerCase() === 'oyun' ? 'oyunlar' : 'animeler';
-  const typeSpecificClass = type === 'Oyun' ? 'project-type-oyun bg-prestij-type-game' : 'project-type-anime bg-prestij-type-anime';
+  const typeSpecificClass = type === 'Oyun' ? 'project-type-oyun bg-dublio-type-game' : 'project-type-anime bg-dublio-type-anime';
   const typeTextClass = 'text-white';
 
   const finalBannerUrl: string = getCloudinaryImageUrlOptimized(
@@ -51,9 +51,9 @@ console.log(`Component: ${title}, Final Cover URL for Image:`, finalCoverUrl);
   return (
     <Link
       href={`/${itemTypePath}/${slug}`}
-      className="group/card flex-1 min-w-0 rounded-lg text-white no-underline transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-prestij-purple"
+      className="group/card flex-1 min-w-0 rounded-lg text-white no-underline transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(0,0,0,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dublio-purple"
     >
-      <div className="top-project-item bg-prestij-bg-card-1 rounded-lg flex flex-col overflow-hidden h-full relative">
+      <div className="top-project-item bg-dublio-bg-card-1 rounded-lg flex flex-col overflow-hidden h-full relative">
         {/* Banner Alanı */}
         <div className="top-project-banner w-full aspect-[16/7] overflow-hidden relative bg-[#050308]">
           {/* Banner resmi */}
@@ -101,16 +101,16 @@ console.log(`Component: ${title}, Final Cover URL for Image:`, finalCoverUrl);
 />
           
           <div className="top-project-text flex flex-col justify-end flex-grow overflow-hidden">
-            <span className="project-title font-semibold text-prestij-text-primary text-base leading-tight mb-1"> {/* Boyutu küçülttüm, mb-1 yaptım */}
+            <span className="project-title font-semibold text-dublio-text-primary text-base leading-tight mb-1"> {/* Boyutu küçülttüm, mb-1 yaptım */}
               {title}
             </span>
             {description && (
-              <p className="project-description text-xs text-prestij-text-secondary/80 leading-snug mb-1 line-clamp-2">
+              <p className="project-description text-xs text-dublio-text-secondary/80 leading-snug mb-1 line-clamp-2">
                 {truncateText(description, 50)} {/* 100 karakter ile sınırlandır */}
               </p>
             )}
             {date && (
-              <span className="project-date text-[0.7rem] text-prestij-text-muted/70">
+              <span className="project-date text-[0.7rem] text-dublio-text-muted/70">
                 {formatDate(date)} {/* date direkt kullanmak yerine formatDate ile formatlayın */}
               </span>
             )}

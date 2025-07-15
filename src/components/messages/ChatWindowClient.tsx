@@ -52,7 +52,7 @@ function MessageItem({ message, isSender }: { message: Message; isSender: boolea
           {avatarUrl ? (
              <NextImage src={avatarUrl} alt={message.sender.username} width={36} height={36} className="rounded-full object-cover"/>
           ) : (
-            <UserCircleIcon className="w-9 h-9 text-prestij-gray-500" />
+            <UserCircleIcon className="w-9 h-9 text-dublio-gray-500" />
           )}
         </Link>
       )}
@@ -61,14 +61,14 @@ function MessageItem({ message, isSender }: { message: Message; isSender: boolea
         className={cn(
             "max-w-[70%] sm:max-w-[65%] p-3 rounded-xl shadow-md min-w-0", // Daha belirgin köşe, padding ayarlandı
             isSender
-                ? "bg-prestij-500 text-white rounded-br-md" // Kendi mesajın
-                : "bg-prestij-message-other text-prestij-text-primary rounded-bl-md" // Diğerinin mesajı
+                ? "bg-dublio-500 text-white rounded-br-md" // Kendi mesajın
+                : "bg-dublio-message-other text-dublio-text-primary rounded-bl-md" // Diğerinin mesajı
         )}
       >
         {/* Gönderen Adı (Alıcı mesajları için) */}
         {!isSender && (
             <Link href={`/profil/${message.sender.username}`}>
-                <p className="text-xs font-semibold text-prestij-300 mb-1 hover:underline">{message.sender.username}</p>
+                <p className="text-xs font-semibold text-dublio-300 mb-1 hover:underline">{message.sender.username}</p>
             </Link>
         )}
         <p
@@ -267,17 +267,17 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
       </div>
 
       {/* Üstteki Header (Kullanıcı Bilgisi) */}
-      <div className="flex items-center p-3 sm:p-4 border-b border-prestij-border-dark/30 bg-transparent sticky top-0 z-20">
+      <div className="flex items-center p-3 sm:p-4 border-b border-dublio-border-dark/30 bg-transparent sticky top-0 z-20">
         <Link href={`/profil/${otherUser.username}`} className="flex-shrink-0 group">
           {otherUserAvatarUrl ? (
             <NextImage src={otherUserAvatarUrl} alt={otherUser.username} width={36} height={36} className="rounded-full mr-3 group-hover:opacity-80 transition-opacity"/>
           ) : (
-            <UserCircleIcon className="w-9 h-9 text-prestij-text-secondary mr-3 group-hover:text-prestij-text-primary transition-colors"/>
+            <UserCircleIcon className="w-9 h-9 text-dublio-text-secondary mr-3 group-hover:text-dublio-text-primary transition-colors"/>
           )}
         </Link>
         <Link href={`/profil/${otherUser.username}`}>
             {/* BU KISIM KULLANICI ADINI GÖSTERMELİ */}
-            <h2 className="text-base sm:text-lg font-semibold text-prestij-text-primary hover:underline">
+            <h2 className="text-base sm:text-lg font-semibold text-dublio-text-primary hover:underline">
               {otherUser.username} {/* otherUser.username BURADA KULLANILIYOR MU? */}
             </h2>
         </Link>
@@ -286,7 +286,7 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
       {/* Mesaj Listesi */}
       <div
         ref={chatContainerRef} // Ref'i mesaj container'ına atayın
-        className="flex-grow p-3 sm:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-transparent relative z-10 flex flex-col" // overflow-y-auto bırakıldı
+        className="flex-grow p-3 sm:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-dublio-border-dark scrollbar-track-transparent relative z-10 flex flex-col" // overflow-y-auto bırakıldı
       >
         {/* "Daha Fazla Yükle" Butonu (Listenin en üstünde) */}
         {currentPage < totalPages && !isLoadingMessages && (
@@ -294,13 +294,13 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
                 <button
                     onClick={loadMoreMessages}
                     disabled={isLoadingMessages}
-                    className="text-xs text-prestij-300 hover:underline disabled:opacity-50"
+                    className="text-xs text-dublio-300 hover:underline disabled:opacity-50"
                 >
                     {isLoadingMessages ? "Yükleniyor..." : "Önceki mesajları yükle"}
                 </button>
             </div>
         )}
-        {isLoading && messages.length === 0 && <div className="text-center text-prestij-text-secondary py-10 m-auto">Mesajlar yükleniyor...</div>} {/* m-auto eklendi */}
+        {isLoading && messages.length === 0 && <div className="text-center text-dublio-text-secondary py-10 m-auto">Mesajlar yükleniyor...</div>} {/* m-auto eklendi */}
         {!isLoading && messages.length === 0 && !error && (
           <p className="text-center text-gray-400">Henüz hiç mesaj yok. İlk mesajı sen gönder!</p>
         )}
@@ -311,7 +311,7 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
             {msg.id === firstUnreadId && (
               <div className="relative my-4 text-center">
                 <hr className="border-t border-red-500/50" />
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-prestij-chat-bg px-2 text-xs text-red-400">
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-dublio-chat-bg px-2 text-xs text-red-400">
                   Yeni Mesajlar
                 </span>
               </div>
@@ -323,20 +323,20 @@ export default function ChatWindowClient({ currentUserId, otherUser }: ChatWindo
       </div>
 
       {/* Mesaj Gönderme Formu */}
-      <div className="p-3 sm:p-4 border-t border-prestij-border-dark/50 bg-prestij-chat-bg/90 backdrop-blur-sm sticky bottom-0 z-20">
+      <div className="p-3 sm:p-4 border-t border-dublio-border-dark/50 bg-dublio-chat-bg/90 backdrop-blur-sm sticky bottom-0 z-20">
         <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-3">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={`${otherUser.username} kullanıcısına mesaj yaz...`}
-            className="flex-grow px-4 py-2.5 bg-prestij-input-bg rounded-lg text-sm text-prestij-text-primary focus:outline-none focus:ring-1 focus:ring-prestij-500 placeholder-prestij-text-placeholder border border-transparent focus:border-prestij-500"
+            className="flex-grow px-4 py-2.5 bg-dublio-input-bg rounded-lg text-sm text-dublio-text-primary focus:outline-none focus:ring-1 focus:ring-dublio-500 placeholder-dublio-text-placeholder border border-transparent focus:border-dublio-500"
             disabled={isSending}
           />
           <button
             type="submit"
             disabled={isSending || !newMessage.trim()}
-            className="p-2.5 bg-prestij-500 hover:bg-prestij-600 text-white rounded-lg disabled:opacity-50 transition-colors flex-shrink-0"
+            className="p-2.5 bg-dublio-500 hover:bg-dublio-600 text-white rounded-lg disabled:opacity-50 transition-colors flex-shrink-0"
             title="Gönder"
           >
             <PaperAirplaneIcon className="w-5 h-5" /> {/* Transform kaldırıldı, ikon zaten doğru yönde */}

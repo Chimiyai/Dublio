@@ -92,7 +92,7 @@ export default function NotificationBell() {
 
   return (
     // Ana sarmalayıcı div, ref'i burada kullanıyoruz
-    <div className="relative text-prestij-text-accent hover:text-prestij-purple transition-colors p-1 mt-1 mr-2 rounded-full hover:bg-prestij-purple/10" ref={wrapperRef}>
+    <div className="relative text-dublio-text-accent hover:text-dublio-purple transition-colors p-1 mt-1 mr-2 rounded-full hover:bg-dublio-purple/10" ref={wrapperRef}>
       {/* Zil İkonu Butonu */}
       <button
         onClick={handleToggle} // Artık yeni toggle fonksiyonunu çağırıyor
@@ -101,7 +101,7 @@ export default function NotificationBell() {
       >
         <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-prestij-dark-900" />
+          <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-dublio-dark-900" />
         )}
       </button>
 
@@ -117,13 +117,13 @@ export default function NotificationBell() {
         leaveTo="transform opacity-0 scale-95 -translate-y-2"   // Bitiş: Yukarıda, küçük ve şeffaf
       >
         <div 
-          className="absolute right-0 mt-2 w-80 sm:w-96 bg-prestij-sidebar-bg rounded-lg shadow-2xl border border-prestij-border-dark z-50"
+          className="absolute right-0 mt-2 w-80 sm:w-96 bg-dublio-sidebar-bg rounded-lg shadow-2xl border border-dublio-border-dark z-50"
         >
-          <div className="p-3 border-b border-prestij-border-dark flex justify-between items-center">
+          <div className="p-3 border-b border-dublio-border-dark flex justify-between items-center">
             <h3 className="font-semibold text-white">Bildirimler</h3>
           </div>
           
-          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-transparent">
+          <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-dublio-border-dark scrollbar-track-transparent">
             {notifications.length > 0 ? (
               // --- YENİ BİLDİRİM TASARIMI ---
               <div className="flex flex-col">
@@ -151,7 +151,7 @@ export default function NotificationBell() {
                       key={userNotif.id}
                       href={userNotif.notification.link}
                       onClick={() => setIsOpen(false)}
-                      className="relative block p-3 group border-b border-prestij-border-dark/50 overflow-hidden"
+                      className="relative block p-3 group border-b border-dublio-border-dark/50 overflow-hidden"
                     >
                       {/* Arka Plan Banner Resmi */}
                       {bannerUrl && (
@@ -164,7 +164,7 @@ export default function NotificationBell() {
                         />
                       )}
                       {/* Arka Plan Gradyan (Banner üzerine) */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-prestij-sidebar-bg via-prestij-sidebar-bg/80 to-transparent z-10"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-dublio-sidebar-bg via-dublio-sidebar-bg/80 to-transparent z-10"></div>
                       
                       {/* İçerik */}
                       <div className="relative z-20 flex items-center gap-4">
@@ -179,10 +179,10 @@ export default function NotificationBell() {
                         
                         {/* Sağ Metin Alanı */}
                         <div className="flex-grow min-w-0">
-                          <p className="text-sm text-prestij-text-primary leading-tight font-medium group-hover:text-prestij-purple transition-colors">
+                          <p className="text-sm text-dublio-text-primary leading-tight font-medium group-hover:text-dublio-purple transition-colors">
                             {userNotif.notification.message}
                           </p>
-                          <p className="text-xs text-prestij-text-muted mt-1.5">
+                          <p className="text-xs text-dublio-text-muted mt-1.5">
                             {formatDistanceToNowStrict(new Date(userNotif.notification.createdAt), {
                               locale: tr,
                               addSuffix: true,

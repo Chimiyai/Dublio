@@ -123,7 +123,7 @@ const PopularContentCard: React.FC<PopularContentCardProps> = ({
 
           {/* Sağ Taraftaki Bilgi Bloğu */}
           <div className="popular-card-info flex-grow min-w-0">
-            <h3 className="popular-card-title text-sm md:text-base font-semibold text-popular-card-text mb-0.5 leading-tight group-hover:text-prestij-purple transition-colors">
+            <h3 className="popular-card-title text-sm md:text-base font-semibold text-popular-card-text mb-0.5 leading-tight group-hover:text-dublio-purple transition-colors">
               {title}
             </h3>
             {description && (

@@ -1,7 +1,7 @@
 // src/components/home/MainShowcasePlaceholder.tsx (Yeni dosya)
 const MainShowcasePlaceholder = () => {
   return (
-    <div className="w-full h-full relative flex bg-prestij-bg-dark-2/50 aspect-[16/7.5] overflow-hidden rounded-xl animate-pulse">
+    <div className="w-full h-full relative flex bg-dublio-bg-dark-2/50 aspect-[16/7.5] overflow-hidden rounded-xl animate-pulse">
       {/* Büyük banner alanı */}
       <div className="absolute inset-0 bg-gray-700/40"></div>
       {/* Sol üst kapak placeholder'ı */}

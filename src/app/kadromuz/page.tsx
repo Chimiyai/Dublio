@@ -93,19 +93,19 @@ export default async function KadromuzPage() {
   const teamMembers: TeamMemberForPage[] = await getTeamMembers();
 
   return (
-    <div className="bg-prestij-dark-900 text-prestij-text-primary min-h-screen py-16 md:py-20"> {/* Arka plan rengi güncellendi */}
+    <div className="bg-dublio-dark-900 text-dublio-text-primary min-h-screen py-16 md:py-20"> {/* Arka plan rengi güncellendi */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-14 md:mb-16">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white">
             Ekibimizle Tanışın
           </h1>
-          <p className="mt-5 text-lg leading-8 text-prestij-text-secondary max-w-2xl mx-auto">
+          <p className="mt-5 text-lg leading-8 text-dublio-text-secondary max-w-2xl mx-auto">
             PrestiJ Studio'nun projelerine hayat veren, tutkulu ve deneyimli kadromuz.
           </p>
         </div>
 
         {teamMembers.length === 0 ? (
-          <p className="text-center text-xl text-prestij-text-secondary py-10">
+          <p className="text-center text-xl text-dublio-text-secondary py-10">
             Kadromuz şu anda güncelleniyor. Yakında burada olacak!
           </p>
         ) : (
@@ -128,11 +128,11 @@ export default async function KadromuzPage() {
               return (
                 <div 
                   key={member.id} 
-                  className="group flex flex-col bg-prestij-card-bg p-6 rounded-xl shadow-xl hover:shadow-prestij-500/30 transition-all duration-300 ease-out hover:-translate-y-1 border border-transparent hover:border-prestij-500/50"
+                  className="group flex flex-col bg-dublio-card-bg p-6 rounded-xl shadow-xl hover:shadow-dublio-500/30 transition-all duration-300 ease-out hover:-translate-y-1 border border-transparent hover:border-dublio-500/50"
                 >
                   {/* Avatar ve İsim için Link (Bu zaten vardı) */}
                   <Link href={memberProfileLink} className="flex flex-col items-center text-center mb-4">
-                    <div className="w-32 h-32 rounded-full overflow-hidden mb-5 border-2 border-prestij-dark-700 group-hover:border-prestij-500 transition-all duration-300 transform group-hover:scale-105 relative bg-prestij-dark-700">
+                    <div className="w-32 h-32 rounded-full overflow-hidden mb-5 border-2 border-dublio-dark-700 group-hover:border-dublio-500 transition-all duration-300 transform group-hover:scale-105 relative bg-dublio-dark-700">
                       <Image
                         src={avatarUrl || '/images/default-avatar.png'}
                         alt={`${member.firstName} ${member.lastName}`}
@@ -141,31 +141,31 @@ export default async function KadromuzPage() {
                         sizes="128px"
                       />
                     </div>
-                    <h3 className="text-xl font-semibold text-white group-hover:text-prestij-400 transition-colors duration-300">
+                    <h3 className="text-xl font-semibold text-white group-hover:text-dublio-400 transition-colors duration-300">
                       {member.firstName} {member.lastName}
                     </h3>
                     {member.siteRole && (
-                      <p className="text-xs sm:text-sm font-medium mt-1 text-prestij-role-text group-hover:text-sky-200 transition-colors">
+                      <p className="text-xs sm:text-sm font-medium mt-1 text-dublio-role-text group-hover:text-sky-200 transition-colors">
                         {member.siteRole}
                       </p>
                     )}
                   </Link>
 
                   {member.bio && (
-                    <p className="text-sm text-prestij-text-secondary leading-relaxed text-center flex-grow mb-5">
+                    <p className="text-sm text-dublio-text-secondary leading-relaxed text-center flex-grow mb-5">
                       {member.bio}
                     </p>
                   )}
 
                   {activeSocialLinks.length > 0 && (
-                    <div className="mb-5 pt-4 border-t border-prestij-dark-700/50 flex flex-wrap justify-center items-center gap-4">
+                    <div className="mb-5 pt-4 border-t border-dublio-dark-700/50 flex flex-wrap justify-center items-center gap-4">
                       {activeSocialLinks.map((platform) => {
                         const IconComponent = platform.icon;
                         const link = member[platform.key] as string; // Artık null olmamalı (filter sayesinde)
                         // if (link) { // Bu if'e gerek kalmayabilir filter sayesinde
                           return (
                             <Link key={platform.key} href={link} target="_blank" rel="noopener noreferrer" 
-                                  className={`text-prestij-text-muted transition-colors duration-200 ${platform.hoverColor}`} 
+                                  className={`text-dublio-text-muted transition-colors duration-200 ${platform.hoverColor}`} 
                                   title={platform.title}>
                               <IconComponent size={22} />
                             </Link>
@@ -182,7 +182,7 @@ export default async function KadromuzPage() {
                         href={member.donationLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center px-4 py-2.5 bg-prestij-500/10 hover:bg-prestij-500/20 text-prestij-300 hover:text-prestij-200 border border-prestij-500/30 hover:border-prestij-500/50 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 group-hover:bg-prestij-500 group-hover:text-white group-hover:border-prestij-500"
+                        className="w-full flex items-center justify-center px-4 py-2.5 bg-dublio-500/10 hover:bg-dublio-500/20 text-dublio-300 hover:text-dublio-200 border border-dublio-500/30 hover:border-dublio-500/50 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 group-hover:bg-dublio-500 group-hover:text-white group-hover:border-dublio-500"
                       >
                         <DonationIconOutline className="w-5 h-5 mr-2" />
                         Destek Ol

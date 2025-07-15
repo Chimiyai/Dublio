@@ -28,9 +28,9 @@ export default function ProjectGrid({ projects, isLoading }: ProjectGridProps) {
   if (projects.length === 0) {
     return (
       <div className="col-span-full text-center py-16">
-        <PhotoIcon className="w-20 h-20 text-prestij-text-muted mx-auto mb-4" />
-        <p className="text-xl font-semibold text-prestij-text-primary mb-2">Sonuç Bulunamadı</p>
-        <p className="text-prestij-text-secondary">
+        <PhotoIcon className="w-20 h-20 text-dublio-text-muted mx-auto mb-4" />
+        <p className="text-xl font-semibold text-dublio-text-primary mb-2">Sonuç Bulunamadı</p>
+        <p className="text-dublio-text-secondary">
           Filtrelerinize uygun proje bulunamadı. Lütfen filtrelerinizi değiştirmeyi deneyin.
         </p>
       </div>

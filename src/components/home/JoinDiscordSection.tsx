@@ -10,7 +10,7 @@ const JoinDiscordSection = () => {
   return (
     <section className="join-discord-section bg-discord-section-bg py-12 md:py-16 text-center"> {/* hero-bg veya tanımladığınız discord-section-bg */}
       <div className="container mx-auto discord-cta-container relative z-[1] flex flex-col items-center px-4">
-        <h2 className="section-title discord-main-title text-2xl sm:text-3xl md:text-4xl font-semibold text-prestij-text-primary mb-8 text-shadow-discord-title">
+        <h2 className="section-title discord-main-title text-2xl sm:text-3xl md:text-4xl font-semibold text-dublio-text-primary mb-8 text-shadow-discord-title">
           Sende Mi Dublaj Yapmak İstiyorsun?
         </h2>
         <Link
@@ -19,7 +19,7 @@ const JoinDiscordSection = () => {
           rel="noopener noreferrer" // Güvenlik için
           className="discord-banner-link inline-block rounded-lg overflow-hidden 
                      transition-all duration-250 ease-out 
-                     hover:scale-105 hover:shadow-discord-banner-hover focus-visible:ring-2 focus-visible:ring-prestij-purple focus-visible:ring-offset-2 focus-visible:ring-offset-hero-bg"
+                     hover:scale-105 hover:shadow-discord-banner-hover focus-visible:ring-2 focus-visible:ring-dublio-purple focus-visible:ring-offset-2 focus-visible:ring-offset-hero-bg"
         >
           <Image
             src="/images/discord-banner.png" // Bu imajın public/images altında olduğundan emin olun

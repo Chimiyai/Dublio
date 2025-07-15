@@ -119,7 +119,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\prestij-dublaj-sitesi\\generated\\prisma",
+      "value": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\dublio-dublaj-sitesi\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -133,7 +133,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\prestij-dublaj-sitesi\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\Emre\\OneDrive\\Desktop\\website\\dublio-dublaj-sitesi\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -151,7 +151,7 @@ const config = {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "file:./prestij.db"
+        "value": "file:./dublio.db"
       }
     }
   },

@@ -103,13 +103,13 @@ export async function POST(request: NextRequest) {
   //          html: `
   //              <h1>E-posta Adresinizi Doğrulayın</h1>
   //              <p>Merhaba,</p>
-  //              <p>Prestij Dublaj hesabınız için e-posta adresi değişikliği talebinde bulundunuz.</p>
+  //              <p>Dublio Dublaj hesabınız için e-posta adresi değişikliği talebinde bulundunuz.</p>
   //              <p>Yeni e-posta adresinizi (${newEmail}) doğrulamak için lütfen aşağıdaki bağlantıya tıklayın:</p>
   //              <a href="${verificationUrl}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">E-postamı Doğrula</a>
   //              <p>Bu bağlantı ${TOKEN_EXPIRATION_MINUTES} dakika içinde sona erecektir.</p>
   //              <p>Eğer bu değişikliği siz talep etmediyseniz, bu e-postayı görmezden gelebilirsiniz.</p>
   //              <br/>
-  //              <p>Teşekkürler,<br/>Prestij Dublaj Ekibi</p>
+  //              <p>Teşekkürler,<br/>Dublio Dublaj Ekibi</p>
   //          `,
   //          // react: EmailTemplate({ verificationUrl }), // Veya React component kullanabilirsin
   //      });

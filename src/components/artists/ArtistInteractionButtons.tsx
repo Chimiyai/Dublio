@@ -92,7 +92,7 @@ export default function ArtistInteractionButtons({
           "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors",
           liked 
             ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" 
-            : "bg-prestij-input-bg/70 text-prestij-text-secondary hover:bg-prestij-input-bg",
+            : "bg-dublio-input-bg/70 text-dublio-text-secondary hover:bg-dublio-input-bg",
           (isLoading || !isUserLoggedIn) && "opacity-60 cursor-not-allowed"
         )}
       >
@@ -108,7 +108,7 @@ export default function ArtistInteractionButtons({
           "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors",
           favorited 
             ? "bg-pink-500/20 text-pink-400 hover:bg-pink-500/30" 
-            : "bg-prestij-input-bg/70 text-prestij-text-secondary hover:bg-prestij-input-bg",
+            : "bg-dublio-input-bg/70 text-dublio-text-secondary hover:bg-dublio-input-bg",
           (isLoading || !isUserLoggedIn) && "opacity-60 cursor-not-allowed"
         )}
       >

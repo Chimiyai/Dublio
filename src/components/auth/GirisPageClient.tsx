@@ -95,12 +95,12 @@ export default function GirisPage() {
 
 
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-prestij-bg-dark-1 shadow-xl rounded-lg">
+    <div className="w-full max-w-md p-8 space-y-6 bg-dublio-bg-dark-1 shadow-xl rounded-lg">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-prestij-text-primary">
+        <h1 className="text-3xl font-bold text-dublio-text-primary">
           Giriş Yap
         </h1>
-        <p className="mt-2 text-prestij-text-muted">
+        <p className="mt-2 text-dublio-text-muted">
           Hesabınıza erişin.
         </p>
       </div>
@@ -113,7 +113,7 @@ export default function GirisPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-dublio-text-secondary mb-1">
             E-posta Adresi
           </label>
           <input
@@ -124,13 +124,13 @@ export default function GirisPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="appearance-none block w-full pl-3 pr-3 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+            className="appearance-none block w-full pl-3 pr-3 py-2.5 bg-dublio-bg-dark-4 border border-dublio-border-secondary rounded-md shadow-sm placeholder-dublio-text-placeholder focus:outline-none focus:ring-2 focus:ring-dublio-purple focus:border-dublio-purple sm:text-sm text-dublio-text-primary"
             placeholder="ornek@mail.com"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-dublio-text-secondary mb-1">
             Şifre
           </label>
           <div className="relative">
@@ -142,13 +142,13 @@ export default function GirisPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none block w-full pl-3 pr-10 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+              className="appearance-none block w-full pl-3 pr-10 py-2.5 bg-dublio-bg-dark-4 border border-dublio-border-secondary rounded-md shadow-sm placeholder-dublio-text-placeholder focus:outline-none focus:ring-2 focus:ring-dublio-purple focus:border-dublio-purple sm:text-sm text-dublio-text-primary"
               placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-400 hover:text-prestij-purple"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-400 hover:text-dublio-purple"
             >
               <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
             </button>
@@ -165,7 +165,7 @@ export default function GirisPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-prestij-purple hover:bg-prestij-purple-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-prestij-purple disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-dublio-purple hover:bg-dublio-purple-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dublio-purple disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? (
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" /* ... */ ></svg>
@@ -176,9 +176,9 @@ export default function GirisPage() {
         </div>
       </form>
 
-      <p className="mt-8 text-center text-sm text-prestij-text-muted">
+      <p className="mt-8 text-center text-sm text-dublio-text-muted">
         Hesabın yok mu?{' '}
-        <Link href="/kayit" className="font-medium text-prestij-purple hover:text-prestij-purple-light hover:underline">
+        <Link href="/kayit" className="font-medium text-dublio-purple hover:text-dublio-purple-light hover:underline">
           Kayıt Ol
         </Link>
       </p>

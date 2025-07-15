@@ -57,25 +57,25 @@ export default async function BannedPage() {
     return (
         // Giriş sayfasıyla benzer bir arkaplan ve ortalama yapısı
         <div className="min-h-screen flex items-center justify-center bg-[#100C1C] p-4">
-            <div className="w-full max-w-lg p-8 space-y-6 bg-prestij-bg-dark-1 shadow-2xl rounded-xl border border-red-500/20">
+            <div className="w-full max-w-lg p-8 space-y-6 bg-dublio-bg-dark-1 shadow-2xl rounded-xl border border-red-500/20">
                 <div className="text-center">
                     <ShieldExclamationIcon className="w-16 h-16 mx-auto text-red-500 mb-4" />
                     <h1 className="text-3xl font-bold text-red-400">
                       Hesabınız Askıya Alındı
                     </h1>
-                    <p className="mt-2 text-prestij-text-muted">
+                    <p className="mt-2 text-dublio-text-muted">
                       Site kurallarını ihlal ettiğiniz için hesabınıza erişiminiz kısıtlanmıştır.
                     </p>
                 </div>
                 
-                <div className="text-left bg-prestij-bg-dark-4 p-4 rounded-md space-y-3 border border-prestij-border-secondary">
+                <div className="text-left bg-dublio-bg-dark-4 p-4 rounded-md space-y-3 border border-dublio-border-secondary">
                     <p className="text-sm">
-                        <span className="font-semibold text-prestij-text-secondary">Sebep:</span>
-                        <span className="ml-2 text-prestij-text-primary">{banDetails.reason || 'Belirtilmemiş'}</span>
+                        <span className="font-semibold text-dublio-text-secondary">Sebep:</span>
+                        <span className="ml-2 text-dublio-text-primary">{banDetails.reason || 'Belirtilmemiş'}</span>
                     </p>
                     <p className="text-sm">
-                        <span className="font-semibold text-prestij-text-secondary">Ban Bitiş Tarihi:</span>
-                        <span className="ml-2 text-prestij-text-primary">{formattedDate || 'Kalıcı (zort)'}</span>
+                        <span className="font-semibold text-dublio-text-secondary">Ban Bitiş Tarihi:</span>
+                        <span className="ml-2 text-dublio-text-primary">{formattedDate || 'Kalıcı (zort)'}</span>
                     </p>
                 </div>
                 

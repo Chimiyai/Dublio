@@ -20,16 +20,16 @@ export default function MessagesLayout({
   }, []); // Boş dependency array, bu effect'in sadece mount ve unmount'ta çalışmasını sağlar
 
   return (
-    <div className="flex h-[calc(100vh-var(--header-height,4rem))] bg-prestij-chat-bg"> {/* Ana mesajlaşma BG */}
+    <div className="flex h-[calc(100vh-var(--header-height,4rem))] bg-dublio-chat-bg"> {/* Ana mesajlaşma BG */}
 
-      <div className="w-full sm:w-72 md:w-80 lg:w-96 bg-prestij-sidebar-bg flex flex-col border-r border-prestij-border-dark">
-        <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-prestij-border-dark scrollbar-track-prestij-sidebar-bg"> {/* Scrollbar renkleri güncellendi */}
+      <div className="w-full sm:w-72 md:w-80 lg:w-96 bg-dublio-sidebar-bg flex flex-col border-r border-dublio-border-dark">
+        <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-dublio-border-dark scrollbar-track-dublio-sidebar-bg"> {/* Scrollbar renkleri güncellendi */}
           <ConversationsListClient />
         </div>
       </div>
 
       {/* Sağ Panel: Aktif Sohbet Penceresi */}
-      <div className="flex-grow bg-prestij-chat-bg flex flex-col relative"> {/* Sağ panel için relative eklendi (banner BG için) */}
+      <div className="flex-grow bg-dublio-chat-bg flex flex-col relative"> {/* Sağ panel için relative eklendi (banner BG için) */}
         {children}
       </div>
     </div>

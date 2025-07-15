@@ -59,7 +59,7 @@ const SliderCard: React.FC<SliderCardProps> = ({
 
       <div
         className={cn(
-          "slider-card bg-prestij-bg-card-2 rounded-lg flex flex-col w-full h-full relative cursor-pointer overflow-hidden"
+          "slider-card bg-dublio-bg-card-2 rounded-lg flex flex-col w-full h-full relative cursor-pointer overflow-hidden"
         )}
       >
         <div
@@ -129,8 +129,8 @@ const SliderCard: React.FC<SliderCardProps> = ({
           key={cat.slug} // slug varsa key olarak kullan
           className={`text-[0.65em] px-1.5 py-0.5 rounded-sm ${
             cat.slug === 'oyun' || cat.name?.toLowerCase() === 'oyun' 
-              ? 'bg-prestij-type-oyun' 
-              : 'bg-prestij-type-anime'
+              ? 'bg-dublio-type-oyun' 
+              : 'bg-dublio-type-anime'
           } text-white opacity-80`}
         >
           {cat.name}

@@ -31,36 +31,36 @@ module.exports = {
     extend: {
       colors: {
         'site-bg-main': '#050409',
-        'prestij-purple': '#8B4EFF',
-        'prestij-purple-light': '#A47EFF',
-        'prestij-purple-darker': '#7A3EFF',
-        'prestij-bg-dark-1': '#0C0E0F',
-        'prestij-bg-dark-2': '#101014',
-        'prestij-bg-dark-3': '#08060D',
-        'prestij-bg-dark-4': '#202024',
-        'prestij-bg-button': '#231B36',
-        'prestij-bg-card-1': '#100C1C',
-        'prestij-bg-card-2': '#100C1C',
+        'dublio-purple': '#8B4EFF',
+        'dublio-purple-light': '#A47EFF',
+        'dublio-purple-darker': '#7A3EFF',
+        'dublio-bg-dark-1': '#0C0E0F',
+        'dublio-bg-dark-2': '#101014',
+        'dublio-bg-dark-3': '#08060D',
+        'dublio-bg-dark-4': '#202024',
+        'dublio-bg-button': '#231B36',
+        'dublio-bg-card-1': '#100C1C',
+        'dublio-bg-card-2': '#100C1C',
 
-        'prestij-text-primary': '#E0E0E0',
-        'prestij-text-secondary': '#D1D1D1',
-        'prestij-text-accent': '#B0B0B0',
-        'prestij-text-dropdown': '#C0C0C0',
-        'prestij-text-placeholder': '#777777',
-        'prestij-text-muted': '#A0A8B8',
-        'prestij-text-link-special': '#5c5c5c',
-        'prestij-text-online': '#2ECC71',
-        'prestij-text-offline': '#95A5A6',
-        'prestij-text-logout': '#E74C3C',
+        'dublio-text-primary': '#E0E0E0',
+        'dublio-text-secondary': '#D1D1D1',
+        'dublio-text-accent': '#B0B0B0',
+        'dublio-text-dropdown': '#C0C0C0',
+        'dublio-text-placeholder': '#777777',
+        'dublio-text-muted': '#A0A8B8',
+        'dublio-text-link-special': '#5c5c5c',
+        'dublio-text-online': '#2ECC71',
+        'dublio-text-offline': '#95A5A6',
+        'dublio-text-logout': '#E74C3C',
 
-        'prestij-border-primary': '#1f1f23',
-        'prestij-border-input-focus': '#8B4EFF',
-        'prestij-border-secondary': '#28282C',
-        'prestij-dropdown-border-alt': '#3E266E',
-        'prestij-dropdown-border': '#31323B',
-        'prestij-divider-short': '#141414',
-        'prestij-dropdown-bg': '#0D0D0D',
-        'prestij-type-anime': '#E76F51',
+        'dublio-border-primary': '#1f1f23',
+        'dublio-border-input-focus': '#8B4EFF',
+        'dublio-border-secondary': '#28282C',
+        'dublio-dropdown-border-alt': '#3E266E',
+        'dublio-dropdown-border': '#31323B',
+        'dublio-divider-short': '#141414',
+        'dublio-dropdown-bg': '#0D0D0D',
+        'dublio-type-anime': '#E76F51',
 
         // Hero Section renkleri
         'hero-bg': '#08060D',
@@ -80,7 +80,7 @@ module.exports = {
         'hero-side-list-item-text': '#D0C9E8',
 
         // Tür etiketleri için (orijinal CSS'den)
-        'prestij-type-game-popular': '#2A9D8F',
+        'dublio-type-game-popular': '#2A9D8F',
         'project-type-oyun': '#2A9D8F',
         'project-type-anime': '#E76F51',
         'slider-card-bg': '#100C1C', // .slider-card background (hero-top-card-bg ile aynı görünüyor)
@@ -88,9 +88,9 @@ module.exports = {
         'slider-card-description': '#B0B8C8', // .slider-card-description
         'slider-card-type-oyun': '#2A9D8F', // .project-type-oyun (zaten var)
         'slider-card-type-anime': '#E76F51', // .project-type-anime (zaten var)
-        'slider-btn-dub-request-bg': '#231B36', // .btn-dub-request background (prestij-bg-button ile aynı)
-        'slider-btn-dub-request-border': '#28282C', // .btn-dub-request border (prestij-border-secondary ile aynı)
-        'slider-meta-info-text': '#A0A0B0', // .meta-info text (prestij-text-muted ile benzer)
+        'slider-btn-dub-request-bg': '#231B36', // .btn-dub-request background (dublio-bg-button ile aynı)
+        'slider-btn-dub-request-border': '#28282C', // .btn-dub-request border (dublio-border-secondary ile aynı)
+        'slider-meta-info-text': '#A0A0B0', // .meta-info text (dublio-text-muted ile benzer)
         'popular-section-bg': '#08060D', // .popular-content-section background (hero-bg ile aynı)
         'popular-card-bg': '#130F1E',    // .popular-card-link background
         'popular-card-border-top': '#1E1A2A', // .popular-card-stats border-top
@@ -115,7 +115,7 @@ module.exports = {
         'dropdown-ctrl-border': '#282338',
         'dropdown-ctrl-hover-bg': '#1E1A2A',
         'dropdown-ctrl-hover-border': '#8B4EFF',
-        'dropdown-ctrl-hover-text': '#E0E0E0', // veya prestij-text-primary
+        'dropdown-ctrl-hover-text': '#E0E0E0', // veya dublio-text-primary
         'dropdown-menu-bg': '#130F1E',
         'dropdown-menu-border': '#282338',
         'dropdown-menu-item-text': '#B0B0B8',
@@ -147,16 +147,16 @@ module.exports = {
         'stats-section-bg': '#08060D', // .site-stats-section (hero-bg vb. ile aynı)
     'stats-icon-bg': 'rgba(30, 28, 40, 0.7)', // .stat-icon background
     'stats-icon-border': 'rgba(255, 255, 255, 0.1)',
-    'stats-icon-text': '#E0E0E0', // .stat-icon içindeki i'nin rengi (prestij-text-primary ile aynı)
-    'stats-list-text': 'inherit', // Liste elemanları body'den rengi alacak gibi duruyor veya prestij-text-secondary
-    'stats-footer-text-color': '#A0A8B0', // .stats-footer-text (prestij-text-muted ile benzer)
-    'stats-divider-color': '#1A1423', // .section-divider (prestij-border-divider ile aynı)
+    'stats-icon-text': '#E0E0E0', // .stat-icon içindeki i'nin rengi (dublio-text-primary ile aynı)
+    'stats-list-text': 'inherit', // Liste elemanları body'den rengi alacak gibi duruyor veya dublio-text-secondary
+    'stats-footer-text-color': '#A0A8B0', // .stats-footer-text (dublio-text-muted ile benzer)
+    'stats-divider-color': '#1A1423', // .section-divider (dublio-border-divider ile aynı)
     'section-bg-alt': '#050409',
     'discord-section-bg': '#050409',
-    'footer-bg': '#0C0E0F', // #mainFooter background (prestij-bg-dark-1 ile aynı)
-    'footer-text': '#A0A8B8', // #mainFooter color (prestij-text-muted ile benzer)
-    'footer-border': '#1A1423', // border-bottom, border-top (prestij-border-divider ile aynı)
-    'footer-main-title-text': '#E8E8F0', // .footer-main-title (prestij-text-primary ile benzer)
+    'footer-bg': '#0C0E0F', // #mainFooter background (dublio-bg-dark-1 ile aynı)
+    'footer-text': '#A0A8B8', // #mainFooter color (dublio-text-muted ile benzer)
+    'footer-border': '#1A1423', // border-bottom, border-top (dublio-border-divider ile aynı)
+    'footer-main-title-text': '#E8E8F0', // .footer-main-title (dublio-text-primary ile benzer)
     'footer-column-title-text': '#FFFFFF', // .footer-column-title
     'footer-link-text': '#A0A8B8', // Footer linkleri (footer-text ile aynı)
     'footer-link-hover-text': '#8B4EFF',
@@ -166,50 +166,50 @@ module.exports = {
     'footer-bottom-bar-text': '#808898', // (footer-contact-label-text ile aynı)
     'footer-chimiya-link': '#A0A8B8',
     'footer-chimiya-link-hover': '#FFFFFF',
-'prestij-border-secondary': '#28282C', // Input border
-'prestij-text-online': '#2ECC71', // Örnek bir yeşil (Çevrim içi için)
-    'prestij-text-offline': '#95A5A6', // Örnek bir gri (Çevrim dışı için)
-    'prestij-text-logout': '#E74C3C', // Kırmızı (Çıkış Yap için)
-    'prestij-dropdown-border-alt': '#3E266E', // Yeni kenarlık rengi
-    'prestij-dropdown-bg': '#0D0D0D',      // Yeni arka plan rengi
-    'prestij-divider-short': '#141414',     // Yeni kısa çizgi rengi
-    'prestij-dropdown-border': '#31323B', // Dropdown ayraç çizgisi
+'dublio-border-secondary': '#28282C', // Input border
+'dublio-text-online': '#2ECC71', // Örnek bir yeşil (Çevrim içi için)
+    'dublio-text-offline': '#95A5A6', // Örnek bir gri (Çevrim dışı için)
+    'dublio-text-logout': '#E74C3C', // Kırmızı (Çıkış Yap için)
+    'dublio-dropdown-border-alt': '#3E266E', // Yeni kenarlık rengi
+    'dublio-dropdown-bg': '#0D0D0D',      // Yeni arka plan rengi
+    'dublio-divider-short': '#141414',     // Yeni kısa çizgi rengi
+    'dublio-dropdown-border': '#31323B', // Dropdown ayraç çizgisi
     'site-bg-main': '#050409', // YENİ ANA ARKA PLAN RENGİ
         
         // MainShowcase için (orijinal CSS'e göre tahmin)
         'hero-main-visual-overlay': 'linear-gradient(to top, rgba(12, 14, 15, 0.95) 0%, rgba(12, 14, 15, 0.5) 40%, transparent 70%)', // Bunu doğrudan class ile uygulamak zor, inline style veya custom utility gerekebilir. Şimdilik basit bir karartı yapacağız.
-        'hero-info-category-bg': 'rgba(139, 78, 255, 0.8)', // Veya prestij-purple/80
+        'hero-info-category-bg': 'rgba(139, 78, 255, 0.8)', // Veya dublio-purple/80
 
         // SideShowcaseItem için (orijinal CSS'e göre tahmin)
         'hero-side-list-fade': 'linear-gradient(to left, rgba(16, 12, 28, 0) 5%, rgba(16, 12, 28, 0.4) 35%, #100C1C 85%)', // Direkt class ile zor, inline style veya custom utility
         'hero-main-showcase-bg': '#050308', // Ana büyük kartın arka planı
-  'hero-category-tag-bg': 'rgba(139, 78, 255, 0.8)', // Veya prestij-purple/80
-  'hero-btn-play-bg': '#8B4EFF', // prestij-purple
+  'hero-category-tag-bg': 'rgba(139, 78, 255, 0.8)', // Veya dublio-purple/80
+  'hero-btn-play-bg': '#8B4EFF', // dublio-purple
 
   'hero-side-list-item-active-shadow': '0 0 0 2.5px #8B4EFF, 0 8px 25px rgba(139, 78, 255, 0.4)', // Özel shadow
 
-          'prestij-type-game': '#2A9D8F', // Örnek
-          'prestij-bg-dark-section': '#101014',
+          'dublio-type-game': '#2A9D8F', // Örnek
+          'dublio-bg-dark-section': '#101014',
 
-          'prestij-header-bg': '#1A1625', // Header arkaplanı
-        'prestij-text-logo': '#E0E0E0',
-        'prestij-icon-nav': '#A0AEC0',
-        'prestij-icon-nav-hover-bg': '#2D3748',
-        'prestij-bg-dark-2': '#100C1C', // SearchOverlay arkaplanı
-        'prestij-border-soft': '#2A253C', // SearchOverlay border
-        'prestij-text-primary': '#F7FAFC', // Genel ana metin (açık)
-        'prestij-text-muted': '#A0AEC0',
-        'prestij-text-bright': '#FFFFFF',
-        'prestij-bg-light-interactive': '#2D3748', // Buton hover arkaplanı
-        'prestij-bg-input': '#161320', // Arama input arkaplanı
-        'prestij-border-input': '#3A3F4B',
-        'prestij-text-input': '#E0E0E0',
-        'prestij-text-placeholder': '#718096',
+          'dublio-header-bg': '#1A1625', // Header arkaplanı
+        'dublio-text-logo': '#E0E0E0',
+        'dublio-icon-nav': '#A0AEC0',
+        'dublio-icon-nav-hover-bg': '#2D3748',
+        'dublio-bg-dark-2': '#100C1C', // SearchOverlay arkaplanı
+        'dublio-border-soft': '#2A253C', // SearchOverlay border
+        'dublio-text-primary': '#F7FAFC', // Genel ana metin (açık)
+        'dublio-text-muted': '#A0AEC0',
+        'dublio-text-bright': '#FFFFFF',
+        'dublio-bg-light-interactive': '#2D3748', // Buton hover arkaplanı
+        'dublio-bg-input': '#161320', // Arama input arkaplanı
+        'dublio-border-input': '#3A3F4B',
+        'dublio-text-input': '#E0E0E0',
+        'dublio-text-placeholder': '#718096',
         'profile-page-bg': '#101014',
         'profile-banner-gradient-start': '#101014', // Gradyan başlangıç (arka planla aynı)
         'profile-hr-color': '#252525',
         'overview-table-bg': '#08060D',
-        prestij: { // 'prestij' anahtar kelimesi önemli
+        dublio: { // 'dublio' anahtar kelimesi önemli
           '500': 'rgba(28, 11, 54, 0.49)', // Senin mor/eflatun vurgu rengin (örnek)
           '400': 'rgb(165, 105, 255)',
           // MESAJLAŞMA İÇİN YENİ RENKLER
@@ -218,7 +218,7 @@ module.exports = {
           'border-dark': '#2D2A3E',   // Kenarlıklar için sidebar-bg'den biraz açık
           'input-bg': '#1A1729',     // Input arka planları için sidebar-bg'den biraz açık
           'message-other': '#242038', // Diğer kişinin mesaj balonu BG
-          'message-own': '#YourPrestijPurpleHex', // Kendi mesaj balonun (prestij-500 ile aynı olabilir)
+          'message-own': '#YourDublioPurpleHex', // Kendi mesaj balonun (dublio-500 ile aynı olabilir)
           
           // METİN RENKLERİ (Bu renkler genel temanla uyumlu olmalı)
           'text-primary': '#E0E0E0',    // Ana metin (açık gri)
@@ -230,7 +230,7 @@ module.exports = {
         },
       },
       backgroundImage: {
-        'chat-banner-gradient': 'linear-gradient(to top, var(--color-prestij-chat-bg) 0%, rgba(var(--color-prestij-chat-bg-rgb), 0.2) 75%, transparent 100%)',
+        'chat-banner-gradient': 'linear-gradient(to top, var(--color-dublio-chat-bg) 0%, rgba(var(--color-dublio-chat-bg-rgb), 0.2) 75%, transparent 100%)',
         'stat-gradient': 'linear-gradient(to right, #8B4EFF, #5A67D8)',
       },
       fontFamily: {
@@ -277,7 +277,7 @@ module.exports = {
         'hero-main-showcase': '0 10px 30px rgba(0,0,0,0.15)',
         'hero-main-showcase-hover': '0 12px 35px rgba(0,0,0,0.2)',
         'hero-side-list-item-hover': '0 8px 20px rgba(0,0,0,0.3)',
-        'hero-side-list-item-active': '0 0 0 2.5px #8B4EFF, 0 8px 25px rgba(139, 78, 255, 0.4)', // prestij-purple
+        'hero-side-list-item-active': '0 0 0 2.5px #8B4EFF, 0 8px 25px rgba(139, 78, 255, 0.4)', // dublio-purple
         'popular-card': '0 6px 18px rgba(0,0,0,0.25)',
         'popular-card-hover': '0 10px 25px rgba(0,0,0,0.35)',
         'dropdown-menu': '0 4px 12px rgba(0,0,0,0.25)',

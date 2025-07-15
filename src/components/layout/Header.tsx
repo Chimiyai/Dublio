@@ -300,8 +300,8 @@ const handleDownloadClick = () => {
   // Mobil Menü Ana Elemanları
   const getMobileMenuMainItems = (): MobileMenuItem[] => {
     const mainItems: MobileMenuItem[] = [
-      { label: 'Oyunlar', action: 'submenu', target: 'gamesSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-prestij-text-muted" /> },
-      { label: 'Animeler', action: 'submenu', target: 'animeSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-prestij-text-muted" /> },
+      { label: 'Oyunlar', action: 'submenu', target: 'gamesSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-dublio-text-muted" /> },
+      { label: 'Animeler', action: 'submenu', target: 'animeSubmenu', iconRight: <ChevronDownIcon className="h-4 w-4 text-dublio-text-muted" /> },
     ];
     if (session?.user) {
       mainItems.push({ 
@@ -346,7 +346,7 @@ console.log("Final Profile Image URL:", userProfileImageSrc);
 
 
 return (
-    <header ref={headerRef} id="mainHeader" className="bg-prestij-bg-dark-1/60 sticky top-0 z-[1000] border-b border-prestij-border-primary min-h-header">
+    <header ref={headerRef} id="mainHeader" className="bg-dublio-bg-dark-1/60 sticky top-0 z-[1000] border-b border-dublio-border-primary min-h-header">
       {/* Ana sarmalayıcı DIV tam genişlikte, iç padding'i o kontrol edecek */}
       <div className="w-full px-4 sm:px-6 lg:px-8 h-full backdrop-brightness-[0.9] backdrop-blur-md">
           <div className="flex items-center justify-between h-full relative min-h-header py-1.5">
@@ -359,7 +359,7 @@ return (
   <button
     id="mobileMenuToggle"
     data-dropdown-toggle="false"
-    className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-2 -ml-2"
+    className="text-dublio-text-accent hover:text-dublio-purple transition-colors p-2 -ml-2"
     onClick={toggleMobileMenu}
   >
     {isMobileMenuOpen ? <XMarkIcon className="h-7 w-7" /> : <Bars3Icon className="h-7 w-7" />}
@@ -367,7 +367,7 @@ return (
 
   {/* Yeni arama butonu */}
   <button
-    className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-2 -ml-2"
+    className="text-dublio-text-accent hover:text-dublio-purple transition-colors p-2 -ml-2"
     onClick={openSearchOverlay}
   >
     <MagnifyingGlassIcon className="h-6 w-6" />
@@ -379,7 +379,7 @@ return (
             <div className="absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none lg:mr-auto">
                 <Link href="/" className="flex items-center gap-2">
                     <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={50} height={50} className="h-[45px] sm:h-[50px] w-auto" />
-                    <span className="site-name text-xl sm:text-2xl font-medium text-prestij-text-primary hidden sm:block">PrestiJ</span>
+                    <span className="site-name text-xl sm:text-2xl font-medium text-dublio-text-primary hidden sm:block">PrestiJ</span>
                 </Link>
             </div>
 
@@ -396,14 +396,14 @@ return (
                                         data-dropdown-toggle="true"
                                         onClick={toggleDropdown(link.dropdownId!)}
                                         onMouseDown={(e) => e.preventDefault()} // Basılı tutmayı engelle
-                                        className={`nav-link flex items-center gap-1.5 text-sm text-prestij-text-accent hover:text-prestij-purple transition-colors py-1.5 ${activeDropdown === link.dropdownId ? 'text-prestij-purple' : ''}`}
+                                        className={`nav-link flex items-center gap-1.5 text-sm text-dublio-text-accent hover:text-dublio-purple transition-colors py-1.5 ${activeDropdown === link.dropdownId ? 'text-dublio-purple' : ''}`}
                                     >
                                         {link.label}
                                         {link.label === 'Kütüphanem' && <LibraryIconOutline className="h-3.5 w-3.5 ml-1" />}
                                         <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform duration-300 ${activeDropdown === link.dropdownId ? 'rotate-180' : ''}`} />
                                     </button>
                                 ) : (
-                                    <Link href={link.href} className="nav-link text-sm text-prestij-text-accent hover:text-prestij-purple transition-colors py-1.5">
+                                    <Link href={link.href} className="nav-link text-sm text-dublio-text-accent hover:text-dublio-purple transition-colors py-1.5">
                                         {link.label === 'Kütüphanem' && <LibraryIconOutline className="h-3.5 w-3.5 mr-1" />}
                                         {link.label}
                                     </Link>
@@ -423,15 +423,15 @@ return (
   onFocus={handleHeaderSearchFocus}
   readOnly
   className="w-32 sm:w-48 md:w-40 py-2 pl-10 pr-4 
-             text-sm text-prestij-text-input bg-prestij-bg-input/40 
-             border border-prestij-border-input/60 rounded-full 
-             focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple 
+             text-sm text-dublio-text-input bg-dublio-bg-input/40 
+             border border-dublio-border-input/60 rounded-full 
+             focus:ring-2 focus:ring-dublio-purple focus:border-dublio-purple 
              outline-none transition-all duration-300 ease-in-out
-             cursor-pointer group-hover:border-prestij-purple/70
+             cursor-pointer group-hover:border-dublio-purple/70
              backdrop-blur-sm"
 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-prestij-text-placeholder group-hover:text-prestij-purple/80 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-dublio-text-placeholder group-hover:text-dublio-purple/80 transition-colors">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                   </svg>
                 </div>
@@ -445,7 +445,7 @@ return (
             <div className="user-actions flex items-center gap-3 sm:gap-4 lg:ml-auto">
                 {/* Mesajlar İkonu */}
                 {session?.user && ( // Sadece giriş yapmışsa göster
-                    <Link href="/mesajlar" className="relative text-prestij-text-accent hover:text-prestij-purple transition-colors p-1.5 rounded-full hover:bg-prestij-purple/10">
+                    <Link href="/mesajlar" className="relative text-dublio-text-accent hover:text-dublio-purple transition-colors p-1.5 rounded-full hover:bg-dublio-purple/10">
                         <ChatBubbleOvalLeftEllipsisIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                         <UnreadMessagesBadge />
                     </Link>
@@ -454,7 +454,7 @@ return (
                     <NotificationBell />
                 )}
                 {isLoadingSession ? (
-                    <div className="h-8 w-8 bg-prestij-bg-button/50 animate-pulse rounded-full"></div>
+                    <div className="h-8 w-8 bg-dublio-bg-button/50 animate-pulse rounded-full"></div>
                 ) : session?.user ? (
                     // Profil Avatarı ve Dropdown Tetiği
                     <div className="relative">
@@ -463,7 +463,7 @@ return (
   <button
     data-dropdown-type="profile"
     onClick={toggleProfileDropdown}
-    className="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-prestij-bg-dark-1 focus:ring-prestij-purple"
+    className="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dublio-bg-dark-1 focus:ring-dublio-purple"
   >
     <span className="sr-only">Kullanıcı menüsünü aç</span>
     <Image
@@ -478,7 +478,7 @@ return (
   {(isProfileDropdownOpen || isClosing) && (
     <div
                                 ref={profileDropdownRef}
-                                className={`origin-top absolute mt-2 w-60 rounded-lg shadow-xl bg-prestij-dropdown-bg ring-1 ring-prestij-dropdown-border-alt focus:outline-none overflow-hidden
+                                className={`origin-top absolute mt-2 w-60 rounded-lg shadow-xl bg-dublio-dropdown-bg ring-1 ring-dublio-dropdown-border-alt focus:outline-none overflow-hidden
                 ${isClosing ? 'animate-dropdown-close' : 'animate-dropdown-open'}
                 right-0 lg:left-1/2 lg:transform lg:-translate-x-1/2 // Konumlandırma animasyondan sonra
                 `}
@@ -533,20 +533,20 @@ return (
                                     </div>
                                 </div>
                                 <div className="pt-3 px-4 pb-2 text-center mt-0">
-                                    <p className="text-sm font-medium text-prestij-text-primary truncate">
+                                    <p className="text-sm font-medium text-dublio-text-primary truncate">
                                         {session?.user?.name || session?.user?.email}
                                     </p>
                                 </div>
 
                                 {/* Kısa Ayırıcı Çizgi */}
                                 <div className="px-4 my-1">
-                                    <div className="h-px bg-prestij-divider-short"></div>
+                                    <div className="h-px bg-dublio-divider-short"></div>
                                 </div>
 
                                 {/* Profil linki */}
 <Link
     href={`/profil/${session.user.username || session.user.id}`}
-    className="flex items-center px-4 py-2.5 text-sm text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple text-left transition-colors rounded-md mx-2 w-[calc(100%-16px)]" // w-[calc(100%-16px)] ve mx-2 ekledik
+    className="flex items-center px-4 py-2.5 text-sm text-dublio-text-secondary hover:bg-dublio-purple/10 hover:text-dublio-purple text-left transition-colors rounded-md mx-2 w-[calc(100%-16px)]" // w-[calc(100%-16px)] ve mx-2 ekledik
     role="menuitem"
     onClick={() => setIsProfileDropdownOpen(false)}
 >
@@ -557,7 +557,7 @@ return (
 {/* Çıkış Yap butonu */}
 <button
     onClick={() => { signOut(); setIsProfileDropdownOpen(false); }}
-    className="flex items-center px-4 py-2.5 text-sm text-prestij-text-logout hover:bg-red-500/10 hover:text-red-400 text-left transition-colors rounded-md mx-2 mb-1 w-[calc(100%-16px)]"
+    className="flex items-center px-4 py-2.5 text-sm text-dublio-text-logout hover:bg-red-500/10 hover:text-red-400 text-left transition-colors rounded-md mx-2 mb-1 w-[calc(100%-16px)]"
     role="menuitem"
 >
     <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" aria-hidden="true" />
@@ -570,19 +570,19 @@ return (
                 ) : (
                     <Link
                         href="/giris"
-                        className="btn bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white text-xs sm:text-sm font-medium py-1.5 px-3 sm:px-4 rounded-md transition-colors whitespace-nowrap"
+                        className="btn bg-dublio-bg-button text-dublio-text-secondary border border-dublio-bg-button hover:bg-dublio-purple hover:border-dublio-purple hover:text-white text-xs sm:text-sm font-medium py-1.5 px-3 sm:px-4 rounded-md transition-colors whitespace-nowrap"
                     >
                         Giriş Yap
                     </Link>
                 )}
-                {/* "Prestij'i İndir" Butonu (Desktop için) */}
+                {/* "Dublio'i İndir" Butonu (Desktop için) */}
                 <button 
                   onClick={handleDownloadClick}
                   disabled={isDownloadClicked} // Eğer tıklandıysa disable et
                   className={`btn hidden md:block text-xs sm:text-sm font-medium py-1.5 px-3 sm:px-4 rounded-md transition-colors whitespace-nowrap
                     ${isDownloadClicked 
-                      ? 'bg-prestij-bg-button/50 text-prestij-text-muted cursor-not-allowed' // Soluk ve pasif stil
-                      : 'bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white' // Normal stil
+                      ? 'bg-dublio-bg-button/50 text-dublio-text-muted cursor-not-allowed' // Soluk ve pasif stil
+                      : 'bg-dublio-bg-button text-dublio-text-secondary border border-dublio-bg-button hover:bg-dublio-purple hover:border-dublio-purple hover:text-white' // Normal stil
                     }
                   `}
                 >
@@ -606,7 +606,7 @@ return (
           <div
             key={dropdownId}
             id={dropdownId}
-            className={`header-dropdown absolute top-0 left-0 w-full bg-prestij-bg-dark-4 shadow-header-dropdown 
+            className={`header-dropdown absolute top-0 left-0 w-full bg-dublio-bg-dark-4 shadow-header-dropdown 
                        transition-all duration-300 ease-out 
                        ${activeDropdown === dropdownId ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2 pointer-events-none'}`}
           >
@@ -616,11 +616,11 @@ return (
                       {dropdownId === 'oyunlarDropdown' && (
                           <>
                               <div className="dropdown-column flex-1">
-                                  <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">OYUNLAR</h3>
+                                  <h3 className="text-dublio-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">OYUNLAR</h3>
                                   <ul>
                                       {oyunlarDropdownContent.main.map(item => (
                                           <li key={item.label} className="mb-1.5">
-                                              <Link href={item.href} className="text-sm text-prestij-text-dropdown hover:text-prestij-purple transition-colors py-1 block">
+                                              <Link href={item.href} className="text-sm text-dublio-text-dropdown hover:text-dublio-purple transition-colors py-1 block">
                                                   {item.label}
                                               </Link>
                                           </li>
@@ -628,11 +628,11 @@ return (
                                   </ul>
                               </div>
                               <div className="dropdown-column flex-1">
-                                  <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">FAVORİ OYUNLARIM</h3>
+                                  <h3 className="text-dublio-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">FAVORİ OYUNLARIM</h3>
                                   <ul>
                                       {oyunlarDropdownContent.favorites.map((item: DropdownItem) => (
                                           <li key={item.label} className="mb-1.5">
-                                              <Link href={item.href} className={`text-sm ${item.isAction ? 'italic text-prestij-text-muted hover:text-prestij-purple' : 'text-prestij-text-dropdown hover:text-prestij-purple'} transition-colors py-1 flex items-center gap-2`}>
+                                              <Link href={item.href} className={`text-sm ${item.isAction ? 'italic text-dublio-text-muted hover:text-dublio-purple' : 'text-dublio-text-dropdown hover:text-dublio-purple'} transition-colors py-1 flex items-center gap-2`}>
                                                   {item.icon && <Image src={item.icon} alt="" width={24} height={24} className="rounded" />}
                                                   {item.label}
                                               </Link>
@@ -645,11 +645,11 @@ return (
                       {dropdownId === 'animelerDropdown' && (
                           <>
                               <div className="dropdown-column flex-1">
-                                <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">ANİMELER</h3>
+                                <h3 className="text-dublio-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">ANİMELER</h3>
                                 <ul>
                                   {(animelerDropdownContent.main as DropdownItem[]).map(item => (
                                     <li key={item.label} className="mb-1.5">
-                                      <Link href={item.href} className="text-sm text-prestij-text-dropdown hover:text-prestij-purple transition-colors py-1 block">
+                                      <Link href={item.href} className="text-sm text-dublio-text-dropdown hover:text-dublio-purple transition-colors py-1 block">
                                         {item.label}
                                       </Link>
                                     </li>
@@ -657,11 +657,11 @@ return (
                                 </ul>
                               </div>
                               <div className="dropdown-column flex-1">
-                                <h3 className="text-prestij-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">İZLEME LİSTEM</h3>
+                                <h3 className="text-dublio-text-muted text-xs font-medium uppercase tracking-wider mb-3.5">İZLEME LİSTEM</h3>
                                 <ul>
                                   {(animelerDropdownContent.watchlist as DropdownItem[]).map(item => (
                                     <li key={item.label} className="mb-1.5">
-                                      <Link href={item.href} className={`text-sm ${item.isAction ? 'italic text-prestij-text-muted hover:text-prestij-purple' : 'text-prestij-text-dropdown hover:text-prestij-purple'} transition-colors py-1 block`}>
+                                      <Link href={item.href} className={`text-sm ${item.isAction ? 'italic text-dublio-text-muted hover:text-dublio-purple' : 'text-dublio-text-dropdown hover:text-dublio-purple'} transition-colors py-1 block`}>
                                         {item.label}
                                       </Link>
                                     </li>
@@ -693,10 +693,10 @@ return (
             <div
                 id="mobileSidePanel"
                 ref={mobilePanelRef}
-                className={`mobile-side-panel fixed top-0 left-0 w-full max-w-xs sm:max-w-sm h-full bg-prestij-bg-dark-1 shadow-xl z-[1001] transition-transform duration-300 ease-in-out lg:hidden border-r border-prestij-border-primary flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`mobile-side-panel fixed top-0 left-0 w-full max-w-xs sm:max-w-sm h-full bg-dublio-bg-dark-1 shadow-xl z-[1001] transition-transform duration-300 ease-in-out lg:hidden border-r border-dublio-border-primary flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
-                <div className="panel-header p-4 flex justify-end items-center border-b border-prestij-border-primary">
-                    <button onClick={toggleMobileMenu} className="text-prestij-text-accent hover:text-prestij-purple transition-colors p-1">
+                <div className="panel-header p-4 flex justify-end items-center border-b border-dublio-border-primary">
+                    <button onClick={toggleMobileMenu} className="text-dublio-text-accent hover:text-dublio-purple transition-colors p-1">
                         <XMarkIcon className="h-6 w-6" />
                     </button>
                 </div>
@@ -708,7 +708,7 @@ return (
                                     {item.action === 'link' ? (
                                         <Link
                                             href={item.href}
-                                            className="block w-full text-left py-3 px-3 text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple rounded-md transition-colors"
+                                            className="block w-full text-left py-3 px-3 text-dublio-text-secondary hover:bg-dublio-purple/10 hover:text-dublio-purple rounded-md transition-colors"
                                             onClick={toggleMobileMenu}
                                         >
                                             {item.label}
@@ -716,7 +716,7 @@ return (
                                     ) : (
                                         <button
                                             onClick={() => handleMobileSubMenu(item.target)} // handleMobileSubMenu kullanıldı
-                                            className="w-full flex justify-between items-center py-3 px-3 text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple rounded-md transition-colors"
+                                            className="w-full flex justify-between items-center py-3 px-3 text-dublio-text-secondary hover:bg-dublio-purple/10 hover:text-dublio-purple rounded-md transition-colors"
                                         >
                                             {item.label}
                                             {item.iconRight}
@@ -730,9 +730,9 @@ return (
                                     <li>
                                         <button
                                             onClick={() => handleMobileSubMenu(null)} // Geri dön
-                                            className="w-full flex items-center gap-2 py-3 px-3 text-prestij-text-secondary hover:bg-prestij-purple/10 hover:text-prestij-purple rounded-md transition-colors font-medium mb-2"
+                                            className="w-full flex items-center gap-2 py-3 px-3 text-dublio-text-secondary hover:bg-dublio-purple/10 hover:text-dublio-purple rounded-md transition-colors font-medium mb-2"
                                         >
-                                            <ChevronLeftIcon className="h-5 w-5 text-prestij-text-muted" />
+                                            <ChevronLeftIcon className="h-5 w-5 text-dublio-text-muted" />
                                             Geri
                                         </button>
                                     </li>
@@ -741,7 +741,7 @@ return (
                                         <li key={`mobile-sub-${subItem.label}`} className="mb-0.5">
                                             <Link
                                                 href={subItem.href}
-                                                className={`block py-3 px-3 rounded-md transition-colors ${subItem.isAction ? 'text-prestij-purple italic font-medium' : 'text-prestij-text-secondary'} hover:bg-prestij-purple/10 hover:text-prestij-purple`}
+                                                className={`block py-3 px-3 rounded-md transition-colors ${subItem.isAction ? 'text-dublio-purple italic font-medium' : 'text-dublio-text-secondary'} hover:bg-dublio-purple/10 hover:text-dublio-purple`}
                                                 onClick={toggleMobileMenu}
                                             >
                                                 {subItem.label}
@@ -753,9 +753,9 @@ return (
                         </ul>
                         {/* Giriş/Çıkış ve İndir Butonları */}
                         {mobileSubMenu === null && (
-                            <div className="mt-6 pt-4 border-t border-prestij-border-primary space-y-2">
+                            <div className="mt-6 pt-4 border-t border-dublio-border-primary space-y-2">
                                  {isLoadingSession ? (
-                                    <div className="h-10 bg-prestij-bg-button/50 animate-pulse rounded-md mb-2"></div>
+                                    <div className="h-10 bg-dublio-bg-button/50 animate-pulse rounded-md mb-2"></div>
                                  ) : session?.user ? (
                                     <button
                                         onClick={() => { signOut(); toggleMobileMenu(); }}
@@ -766,7 +766,7 @@ return (
                                  ) : (
                                     <Link
                                         href="/giris"
-                                        className="block w-full text-center py-2.5 px-4 bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white rounded-md transition-colors font-medium"
+                                        className="block w-full text-center py-2.5 px-4 bg-dublio-bg-button text-dublio-text-secondary border border-dublio-bg-button hover:bg-dublio-purple hover:border-dublio-purple hover:text-white rounded-md transition-colors font-medium"
                                         onClick={toggleMobileMenu}
                                     >
                                         Giriş Yap
@@ -780,8 +780,8 @@ return (
                 disabled={isDownloadClicked}
                 className={`block w-full text-center py-2.5 px-4 rounded-md transition-colors font-medium
                     ${isDownloadClicked
-                        ? 'bg-prestij-bg-button/30 text-prestij-text-muted cursor-not-allowed' // Mobil için biraz daha farklı soluk stil olabilir
-                        : 'bg-prestij-bg-button text-prestij-text-secondary border border-prestij-bg-button hover:bg-prestij-purple hover:border-prestij-purple hover:text-white'
+                        ? 'bg-dublio-bg-button/30 text-dublio-text-muted cursor-not-allowed' // Mobil için biraz daha farklı soluk stil olabilir
+                        : 'bg-dublio-bg-button text-dublio-text-secondary border border-dublio-bg-button hover:bg-dublio-purple hover:border-dublio-purple hover:text-white'
                     }
                 `}
             >

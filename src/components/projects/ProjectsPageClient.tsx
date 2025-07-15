@@ -207,7 +207,7 @@ export default function ProjectsPageClient({ initialCategories }: ProjectsPageCl
 
       <div className="flex-grow min-w-0">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <p className="text-sm text-prestij-text-muted">
+          <p className="text-sm text-dublio-text-muted">
             {isFetching ? 'Projeler yükleniyor...' : (totalResults > 0 ? `${totalResults} proje bulundu.` : 'Aramanızla eşleşen proje bulunamadı.')}
           </p>
           <SortDropdown

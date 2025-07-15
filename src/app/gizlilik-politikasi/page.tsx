@@ -9,14 +9,14 @@ export const metadata: Metadata = {
 
 export default function GizlilikPolitikasiPage() {
   return (
-    <div className="bg-prestij-dark-900 text-prestij-text-primary min-h-screen py-12 sm:py-16">
+    <div className="bg-dublio-dark-900 text-dublio-text-primary min-h-screen py-12 sm:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <article className="prose prose-lg dark:prose-invert max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-8 border-b border-prestij-border-dark pb-4">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-8 border-b border-dublio-border-dark pb-4">
             Gizlilik Politikası
           </h1>
 
-          <p className="text-sm text-prestij-text-muted mb-6">
+          <p className="text-sm text-dublio-text-muted mb-6">
             Son Güncelleme: [31.05.2025]
           </p>
 
@@ -83,7 +83,7 @@ export default function GizlilikPolitikasiPage() {
 
             <h2>9. İletişim</h2>
             <p>
-              Gizlilik Politikamız ile ilgili sorularınız için lütfen <a href="mailto:gizlilik@prestijstudio.com" className="text-prestij-400 hover:underline">gizlilik@prestijdublaj.com</a> adresinden bize ulaşın.
+              Gizlilik Politikamız ile ilgili sorularınız için lütfen <a href="mailto:gizlilik@dubliostudio.com" className="text-dublio-400 hover:underline">gizlilik@dubliodublaj.com</a> adresinden bize ulaşın.
             </p>
           </section>
         </article>

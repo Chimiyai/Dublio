@@ -146,15 +146,15 @@ const placeholderCount = searchTerm.trim() === '' ? 9 : 6; // Başlangıçta 9, 
           */}
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-prestij-bg-dark-2 w-full h-full rounded-lg sm:rounded-xl shadow-2xl flex flex-col"
+            className="bg-dublio-bg-dark-2 w-full h-full rounded-lg sm:rounded-xl shadow-2xl flex flex-col"
           >
             {/* === BU KISIMDAN SONRASI TAMAMEN AYNI === */}
             
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-prestij-border-soft">
-              <h2 className="text-md sm:text-lg font-semibold text-prestij-text-primary">İçerik Ara</h2>
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-dublio-border-soft">
+              <h2 className="text-md sm:text-lg font-semibold text-dublio-text-primary">İçerik Ara</h2>
               <button
                 onClick={onClose}
-                className="text-prestij-text-muted hover:text-prestij-text-bright transition-colors p-1 rounded-full hover:bg-prestij-bg-light-interactive"
+                className="text-dublio-text-muted hover:text-dublio-text-bright transition-colors p-1 rounded-full hover:bg-dublio-bg-light-interactive"
                 aria-label="Arama penceresini kapat"
               >
                 <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -168,26 +168,26 @@ const placeholderCount = searchTerm.trim() === '' ? 9 : 6; // Başlangıçta 9, 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Oyun veya anime adı ara..."
-                className="w-full p-3 bg-prestij-bg-input border border-prestij-border-input rounded-lg text-prestij-text-input placeholder-prestij-text-placeholder focus:ring-1 focus:ring-prestij-purple focus:border-prestij-purple outline-none transition-colors"
+                className="w-full p-3 bg-dublio-bg-input border border-dublio-border-input rounded-lg text-dublio-text-input placeholder-dublio-text-placeholder focus:ring-1 focus:ring-dublio-purple focus:border-dublio-purple outline-none transition-colors"
               />
 
   {/* Sonuç etiketleri ve sayıları */}
 {!isLoading && !error && results.length > 0 && (
   <div className="flex flex-wrap gap-2">
-    <span className="text-sm text-prestij-text-muted">
+    <span className="text-sm text-dublio-text-muted">
       {searchTerm.trim() !== '' ? 'Arama sonuçları:' : 'Sonuçlar:'}
     </span>
     <div className="flex flex-wrap gap-2">
       {/* Oyun sonuç sayısı */}
       {results.filter(item => item.type.toLowerCase() === 'oyun').length > 0 && (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-prestij-type-game/20 text-prestij-type-game">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-dublio-type-game/20 text-dublio-type-game">
           Oyun ({results.filter(item => item.type.toLowerCase() === 'oyun').length})
         </span>
       )}
       
       {/* Anime sonuç sayısı */}
       {results.filter(item => item.type.toLowerCase() === 'anime').length > 0 && (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-prestij-type-anime/20 text-prestij-type-anime">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-dublio-type-anime/20 text-dublio-type-anime">
           Anime ({results.filter(item => item.type.toLowerCase() === 'anime').length})
         </span>
       )}
@@ -213,10 +213,10 @@ const placeholderCount = searchTerm.trim() === '' ? 9 : 6; // Başlangıçta 9, 
 
           {/* SONUÇ YOK DURUMU */}
           {!isLoading && !error && results.length === 0 && searchTerm.trim() !== '' && (
-            <p className="text-center text-prestij-text-muted py-8">"{searchTerm}" için sonuç bulunamadı.</p>
+            <p className="text-center text-dublio-text-muted py-8">"{searchTerm}" için sonuç bulunamadı.</p>
           )}
           {!isLoading && !error && results.length === 0 && searchTerm.trim() === '' && !isInitialLoad && ( // Initial load bittiyse ve sonuç yoksa
-            <p className="text-center text-prestij-text-muted py-8">Gösterilecek içerik bulunamadı bir şeyler yazmayı dene.</p>
+            <p className="text-center text-dublio-text-muted py-8">Gösterilecek içerik bulunamadı bir şeyler yazmayı dene.</p>
           )}
 
           {!isLoading && !error && results.length > 0 && (

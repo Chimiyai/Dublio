@@ -60,18 +60,18 @@ export default function KayitPage() {
     }
   };
 
-  // Tailwind config'inizde 'prestij-' ön ekli renklerin tanımlı olduğundan emin olun.
-  // Örneğin: 'prestij-purple', 'prestij-bg-dark-1', 'prestij-bg-dark-4', 'prestij-border-secondary', 'prestij-text-primary', 'prestij-text-muted'
+  // Tailwind config'inizde 'dublio-' ön ekli renklerin tanımlı olduğundan emin olun.
+  // Örneğin: 'dublio-purple', 'dublio-bg-dark-1', 'dublio-bg-dark-4', 'dublio-border-secondary', 'dublio-text-primary', 'dublio-text-muted'
 
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-prestij-bg-dark-1 shadow-xl rounded-lg">
+    <div className="w-full max-w-md p-8 space-y-6 bg-dublio-bg-dark-1 shadow-xl rounded-lg">
       {/* Üst Logo veya Başlık Alanı */}
       <div className="text-center">
         {/* <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={80} height={80} className="mx-auto mb-4" /> */}
-        <h1 className="text-3xl font-bold text-prestij-text-primary">
+        <h1 className="text-3xl font-bold text-dublio-text-primary">
           Hesap Oluştur
         </h1>
-        <p className="mt-2 text-prestij-text-muted">
+        <p className="mt-2 text-dublio-text-muted">
           PrestiJ dünyasına katılın!
         </p>
       </div>
@@ -80,7 +80,7 @@ export default function KayitPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Kullanıcı Adı */}
         <div>
-          <label htmlFor="username" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+          <label htmlFor="username" className="block text-sm font-medium text-dublio-text-secondary mb-1">
             Kullanıcı Adı
           </label>
           <div className="relative">
@@ -93,7 +93,7 @@ export default function KayitPage() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="appearance-none block w-full pl-3 pr-3 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+              className="appearance-none block w-full pl-3 pr-3 py-2.5 bg-dublio-bg-dark-4 border border-dublio-border-secondary rounded-md shadow-sm placeholder-dublio-text-placeholder focus:outline-none focus:ring-2 focus:ring-dublio-purple focus:border-dublio-purple sm:text-sm text-dublio-text-primary"
               placeholder="Kullanıcı adınız"
             />
           </div>
@@ -101,7 +101,7 @@ export default function KayitPage() {
 
         {/* E-posta */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-dublio-text-secondary mb-1">
             E-posta Adresi
           </label>
           <div className="relative">
@@ -114,7 +114,7 @@ export default function KayitPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none block w-full pl-3 pr-3 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+              className="appearance-none block w-full pl-3 pr-3 py-2.5 bg-dublio-bg-dark-4 border border-dublio-border-secondary rounded-md shadow-sm placeholder-dublio-text-placeholder focus:outline-none focus:ring-2 focus:ring-dublio-purple focus:border-dublio-purple sm:text-sm text-dublio-text-primary"
               placeholder="ornek@mail.com"
             />
           </div>
@@ -122,7 +122,7 @@ export default function KayitPage() {
 
         {/* Şifre */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-dublio-text-secondary mb-1">
             Şifre
           </label>
           <div className="relative">
@@ -135,13 +135,13 @@ export default function KayitPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none block w-full pl-3 pr-10 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+              className="appearance-none block w-full pl-3 pr-10 py-2.5 bg-dublio-bg-dark-4 border border-dublio-border-secondary rounded-md shadow-sm placeholder-dublio-text-placeholder focus:outline-none focus:ring-2 focus:ring-dublio-purple focus:border-dublio-purple sm:text-sm text-dublio-text-primary"
               placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-400 hover:text-prestij-purple"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-400 hover:text-dublio-purple"
               aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
             >
               {/* {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />} */}
@@ -152,7 +152,7 @@ export default function KayitPage() {
 
         {/* Şifre Tekrar */}
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-prestij-text-secondary mb-1">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-dublio-text-secondary mb-1">
             Şifreyi Tekrarla
           </label>
           <div className="relative">
@@ -164,13 +164,13 @@ export default function KayitPage() {
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="appearance-none block w-full pl-3 pr-10 py-2.5 bg-prestij-bg-dark-4 border border-prestij-border-secondary rounded-md shadow-sm placeholder-prestij-text-placeholder focus:outline-none focus:ring-2 focus:ring-prestij-purple focus:border-prestij-purple sm:text-sm text-prestij-text-primary"
+              className="appearance-none block w-full pl-3 pr-10 py-2.5 bg-dublio-bg-dark-4 border border-dublio-border-secondary rounded-md shadow-sm placeholder-dublio-text-placeholder focus:outline-none focus:ring-2 focus:ring-dublio-purple focus:border-dublio-purple sm:text-sm text-dublio-text-primary"
               placeholder="••••••••"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-400 hover:text-prestij-purple"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-400 hover:text-dublio-purple"
               aria-label={showConfirmPassword ? "Şifreyi gizle" : "Şifreyi göster"}
             >
               <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -190,7 +190,7 @@ export default function KayitPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-prestij-purple hover:bg-prestij-purple-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-prestij-purple disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-dublio-purple hover:bg-dublio-purple-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dublio-purple disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? (
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -205,9 +205,9 @@ export default function KayitPage() {
       </form>
 
       {/* Giriş Sayfasına Yönlendirme */}
-      <p className="mt-8 text-center text-sm text-prestij-text-muted">
+      <p className="mt-8 text-center text-sm text-dublio-text-muted">
         Zaten bir hesabın var mı?{' '}
-        <Link href="/giris" className="font-medium text-prestij-purple hover:text-prestij-purple-light hover:underline">
+        <Link href="/giris" className="font-medium text-dublio-purple hover:text-dublio-purple-light hover:underline">
           Giriş Yap
         </Link>
       </p>
