@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       const platformOrderId = params.platform_order_id;
       
       const parts = platformOrderId.split('-');
-      if (parts[0] === 'PRESTIJ' && parts.length >= 3) {
+      if (parts[0] === 'DUBLIO' && parts.length >= 3) {
         const projectId = parseInt(parts[1]);
         const userId = parseInt(parts[2]);
 

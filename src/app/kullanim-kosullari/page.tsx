@@ -2,8 +2,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Kullanım Koşulları | PrestiJ Studio',
-  description: 'PrestiJ Studio web sitesi ve hizmetlerinin kullanım koşulları.',
+  title: 'Kullanım Koşulları | Dublio',
+  description: 'Dublio web sitesi ve hizmetlerinin kullanım koşulları.',
   robots: 'noindex, nofollow', // Genellikle bu tür sayfaların arama motorları tarafından indekslenmesi istenmez
 };
 
@@ -24,12 +24,12 @@ export default function KullanimKosullariPage() {
             <h2>1. Kabul Edilen Şartlar</h2>
             <p>
               Bu web sitesini ("Site") ziyaret ederek veya kullanarak, işbu Kullanım Koşulları'nı ("Koşullar") kabul etmiş sayılırsınız.
-              Eğer bu Koşulları kabul etmiyorsanız, lütfen Site'yi kullanmayınız. PrestiJ Studio ("Biz", "Şirket") bu Koşulları zaman zaman güncelleme hakkını saklı tutar.
+              Eğer bu Koşulları kabul etmiyorsanız, lütfen Site'yi kullanmayınız. Dublio ("Biz", "Şirket") bu Koşulları zaman zaman güncelleme hakkını saklı tutar.
             </p>
 
             <h2>2. Hizmetlerin Açıklaması</h2>
             <p>
-              PrestiJ Studio, kullanıcılara Türkçe dublajlı oyun ve anime içerikleri hakkında bilgi sunan, bu içeriklere etkileşimde bulunma (puan verme, yorum yapma vb.)
+              Dublio, kullanıcılara Türkçe dublajlı oyun ve anime içerikleri hakkında bilgi sunan, bu içeriklere etkileşimde bulunma (puan verme, yorum yapma vb.)
               ve dublaj isteklerinde bulunma imkanı sağlayan bir platformdur.
             </p>
 
@@ -46,7 +46,7 @@ export default function KullanimKosullariPage() {
 
             <h2>4. Fikri Mülkiyet Hakları</h2>
             <p>
-              Site'de yer alan tüm içerikler (metinler, görseller, logolar, dublajlar vb.) PrestiJ Studio'ya veya ilgili hak sahiplerine aittir ve
+              Site'de yer alan tüm içerikler (metinler, görseller, logolar, dublajlar vb.) Dublio'ya veya ilgili hak sahiplerine aittir ve
               Türk ve uluslararası telif hakkı yasalarıyla korunmaktadır. İzinsiz kullanımı yasaktır.
             </p>
             

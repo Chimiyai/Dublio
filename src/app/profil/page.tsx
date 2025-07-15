@@ -7,7 +7,7 @@ import UserProfileForm, { UserProfileFormProps } from '@/components/profile/User
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Profilim | PrestiJ Dublaj',
+  title: 'Profilim | Dublio Dublaj',
 };
 
 export default async function ProfilePage() {

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         process.env.SHOPIER_API_SECRET!
     );
 
-    const platformOrderId = `PRESTIJ-${projectId}-${user.id}-${Date.now()}`;
+    const platformOrderId = `DUBLIO-${projectId}-${user.id}-${Date.now()}`;
     
     // 1. Alıcı bilgilerini ayarla
     shopier.setBuyer({

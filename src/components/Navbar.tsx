@@ -131,8 +131,8 @@ export default function Navbar() {
         {/* HTML'deki gibi absolute konumlandırma yerine flex order ile de yönetilebilir */}
         <div className="logo-area flex items-center gap-2 lg:order-1">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={45} height={45} className="site-logo h-9 sm:h-10 w-auto" priority />
-            <span className="site-name text-lg sm:text-xl font-medium text-gray-100 hidden sm:inline">PrestiJ</span>
+            <Image src="/images/logo-placeholder.png" alt="Dublio Logo" width={45} height={45} className="site-logo h-9 sm:h-10 w-auto" priority />
+            <span className="site-name text-lg sm:text-xl font-medium text-gray-100 hidden sm:inline">Dublio</span>
           </Link>
         </div>
 
@@ -202,7 +202,7 @@ export default function Navbar() {
             </>
           )}
           <button className="btn btn-download bg-secondary-dark border-secondary-dark hover:bg-text-brand-purple hover:border-text-brand-purple hover:text-white text-xs py-1.5 px-3 rounded-md font-medium hidden md:inline-block whitespace-nowrap">
-            PrestiJ'i İndir
+            Dublio'i İndir
           </button>
         </div>
       </div>

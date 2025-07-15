@@ -89,7 +89,7 @@ const Footer = () => {
         <div className="container mx-auto px-4">
           <Link href="/" className="inline-block">
             <h2 className="footer-main-title text-xl sm:text-2xl font-semibold text-footer-main-title-text hover:opacity-80 transition-opacity">
-              PrestiJ STUDIO
+              DUBLIO
             </h2>
           </Link>
         </div>
@@ -102,7 +102,7 @@ const Footer = () => {
           <Link href="/" className="inline-block">
             <Image 
               src="/images/logo-placeholder.png" // Gerçek logo yolunuzu kullanın
-              alt="PrestiJ Logo" 
+              alt="Dublio Logo" 
               width={120} 
               height={120}
               className="footer-logo-img w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] object-contain" // object-contain or object-cover
@@ -199,7 +199,7 @@ const Footer = () => {
       <div className="footer-bottom-bar border-t border-footer-border py-5 text-xs text-footer-bottom-bar-text"> {/* text-footer-bottom-bar-text-size kaldırıldı */}
         <div className="container mx-auto footer-bottom-content px-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
           <div className="copyright-text-wrapper text-center sm:text-left">
-            <p className="copyright-text">© {year} PrestiJ Studio Tüm Hakları Saklıdır.</p>
+            <p className="copyright-text">© {year} Dublio Tüm Hakları Saklıdır.</p>
           </div>
           <div className="developer-credit text-center">
             <p>

@@ -11,8 +11,8 @@ import { HeartIcon as DonationIconOutline } from '@heroicons/react/24/outline';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Kadromuz | PrestiJ Studio',
-  description: 'PrestiJ Studio ekibiyle tanışın. Projelerimize hayat veren yetenekli seslendirme sanatçılarımız, çevirmenlerimiz ve tüm değerli üyelerimiz.',
+  title: 'Kadromuz | Dublio',
+  description: 'Dublio ekibiyle tanışın. Projelerimize hayat veren yetenekli seslendirme sanatçılarımız, çevirmenlerimiz ve tüm değerli üyelerimiz.',
 };
 export interface TeamMemberForPage { // Yeni tip adı
   id: number;
@@ -100,7 +100,7 @@ export default async function KadromuzPage() {
             Ekibimizle Tanışın
           </h1>
           <p className="mt-5 text-lg leading-8 text-dublio-text-secondary max-w-2xl mx-auto">
-            PrestiJ Studio'nun projelerine hayat veren, tutkulu ve deneyimli kadromuz.
+            Dublio'nun projelerine hayat veren, tutkulu ve deneyimli kadromuz.
           </p>
         </div>
 

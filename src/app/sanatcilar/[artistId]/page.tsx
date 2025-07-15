@@ -114,14 +114,14 @@ export async function generateMetadata(
   const artistIdString = resolvedParams.artistId;
 
   if (!artistIdString || typeof artistIdString !== 'string' || artistIdString.trim() === "") {
-    return { title: 'Sanatçı Bulunamadı | PrestiJ Studio' };
+    return { title: 'Sanatçı Bulunamadı | Dublio' };
   }
   // getArtistDetails zaten string alıyor, parseInt'i orada yapıyor.
   const artist = await getArtistDetails(artistIdString); 
-  if (!artist) return { title: 'Sanatçı Bulunamadı | PrestiJ Studio' };
+  if (!artist) return { title: 'Sanatçı Bulunamadı | Dublio' };
   return {
-    title: `${artist.firstName} ${artist.lastName} - PrestiJ Dublaj`,
-    description: artist.bio || `PrestiJ Dublaj ekibinden ${artist.firstName} ${artist.lastName}'in katkıda bulunduğu projeler.`,
+    title: `${artist.firstName} ${artist.lastName} - Dublio Dublaj`,
+    description: artist.bio || `Dublio Dublaj ekibinden ${artist.firstName} ${artist.lastName}'in katkıda bulunduğu projeler.`,
   };
 }
 

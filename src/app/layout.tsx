@@ -14,7 +14,7 @@ import GlobalSoundPlayer from '@/components/layout/GlobalSoundPlayer';
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "PrestiJ Studio",
+  title: "Dublio",
   description: "Gelişmiş Arayüz",
 };
 

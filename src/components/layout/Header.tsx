@@ -72,7 +72,7 @@ type MobileMenuItem = MobileMenuLinkItem | MobileMenuSubmenuItem;
 
 
 const Header = () => {
-  const [downloadButtonText, setDownloadButtonText] = useState("PrestiJ'i İndir");
+  const [downloadButtonText, setDownloadButtonText] = useState("Dublio'i İndir");
   const [isDownloadClicked, setIsDownloadClicked] = useState(false); // Butonun tıklanıp tıklanmadığını tutar
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: session, status } = useSession();
@@ -273,7 +273,7 @@ const handleDownloadClick = () => {
       setIsDownloadClicked(true); // Buton tıklandı olarak işaretle
     
       setTimeout(() => {
-        setDownloadButtonText("PrestiJ'i İndir");
+        setDownloadButtonText("Dublio'i İndir");
         setIsDownloadClicked(false);
       }, 1000); 
     }
@@ -378,8 +378,8 @@ return (
             {/* Mobil'de logonun ortalanması için düzenleme */}
             <div className="absolute left-1/2 transform -translate-x-1/2 lg:static lg:transform-none lg:mr-auto">
                 <Link href="/" className="flex items-center gap-2">
-                    <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={50} height={50} className="h-[45px] sm:h-[50px] w-auto" />
-                    <span className="site-name text-xl sm:text-2xl font-medium text-dublio-text-primary hidden sm:block">PrestiJ</span>
+                    <Image src="/images/logo-placeholder.png" alt="Dublio Logo" width={50} height={50} className="h-[45px] sm:h-[50px] w-auto" />
+                    <span className="site-name text-xl sm:text-2xl font-medium text-dublio-text-primary hidden sm:block">Dublio</span>
                 </Link>
             </div>
 

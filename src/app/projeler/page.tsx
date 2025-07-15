@@ -8,8 +8,8 @@ import { Category } from '@prisma/client';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Türkçe Dublaj Projeler | PrestiJ Studio',
-  description: 'PrestiJ Studio tarafından Türkçe dublajı yapılan tüm oyun ve animeleri keşfedin, filtreleyin ve sıralayın.',
+  title: 'Türkçe Dublaj Projeler | Dublio',
+  description: 'Dublio tarafından Türkçe dublajı yapılan tüm oyun ve animeleri keşfedin, filtreleyin ve sıralayın.',
   // Alternatif olarak, URL'deki type parametresine göre dinamik metadata da oluşturulabilir.
   // Ama bu client component içinde yönetileceği için şimdilik genel kalsın.
 };

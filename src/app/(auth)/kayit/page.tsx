@@ -67,12 +67,12 @@ export default function KayitPage() {
     <div className="w-full max-w-md p-8 space-y-6 bg-dublio-bg-dark-1 shadow-xl rounded-lg">
       {/* Üst Logo veya Başlık Alanı */}
       <div className="text-center">
-        {/* <Image src="/images/logo-placeholder.png" alt="PrestiJ Logo" width={80} height={80} className="mx-auto mb-4" /> */}
+        {/* <Image src="/images/logo-placeholder.png" alt="Dublio Logo" width={80} height={80} className="mx-auto mb-4" /> */}
         <h1 className="text-3xl font-bold text-dublio-text-primary">
           Hesap Oluştur
         </h1>
         <p className="mt-2 text-dublio-text-muted">
-          PrestiJ dünyasına katılın!
+          Dublio dünyasına katılın!
         </p>
       </div>
 

@@ -1,133 +1,120 @@
-// This is your Prisma schema file,
+// This is your Prisma schema file for Dublio v1.0
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client" // Doğru output yolu
 }
-
-// --- ENUM Doğru ---
-enum RoleInProject {
-  VOICE_ACTOR
-  MIX_MASTER
-  MODDER
-  TRANSLATOR
-  SCRIPT_WRITER
-  DIRECTOR
-}
-
-// -------------------
 
 datasource db {
+  // Geliştirme için sqlite, production için postgresql kullanacağız.
+  // env("DATABASE_URL") üzerinden yönetilecek.
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-model Notification {
-  id        Int                  @id @default(autoincrement())
-  message   String               // Örn: "Yeni Proje: Cyberpunk 2077 Dublajı"
-  link      String               // Örn: "/projeler/cyberpunk-2077-dublaj"
-  createdAt DateTime             @default(now())
-  
-  // Bu bildirimin hangi kullanıcılara gönderildiğini gösteren ilişki
-  userNotifications UserNotification[]
-  
-  @@map("notifications")
+// =================================================================
+// BÖLÜM 1: ENUMLAR (Merkezi Tip Tanımları)
+// =================================================================
+
+enum ContentType {
+  GAME
+  ANIME
+  MANGA
 }
 
-// Ara Tablo: Hangi kullanıcının hangi bildirimi gördüğünü ve okuduğunu tutar.
-model UserNotification {
-  id             Int      @id @default(autoincrement())
-  isRead         Boolean  @default(false)
-  
-  userId         Int
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  notificationId Int
-  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, notificationId]) // Bir kullanıcı bir bildirimi sadece bir kez alır
-  @@map("user_notifications")
+enum ProjectStatus {
+  RECRUITING // Ekip Toplanıyor
+  IN_PROGRESS // Geliştirme Aşamasında
+  COMPLETED // Tamamlandı
+  ON_HOLD // Duraklatıldı
+  CANCELED // İptal Edildi
 }
 
-model UserReport {
-  id          Int      @id @default(autoincrement())
-  reason      String   // Rapor sebebi (örneğin: "Spam", "Taciz", "Uygunsuz Profil")
-  description String?  // Opsiyonel detaylı açıklama
-  
-  // Raporlayan ve Raporlanan Kullanıcılar
-  reporterId  Int
-  reporter    User     @relation("ReportedByUser", fields: [reporterId], references: [id], onDelete: Cascade)
-  
-  reportedId  Int
-  reported    User     @relation("ReportsAgainstUser", fields: [reportedId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime @default(now())
-
-  // Admin tarafından incelendi mi?
-  status      String   @default("pending") // "pending", "reviewed", "resolved"
-
-  @@unique([reporterId, reportedId]) // Bir kullanıcı diğerini sadece bir kez raporlayabilir
-  @@map("user_reports")
+enum TaskType {
+  TRANSLATION // Çeviri
+  VOICE_RECORDING // Ses Kaydı
+  AUDIO_MIXING // Ses Miksajı
+  PROOFREADING // Redaksiyon
+  TEXTURE_EDIT // Doku Düzenleme
+  TYPESETTING // Dizgi (Manga için)
+  CLEANING // Temizleme (Manga için)
+  QUALITY_ASSURANCE // Kalite Kontrol
+  MODDING // Teknik Entegrasyon
 }
 
-model UserBlock {
-  // Engelleyen ve Engellenen Kullanıcılar
-  blockerId   Int
-  blocker     User    @relation("BlockingUsers", fields: [blockerId], references: [id], onDelete: Cascade)
-
-  blockingId  Int
-  blocking    User    @relation("BlockedByUsers", fields: [blockingId], references: [id], onDelete: Cascade)
-
-  createdAt   DateTime @default(now())
-
-  @@id([blockerId, blockingId]) // İki alan birlikte birincil anahtar
-  @@map("user_blocks")
+enum TaskStatus {
+  TODO // Yapılacak
+  IN_PROGRESS // Yapılıyor
+  IN_REVIEW // Gözden Geçiriliyor
+  DONE // Tamamlandı
 }
 
+enum DemoType {
+  AUDIO
+  VIDEO
+  IMAGE
+}
+
+enum TransactionType {
+  DEPOSIT // Kredi Yükleme
+  PURCHASE // Satın Alma
+  REWARD // Ödül
+  TEAM_FEE // Ekip Kurma Ücreti
+  DONATION // Bağış
+}
+
+enum NotificationType {
+  SYSTEM_ANNOUNCEMENT
+  PROJECT_UPDATE
+  TEAM_INVITATION
+  NEW_MESSAGE
+  TASK_ASSIGNMENT
+  COMMENT_REPLY
+}
+
+// =================================================================
+// BÖLÜM 2: KULLANICI, KİMLİK VE EKONOMİ
+// =================================================================
+
+// 2.1 `User`: Platformdaki her birey. NextAuth ile uyumlu.
 model User {
-  id                     Int      @id @default(autoincrement())
-  email                  String   @unique
-  username               String   @unique
-  password               String?
-  role                   String   @default("user")
-  profileImagePublicId   String?
-  bannerImagePublicId    String?
-  bio                    String?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  isBanned               Boolean  @default(false)
-  banExpiresAt           DateTime?
-  banReason              String?
-  
-  // NextAuth.js için ilişkiler
-  accounts      Account[]
-  sessions      Session[]
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  username     String   @unique
+  password     String? // Sosyal medya girişi için opsiyonel
+  role         String   @default("USER") // USER, PREMIUM_USER, ADMIN, MODERATOR
+  profileImage String? // Cloudinary URL
+  bannerImage  String? // Cloudinary URL
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isBanned     Boolean  @default(false)
 
-  // Diğer tüm ilişkiler
-  sentMessages           Message[]        @relation("SentMessages")
-  receivedMessages       Message[]        @relation("ReceivedMessages")
-  emailChangeRequests    EmailChangeRequest[]
-  comments               Comment[]
-  dubbingArtistLikes     DubbingArtistLike[]
-  dubbingArtistFavorites DubbingArtistFavorite[]
-  projectLikes           ProjectLike[]
-  projectDislikes        ProjectDislike[]
-  projectFavorites       ProjectFavorite[]
-  projectRatings         ProjectRating[]
-  ownedGames             UserOwnedGame[]
-  supportRequests        SupportRequest[]
-  notifications          UserNotification[]
-  reportsMade            UserReport[]     @relation("ReportedByUser")
-  reportsAgainst         UserReport[]     @relation("ReportsAgainstUser")
-  blocking               UserBlock[]      @relation("BlockingUsers")
-  blockedBy              UserBlock[]      @relation("BlockedByUsers")
+  // --- İlişkiler ---
+  // NextAuth
+  accounts Account[]
+  sessions Session[]
+
+  // Dublio
+  wallet                  Wallet?
+  skills                  UserSkill[]
+  demos                   UserDemo[]
+  ownedTeams              Team[]                    @relation("TeamOwner")
+  teamMemberships         TeamMember[]
+  assignedTasks           TaskAssignee[]
+  comments                Comment[]
+  interactions            Interaction[]
+  userNotifications       UserNotification[]
+  sentReports             Report[]                  @relation("Reporter")
+  receivedReports         Report[]                  @relation("Reported")
+  conversationMemberships ConversationParticipant[]
 
   @@map("users")
 }
 
+// 2.2 `Account`: NextAuth için. Değişiklik yok.
 model Account {
-  id                Int     @id @default(autoincrement())
+  id                String  @id @default(cuid())
   userId            Int
   type              String
   provider          String
@@ -139,362 +126,374 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
   @@map("accounts")
 }
 
+// 2.3 `Session`: NextAuth için. Değişiklik yok.
 model Session {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       Int
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("sessions")
 }
 
+// 2.4 `VerificationToken`: NextAuth için. Değişiklik yok.
 model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
+
   @@unique([identifier, token])
   @@map("verification_tokens")
 }
 
-model EmailChangeRequest {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  newEmail  String
-  token     String   @unique // Hash'lenmiş token saklanacak
-  expiresAt DateTime // Token geçerlilik süresi
-  createdAt DateTime @default(now())
+// 2.5 `Wallet`: Kullanıcıların kredi cüzdanı.
+model Wallet {
+  id           Int           @id @default(autoincrement())
+  userId       Int           @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Float         @default(0.00)
+  transactions Transaction[]
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade) // User ile ilişki
-
-  @@index([userId])
-  @@map("email_change_requests")
+  @@map("wallets")
 }
 
-model SupportRequest {
-  id        Int      @id @default(autoincrement())
-  title     String
-  message   String
-  amount    Float?
-  status    String   @default("pending") 
+// 2.6 `Transaction`: Tüm kredi hareketleri.
+model Transaction {
+  id          Int             @id @default(autoincrement())
+  walletId    Int
+  wallet      Wallet          @relation(fields: [walletId], references: [id])
+  amount      Float
+  type        TransactionType
+  description String
+  metadata    Json? // Ekstra veri (örn: { "purchased_item_id": 123, "item_type": "PREMIUM_MEMBERSHIP" })
+  createdAt   DateTime        @default(now())
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("support_requests")
+  @@map("transactions")
 }
 
+// 2.7 `UserSkill`: Kullanıcının kanıtlanmış yetenekleri.
+model UserSkill {
+  userId     Int
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillName  String // Örn: "Seslendirme", "Çeviri (İngilizce-Türkçe)", "Doku Sanatı"
+  isVerified Boolean @default(false) // "Onaylı Yetenek" rozeti için
 
+  @@id([userId, skillName])
+  @@map("user_skills")
+}
+
+// 2.8 `UserDemo`: Kullanıcının portfolyosundaki işler.
+model UserDemo {
+  id          Int      @id @default(autoincrement())
+  authorId    Int
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  type        DemoType
+  url         String // Cloudinary URL veya YouTube/Vimeo linki
+  createdAt   DateTime @default(now())
+
+  // Etkileşimler
+  interactions Interaction[]
+
+  @@map("user_demos")
+}
+
+// =================================================================
+// BÖLÜM 3: EKİP VE PROJE YÖNETİMİ
+// =================================================================
+
+// 3.1 `Team`: Projeleri yürüten yaratıcı ekipler.
+model Team {
+  id              Int      @id @default(autoincrement())
+  ownerId         Int
+  owner           User     @relation("TeamOwner", fields: [ownerId], references: [id])
+  name            String   @unique
+  slug            String   @unique
+  logoUrl         String? // Cloudinary URL
+  bannerUrl       String? // Cloudinary URL
+  description     String?
+  motto           String?
+  isRecruiting    Boolean  @default(false)
+  specializations String?
+  createdAt       DateTime @default(now())
+
+  // İlişkiler
+  members      TeamMember[]
+  projects     Project[]
+  interactions Interaction[]
+
+  @@map("teams")
+}
+
+// 3.2 `TeamMember`: Ekip-Kullanıcı ara tablosu.
+model TeamMember {
+  teamId   Int
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String // "LEADER", "ADMIN", "MEMBER"
+  joinedAt DateTime @default(now())
+
+  @@id([teamId, userId])
+  @@map("team_members")
+}
+
+// 3.3 `Content`: Yerelleştirilecek ana içerik (Oyun, Anime vb.).
+model Content {
+  id            Int         @id @default(autoincrement())
+  title         String
+  slug          String      @unique
+  type          ContentType
+  description   String?
+  coverImageUrl String? // Cloudinary URL
+  bannerUrl     String? // Cloudinary URL
+  releaseDate   DateTime?
+  metadata      Json? // Örn: { "developer": "CD Projekt Red", "publisher": "CDPR" }
+  createdAt     DateTime    @default(now())
+
+  projects     Project[]
+  interactions Interaction[]
+
+  @@map("contents")
+}
+
+// 3.4 `Project`: Bir ekibin, bir içeriği yerelleştirme projesi.
 model Project {
-  id                  Int       @id @default(autoincrement())
-  title               String
-  slug                String    @unique
-  type                String // "oyun" veya "anime" (filtrelenmiş section başlığı için kalabilir)
-  description         String?
-  coverImagePublicId  String?
-  bannerImagePublicId String?
-  externalWatchUrl    String?
-  releaseDate         DateTime? @default(now())
-  isPublished         Boolean   @default(true)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id        Int           @id @default(autoincrement())
+  teamId    Int
+  team      Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  contentId Int
+  content   Content       @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  name      String // Örn: "Cyberpunk 2077 - Türkçe Dublaj Projesi"
+  status    ProjectStatus @default(RECRUITING)
+  isPublic  Boolean       @default(true)
+  createdAt DateTime      @default(now())
 
-  viewCount     Int   @default(0)
-  likeCount     Int   @default(0)
-  dislikeCount  Int   @default(0)
-  favoriteCount Int   @default(0)
-  averageRating Float @default(0)
-  ratingCount   Int   @default(0)
+  tasks        Task[]
+  packages     PackageVersion[]
+  interactions Interaction[]
+  comments     Comment[]
 
-  trailerUrl          String?
-
-  assignments ProjectAssignment[]
-  likes       ProjectLike[]
-  dislikes    ProjectDislike[]
-  favorites   ProjectFavorite[]
-  ratings     ProjectRating[]
-  comments    Comment[]
-
-  // YENİ: Kategorilerle çoktan çoğa ilişki
-  categories ProjectCategory[] // Bir projenin birden fazla kategorisi olabilir
-
-  price        Float? // Oyunun fiyatı, null ise ücretsiz veya satılık değil
-  currency     String?         @default("TRY") // Para birimi
-  ownedByUsers UserOwnedGame[]
-  ProjectImage ProjectImage[]
-
-  // YENİ EKLENEN ALAN: Bu projeye ait karakterler
-  characters ProjectCharacter[] // ProjectCharacter modelindeki 'project' alanı ile zıt ilişki
-
+  @@unique([teamId, contentId]) // Bir ekip, bir içeriği sadece bir kere projelendirebilir.
   @@map("projects")
 }
 
-model ProjectImage {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  publicId  String // Cloudinary public ID
-  caption   String? // Resim alt yazısı
-  order     Int? // Resimlerin sıralaması için
-  createdAt DateTime @default(now())
+// =================================================================
+// BÖLÜM 4: PROJE STÜDYOSU İŞ AKIŞI
+// =================================================================
 
-  @@index([projectId])
-  @@map("project_images")
+// 4.1 `Task`: Projelerdeki görevler.
+model Task {
+  id          Int        @id @default(autoincrement())
+  projectId   Int
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  type        TaskType
+  status      TaskStatus @default(TODO)
+  dueDate     DateTime?
+  payload     Json? // Göreve özel veri, örn: çeviri satırları, ses dosyası referansı
+  createdAt   DateTime   @default(now())
+
+  assignees TaskAssignee[]
+  comments  Comment[]
+
+  @@map("tasks")
 }
 
-// KULLANICININ SAHİP OLDUĞU OYUNLAR İÇİN YENİ ARA TABLO
-model UserOwnedGame {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  projectId     Int // Sadece type='oyun' olan projeler için olmalı (uygulama seviyesinde kontrol)
-  purchasedAt   DateTime @default(now())
-  purchasePrice Float? // Satın alındığı andaki fiyat (opsiyonel, fiyat değişirse diye)
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, projectId]) // Bir kullanıcı bir oyuna sadece bir kez sahip olabilir
-  @@map("user_owned_games")
-}
-
-// YENİ MODEL: Kategori
-model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique // Kategori adı (örn: Aksiyon, Macera, RPG)
-  slug      String   @unique // Kategori slug'ı (URL için)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projects ProjectCategory[] // Bu kategoriye ait projeler
-
-  @@map("categories")
-}
-
-model Comment {
-  id        Int      @id @default(autoincrement())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+// 4.2 `TaskAssignee`: Görev-Kullanıcı ara tablosu.
+model TaskAssignee {
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@id([taskId, userId])
+  @@map("task_assignees")
+}
 
-  // Eğer yorumlara yanıt sistemi olacaksa:
-  // parentId  Int?
-  // parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  // replies   Comment[] @relation("CommentReplies")
+// 4.3 `PackageVersion`: Tamamlanmış paketlerin yayın sürümleri.
+model PackageVersion {
+  id            Int      @id @default(autoincrement())
+  projectId     Int
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version       String // "v1.0.1-beta"
+  notes         String? // Sürüm notları
+  fileUrl       String // Supabase Storage/S3 URL
+  downloadCount Int      @default(0)
+  createdAt     DateTime @default(now())
 
-  // Yorumlara beğeni/dislike eklenebilir (opsiyonel)
-  // likes     CommentLike[] 
+  bugReports   Report[]
+  interactions Interaction[]
 
-  @@index([userId])
-  @@index([projectId])
+  @@unique([projectId, version])
+  @@map("package_versions")
+}
+
+// =================================================================
+// BÖLÜM 5: TOPLULUK ETKİLEŞİMİ (Polimorfik)
+// =================================================================
+
+// 5.1 `Comment`: Platformdaki tüm yorumlar için tek model.
+model Comment {
+  id        Int      @id @default(autoincrement())
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  // Polimorfik ilişki için alanlar
+  targetType String // "PROJECT", "TEAM", "CONTENT", "USER_DEMO", "TASK"
+  targetId   Int
+
+  // Cevap sistemi
+  parentId Int?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies  Comment[] @relation("CommentReplies")
+
+  // İlişkiler
+  project Project? @relation(fields: [targetId], references: [id], onDelete: Cascade) // Bu ve alttakiler opsiyonel
+  task    Task?    @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  interactions Interaction[]
+
   @@map("comments")
 }
 
-// YENİ ARA TABLO: ProjectCategory (Project ve Category arasında çoktan çoğa ilişki için)
-model ProjectCategory {
-  projectId  Int
-  categoryId Int
-  assignedAt DateTime @default(now())
-  assignedBy String? // Opsiyonel: Kimin atadığı (admin kullanıcı adı vb.)
-
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@id([projectId, categoryId]) // Bileşik birincil anahtar
-  @@map("project_categories")
+// 5.2 `Interaction`: Beğeni, favori gibi tüm etkileşimler için tek model.
+enum InteractionType {
+  LIKE
+  FAVORITE
 }
 
-// KULLANICI ETKİLEŞİM MODELLERİ
+model Interaction {
+  userId Int
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   InteractionType
 
-model ProjectLike {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  projectId Int
+  // Polimorfik ilişki için alanlar
+  targetType String // "PROJECT", "TEAM", "CONTENT", "USER_DEMO", "COMMENT", "PACKAGE_VERSION"
+  targetId   Int
+
   createdAt DateTime @default(now())
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // İlişkiler
+  project        Project?        @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  team           Team?           @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  content        Content?        @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  userDemo       UserDemo?       @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  comment        Comment?        @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  packageVersion PackageVersion? @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, projectId]) // Bir kullanıcı bir projeyi sadece bir kere beğenebilir
-  @@map("project_likes")
+  @@id([userId, type, targetType, targetId])
+  @@map("interactions")
 }
 
-model ProjectDislike {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  projectId Int
-  createdAt DateTime @default(now())
+// 5.3 `Notification` & `UserNotification`: Bildirim sistemi.
+model Notification {
+  id        Int              @id @default(autoincrement())
+  type      NotificationType
+  content   Json // Bildirim içeriği, örn: { "message": "Eren sizi X projesine davet etti.", "link": "/teams/..." }
+  createdAt DateTime         @default(now())
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userNotifications UserNotification[]
 
-  @@unique([userId, projectId]) // Bir kullanıcı bir projeyi sadece bir kere beğenmeyebilir
-  @@map("project_dislikes")
+  @@map("notifications")
 }
 
-model ProjectFavorite {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  projectId Int
-  createdAt DateTime @default(now())
+model UserNotification {
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationId Int
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  isRead         Boolean      @default(false)
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, projectId]) // Bir kullanıcı bir projeyi sadece bir kere favorileyebilir
-  @@map("project_favorites")
+  @@id([userId, notificationId])
+  @@map("user_notifications")
 }
 
-model ProjectRating {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  projectId Int
-  value     Int // Puan değeri (örn: 1-5 arası)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// 5.4 `Message`: Direkt ve Grup mesajları.
+model Conversation {
+  id           Int      @id @default(autoincrement())
+  isGroup      Boolean  @default(false)
+  groupName    String?
+  groupIconUrl String?
+  createdAt    DateTime @default(now())
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages     Message[]
 
-  @@unique([userId, projectId]) // Bir kullanıcı bir projeye sadece bir kere puan verebilir
-  @@map("project_ratings")
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       Message[]
+
+  @@id([conversationId, userId])
+  @@map("conversation_participants")
 }
 
 model Message {
-  id         Int      @id @default(autoincrement())
-  content    String
-  createdAt  DateTime @default(now())
-  senderId   Int
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId Int
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
-  isRead     Boolean  @default(false)
+  id             Int @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+
+  // Bir mesaj, bir konuşmadaki TEK bir katılımcıya aittir.
+  // Bu ilişki, [conversationId, senderId] çiftini kullanarak, 
+  // ConversationParticipant tablosundaki bir kayda bağlanır.
+  sender       ConversationParticipant @relation(fields: [conversationId, senderId], references: [conversationId, userId], onDelete: Cascade, onUpdate: Cascade)
+  conversation Conversation            @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  content   String
+  createdAt DateTime @default(now())
 
   @@map("messages")
-  @@index([receiverId, isRead])
 }
 
-model DubbingArtist {
-  id            Int                     @id @default(autoincrement())
-  firstName     String
-  lastName      String
-  slug          String?
-  bio           String?
-  imagePublicId String? // BU ALANIN VARLIĞI VE DOĞRU YAZILDIĞI ÇOK ÖNEMLİ
-  siteRole      String?
-  websiteUrl    String?
-  twitterUrl    String?
-  instagramUrl  String?
-  youtubeUrl    String?
-  linkedinUrl   String?
-  githubUrl     String?
-  donationLink  String?
-  isTeamMember  Boolean                 @default(false)
-  teamOrder     Int?
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  assignments   ProjectAssignment[]
-  likeCount     Int     @default(0)
-  favoriteCount Int     @default(0)
-  likes         DubbingArtistLike[]
-  favoritedBy   DubbingArtistFavorite[]
-
-  @@map("dubbing_artists")
+// 5.5 `Report`: Hata veya kullanıcı raporlama.
+enum ReportType {
+  BUG_REPORT // Hata Raporu
+  USER_REPORT // Kullanıcı Şikayeti
 }
 
-model DubbingArtistLike {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  artistId  Int
+enum ReportStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+  WONT_FIX
+}
+
+model Report {
+  id          Int          @id @default(autoincrement())
+  reporterId  Int
+  reporter    User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  type        ReportType
+  status      ReportStatus @default(OPEN)
+  title       String
+  description String
+
+  // Polimorfik rapor hedefi
+  targetType String? // "PACKAGE_VERSION", "USER"
+  targetId   Int?
+
+  // İlişkiler
+  reportedUser   User?           @relation("Reported", fields: [targetId], references: [id], onDelete: Cascade)
+  packageVersion PackageVersion? @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 
-  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  artist DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, artistId])
-  @@map("dubbing_artist_likes")
+  @@map("reports")
 }
-
-model DubbingArtistFavorite {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  artistId  Int
-  createdAt DateTime @default(now())
-
-  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  artist DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, artistId])
-  @@map("dubbing_artist_favorites")
-}
-
-model ProjectCharacter {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  name      String // Karakterin adı (örn: "Kratos")
-  // description String? // Karakter hakkında kısa bilgi (opsiyonel)
-  // imagePublicId String? // Karakterin resmi (opsiyonel)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  // Bu karakteri seslendiren sanatçı atamaları (VoiceAssignment üzerinden)
-  voiceAssignments VoiceAssignment[]
-
-  @@unique([projectId, name]) // Bir projede aynı isimde birden fazla karakter olamaz
-  @@index([projectId])
-  @@map("project_characters")
-}
-
-// YENİ ARA TABLO: Seslendirme Sanatçısı - Proje Karakteri Eşleşmesi
-model VoiceAssignment {
-  id                  Int @id @default(autoincrement())
-  projectAssignmentId Int // Hangi genel proje atamasına bağlı (VOICE_ACTOR rolü olmalı)
-  projectCharacterId  Int // Hangi karakter seslendiriliyor
-
-  // Notlar veya özel bilgiler eklenebilir (örn: "Genç Kratos Sesi")
-  // assignmentNotes String? 
-
-  assignment ProjectAssignment @relation("CharacterVoiceRoles", fields: [projectAssignmentId], references: [id], onDelete: Cascade)
-  character  ProjectCharacter  @relation(fields: [projectCharacterId], references: [id], onDelete: Cascade)
-
-  @@unique([projectAssignmentId, projectCharacterId]) // Bir "proje ataması" (sanatçı+proje+rol) bir karakteri bir kez seslendirir.
-  @@index([projectAssignmentId])
-  @@index([projectCharacterId])
-  @@map("voice_assignments")
-}
-
-// --- ProjectAssignment Modelini Düzeltelim ---
-model ProjectAssignment {
-  id         Int      @id @default(autoincrement())
-  assignedAt DateTime @default(now())
-
-  role RoleInProject // BU ALAN KESİNLİKLE OLMALI
-
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  artistId Int
-  artist   DubbingArtist @relation(fields: [artistId], references: [id], onDelete: Cascade)
-
-  voiceRoles VoiceAssignment[] @relation("CharacterVoiceRoles")
-
-  @@unique([projectId, artistId, role])
-  @@index([projectId])
-  @@index([artistId])
-  @@map("project_assignments")
-}
-
-// ------------------------------------------

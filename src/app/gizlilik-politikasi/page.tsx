@@ -2,8 +2,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Gizlilik Politikası | PrestiJ Studio',
-  description: 'PrestiJ Studio olarak kullanıcı gizliliğine verdiğimiz önem ve kişisel verilerinizi nasıl işlediğimiz hakkında bilgi edinin.',
+  title: 'Gizlilik Politikası | Dublio',
+  description: 'Dublio olarak kullanıcı gizliliğine verdiğimiz önem ve kişisel verilerinizi nasıl işlediğimiz hakkında bilgi edinin.',
   robots: 'noindex, nofollow',
 };
 
@@ -23,7 +23,7 @@ export default function GizlilikPolitikasiPage() {
           <section className="space-y-4">
             <h2>1. Topladığımız Bilgiler</h2>
             <p>
-              PrestiJ Studio olarak, hizmetlerimizi sunmak ve geliştirmek amacıyla bazı kişisel bilgilerinizi toplayabiliriz. Bu bilgiler şunları içerebilir:
+              Dublio olarak, hizmetlerimizi sunmak ve geliştirmek amacıyla bazı kişisel bilgilerinizi toplayabiliriz. Bu bilgiler şunları içerebilir:
             </p>
             <ul>
               <li><strong>Kayıt Bilgileri:</strong> Siteye üye olurken verdiğiniz kullanıcı adı, e-posta adresi, şifre (hash'lenmiş olarak saklanır).</li>

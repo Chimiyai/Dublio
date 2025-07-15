@@ -120,8 +120,8 @@ export async function generateMetadata(
 
   const typeTR = project.type === 'oyun' ? 'Oyun' : 'Anime';
   return {
-    title: `${project.title} Türkçe Dublaj ${typeTR} | PrestiJ Studio`,
-    description: project.description?.substring(0, 160) || `PrestiJ Studio tarafından Türkçe dublajı yapılan ${project.title} projesini keşfedin.`,
+    title: `${project.title} Türkçe Dublaj ${typeTR} | Dublio`,
+    description: project.description?.substring(0, 160) || `Dublio tarafından Türkçe dublajı yapılan ${project.title} projesini keşfedin.`,
   };
 }
 

@@ -103,15 +103,15 @@ export async function generateMetadata(
   // const resolvedSearchParams = searchParams ? await searchParams : {}; // Metadata için gerekirse
 
   if (!username || typeof username !== 'string' || username.trim() === "") {
-    return { title: 'Profil | PrestiJ Studio' };
+    return { title: 'Profil | Dublio' };
   }
   const user = await getUserProfile(decodeURIComponent(username));
   if (!user) {
-    return { title: 'Kullanıcı Bulunamadı | PrestiJ Studio' };
+    return { title: 'Kullanıcı Bulunamadı | Dublio' };
   }
   return {
-    title: `${user.username} Profili | PrestiJ Studio`,
-    description: user.bio || `${user.username} kullanıcısının PrestiJ Studio profili.`,
+    title: `${user.username} Profili | Dublio`,
+    description: user.bio || `${user.username} kullanıcısının Dublio profili.`,
   };
 }
 
