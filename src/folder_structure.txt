@@ -75,10 +75,6 @@
                             route.ts
             artists/
                 [artistId]/
-                    favorite/
-                        route.ts
-                    like/
-                        route.ts
             auth/
                 [...nextauth]/
                     route.ts
@@ -91,6 +87,8 @@
                 add-to-library/
                     route.ts
             image-upload/
+                route.ts
+            interactions/
                 route.ts
             messages/
                 route.ts
@@ -106,9 +104,11 @@
                 route.ts
             payment/
                 create-session/
+                shopier/
                     route.ts
                 webhook/
-                    route.ts
+                    shopier/
+                        route.ts
             profile/
                 route.ts
                 email/
@@ -129,12 +129,6 @@
                         route.ts
                         [commentId]/
                             route.ts
-                    dislike/
-                        route.ts
-                    favorite/
-                        route.ts
-                    like/
-                        route.ts
             projeler/
                 route.ts
             register/
@@ -147,6 +141,8 @@
                 [userId]/
                     (actions)/
                         block/
+                            route.ts
+                        block-status/
                             route.ts
                         report/
                             route.ts
@@ -274,7 +270,6 @@
             VerifyEmailClientContent.tsx
         project/
             CommentsSection.tsx
-            ProjectInteractionButtons.tsx
         projects/
             FilterSidebar.tsx
             ProjectDetailContent.tsx
@@ -282,6 +277,8 @@
             ProjectsPageClient.tsx
             ProjectTabs.tsx
             SortDropdown.tsx
+        shared/
+            InteractionButtons.tsx
         ui/
             button.tsx
             card.tsx

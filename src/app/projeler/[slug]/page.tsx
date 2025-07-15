@@ -1,155 +1,92 @@
 // src/app/projeler/[slug]/page.tsx
+
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
-import ProjectDetailContent from '@/components/projects/ProjectDetailContent'; // YENİ Client Component
-import { RoleInProject } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import ProjectDetailContent from '@/components/projects/ProjectDetailContent'; // Bu bizim istemci bileşenimiz
 
-// ProjectDataForDetail tipi burada veya types dosyasında olabilir
-export interface ProjectDataForDetail {
-    id: number;
-    slug: string;
-    title: string;
-    type: 'oyun' | 'anime';
-    description: string | null;
-    bannerImagePublicId: string | null;
-    coverImagePublicId: string | null;
-    releaseDate: Date | null;
-    trailerUrl?: string | null;
-    price?: number | null;
-    currency?: string | null;
-    externalWatchUrl?: string | null;
-    likeCount: number;
-    dislikeCount: number;
-    favoriteCount: number;
-    averageRating?: number;
-    assignments: Array<{
-    id: number;
-    role: RoleInProject; // Prisma enum tipini kullan
-    artist: { id: number; firstName: string; lastName: string; imagePublicId: string | null; slug?: string | null; }; // slug'ı opsiyonel yaptım
-        voiceRoles: Array<{ character: { id: number; name: string; } }>;
-    }>;
-    categories: Array<{ category: { name: string; slug: string } }>;
-    _count: { comments?: number; ratings?: number };
-}
-// UserInteraction tipi (ProjectInteractionButtonsProps'tan alınabilir)
+// 1. Prisma'nın otomatik tip oluşturucusunu kullanarak veri yapımızı tanımlıyoruz.
+const projectDetailQuery = {
+  include: {
+    team: { select: { name: true, slug: true } },
+    content: true,
+    interactions: {
+      select: { userId: true, type: true }
+    },
+  }
+}; // Validator'ı şimdilik kaldırıp, objeyi doğrudan tanımlıyoruz.
+
+// 2. Oluşturulan tipi export ediyoruz ki istemci bileşeni de kullanabilsin.
+export type ProjectWithDetails = Prisma.ProjectGetPayload<{
+  // projectDetailQuery'nin tipini doğrudan buraya yazıyoruz.
+  include: typeof projectDetailQuery.include
+}>;
+
 export interface UserInteractionData {
+    isLoggedIn: boolean;
     liked: boolean;
-    disliked: boolean;
     favorited: boolean;
 }
 
-
-async function getProjectDetails(slug: string): Promise<ProjectDataForDetail | null> {
-    // ... (Mevcut getProjectDetails fonksiyonunuz)
+// 3. Veri çekme fonksiyonumuz (yeni şemaya göre)
+async function getProjectDetails(projectId: number): Promise<ProjectWithDetails | null> {
     const project = await prisma.project.findUnique({
-    where: { slug: decodeURIComponent(slug) }, // type filtresi kaldırıldı
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      type: true, // Bu alanı alıyoruz
-      description: true,
-      bannerImagePublicId: true,
-      coverImagePublicId: true,
-      releaseDate: true,
-      price: true,
-      currency: true,
-      externalWatchUrl: true,
-      trailerUrl: true,
-      likeCount: true,
-      dislikeCount: true,
-      favoriteCount: true,
-      averageRating: true,
-      viewCount: true,
-      _count: { select: { comments: true, ratings: true } },
-      categories: {
-        select: { category: { select: { name: true, slug: true } } }
-      },
-      assignments: {
-        orderBy: [ { role: 'asc'}, { artist: { lastName: 'asc' } } ],
-        select: {
-          id: true,
-          role: true,
-          artist: {
-            select: { id: true, firstName: true, lastName: true, imagePublicId: true, slug: true } // artist.slug eklendi
-          },
-          voiceRoles: {
-            orderBy: { character: { name: 'asc' } },
-            select: { character: { select: { id: true, name: true } } }
-          }
-        }
-      },
-      // ProjectImage: {} // Galeri olmadığı için bu kaldırıldı
-    }
-  });
-    if (!project) return null;
-    return project as unknown as ProjectDataForDetail;
-}
-
-async function getUserSpecificData(userId: number | undefined, projectId: number) {
-    if (!userId) return { userHasGame: false, userInitialInteraction: { liked: false, disliked: false, favorited: false } };
-
-    const userHasGame = !!await prisma.userOwnedGame.findUnique({
-        where: { userId_projectId: { userId, projectId } }
+        where: { id: projectId },
+        ...projectDetailQuery
     });
-    const [likedEntry, dislikedEntry, favoritedEntry] = await Promise.all([
-        prisma.projectLike.findUnique({ where: { userId_projectId: { userId, projectId } } }),
-        prisma.projectDislike.findUnique({ where: { userId_projectId: { userId, projectId } } }),
-        prisma.projectFavorite.findUnique({ where: { userId_projectId: { userId, projectId } } }),
-    ]);
-    const userInitialInteraction = {
-        liked: !!likedEntry, disliked: !!dislikedEntry, favorited: !!favoritedEntry,
+    return project;
+}
+
+// 4. Kullanıcıya özel etkileşim verisini çekme fonksiyonu (yeni şemaya göre)
+async function getUserSpecificData(userId: number | undefined, projectId: number): Promise<Omit<UserInteractionData, 'isLoggedIn'>> {
+    if (!userId) return { liked: false, favorited: false };
+
+    const interactions = await prisma.interaction.findMany({
+        where: {
+            userId: userId,
+            targetId: projectId,
+            targetType: 'PROJECT',
+            type: { in: ['LIKE', 'FAVORITE'] },
+        }
+    });
+
+    return {
+        liked: interactions.some(i => i.type === 'LIKE'),
+        favorited: interactions.some(i => i.type === 'FAVORITE'),
     };
-    return { userHasGame, userInitialInteraction };
 }
 
 
-// --- 1. DEĞİŞİKLİK: generateMetadata Fonksiyonu ---
-export async function generateMetadata(
-  // Tipi { params: { slug: string } } yerine { params: Promise<{ slug: string }> } olarak değiştiriyoruz.
-  { params }: { params: Promise<{ slug: string }> }
-): Promise<Metadata> {
-  const resolvedParams = await params; // `await` ile çöz
-  const slug = resolvedParams.slug;
-  
-  const project = await getProjectDetails(slug);
-  if (!project) return { title: 'Proje Bulunamadı' };
+// 5. Ana Sayfa Bileşeni (Sunucu)
+export default async function ProjectDetailPageServer({ params }: { params: { slug: string } }) {
+  // URL'den gelen slug'ın bir sayı (ID) olduğunu varsayıyoruz.
+  const projectId = parseInt(params.slug, 10);
+  if (isNaN(projectId)) {
+    notFound(); // Eğer sayı değilse 404 göster.
+  }
 
-  const typeTR = project.type === 'oyun' ? 'Oyun' : 'Anime';
-  return {
-    title: `${project.title} Türkçe Dublaj ${typeTR} | Dublio`,
-    description: project.description?.substring(0, 160) || `Dublio tarafından Türkçe dublajı yapılan ${project.title} projesini keşfedin.`,
-  };
-}
-
-
-// --- 2. DEĞİŞİKLİK: Ana Sayfa Component'i ---
-export default async function ProjectDetailPageServer(
-  // Tipi burada da değiştiriyoruz.
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  const resolvedParams = await params; // `await` ile çöz
-  const pageSlug = resolvedParams.slug;
-
+  // Gerekli tüm verileri paralel olarak çekiyoruz.
   const session = await getServerSession(authOptions);
-  const project = await getProjectDetails(pageSlug);
-
+  const project = await getProjectDetails(projectId);
+  
   if (!project) {
     notFound();
   }
 
   const userId = session?.user?.id ? parseInt(session.user.id) : undefined;
-  const { userHasGame, userInitialInteraction } = await getUserSpecificData(userId, project.id);
-
+  const userInteractionStatus = await getUserSpecificData(userId, project.id);
+  
+  // Çektiğimiz tüm veriyi tek bir pakette istemciye gönderiyoruz.
   return (
     <ProjectDetailContent
       project={project}
-      isUserLoggedIn={!!session?.user?.id}
-      userHasGame={project.type === 'oyun' ? userHasGame : false}
-      userInitialInteraction={userInitialInteraction}
+      userInteraction={{
+        isLoggedIn: !!userId,
+        ...userInteractionStatus
+      }}
     />
   );
 }
