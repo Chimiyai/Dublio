@@ -5,25 +5,26 @@ import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
-import { Prisma } from '@prisma/client';
-import ProjectDetailContent from '@/components/projects/ProjectDetailContent'; // Bu bizim istemci bileşenimiz
+import { Prisma, InteractionType } from '@prisma/client'; 
+
+import ProjectDetailContent from '@/components/projects/ProjectDetailContent';
 
 // 1. Prisma'nın otomatik tip oluşturucusunu kullanarak veri yapımızı tanımlıyoruz.
 const projectDetailQuery = {
+  // === DÜZELTME BURADA ===
+  // Artık interactions'ı burada include etmiyoruz.
   include: {
     team: { select: { name: true, slug: true } },
     content: true,
-    interactions: {
-      select: { userId: true, type: true }
-    },
+    // tasks, packages, comments gibi diğer ilişkiler burada kalabilir.
   }
-}; // Validator'ı şimdilik kaldırıp, objeyi doğrudan tanımlıyoruz.
+};
 
-// 2. Oluşturulan tipi export ediyoruz ki istemci bileşeni de kullanabilsin.
-export type ProjectWithDetails = Prisma.ProjectGetPayload<{
-  // projectDetailQuery'nin tipini doğrudan buraya yazıyoruz.
-  include: typeof projectDetailQuery.include
-}>;
+
+export type ProjectWithDetails = Prisma.ProjectGetPayload<typeof projectDetailQuery> & {
+  // Etkileşimler ayrı bir sorguyla geleceği için tipi manuel olarak ekliyoruz.
+  interactions: { userId: number; type: InteractionType; }[];
+};
 
 export interface UserInteractionData {
     isLoggedIn: boolean;
@@ -33,11 +34,28 @@ export interface UserInteractionData {
 
 // 3. Veri çekme fonksiyonumuz (yeni şemaya göre)
 async function getProjectDetails(projectId: number): Promise<ProjectWithDetails | null> {
-    const project = await prisma.project.findUnique({
+    const projectPromise = prisma.project.findUnique({
         where: { id: projectId },
         ...projectDetailQuery
     });
-    return project;
+    
+    // Etkileşimleri AYRI bir sorgu ile çekiyoruz.
+    const interactionsPromise = prisma.interaction.findMany({
+        where: {
+            targetType: 'PROJECT',
+            targetId: projectId
+        },
+        select: { userId: true, type: true }
+    });
+
+    const [project, interactions] = await Promise.all([projectPromise, interactionsPromise]);
+
+    if (!project) {
+        return null;
+    }
+
+    // İki sonucu birleştirip tek bir obje olarak döndürüyoruz.
+    return { ...project, interactions };
 }
 
 // 4. Kullanıcıya özel etkileşim verisini çekme fonksiyonu (yeni şemaya göre)

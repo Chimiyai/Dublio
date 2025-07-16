@@ -14,12 +14,16 @@ export async function middleware(req: NextRequest) {
   // --- 1. Kural: Admin Sayfaları ---
   // Eğer admin sayfasına gitmeye çalışıyorsa:
   if (isAdminPage) {
-    // Giriş yapmamışsa VEYA giriş yapmış ama rolü admin değilse -> Giriş sayfasına yönlendir.
-    // Admin olmayanların admin panelini görmemesi için callbackUrl vermiyoruz.
-    if (!token || token.role !== 'admin') {
+    // === DÜZELTME BURADA ===
+    // 'admin' yerine veritabanındaki gibi 'ADMIN' kullanıyoruz.
+    if (!token || token.role !== 'ADMIN') { 
+      console.log(`Admin page access denied. Token role: ${token?.role}`); // Hata ayıklama için log
       return NextResponse.redirect(new URL('/giris', req.url));
     }
+    // =======================
+
     // Eğer admin ise, geçişe izin ver.
+    console.log(`Admin page access granted for role: ${token.role}`); // Hata ayıklama için log
     return NextResponse.next();
   }
 
