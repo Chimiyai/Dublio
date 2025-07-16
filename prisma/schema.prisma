@@ -16,6 +16,14 @@ datasource db {
 // BÖLÜM 1: ENUMLAR (Merkezi Tip Tanımları)
 // =================================================================
 
+enum AssetType {
+  AUDIO
+  TEXT
+  IMAGE
+  VIDEO
+  OTHER
+}
+
 enum ContentType {
   GAME
   ANIME
@@ -72,6 +80,24 @@ enum NotificationType {
   COMMENT_REPLY
 }
 
+model Asset {
+  id        Int       @id @default(autoincrement())
+  projectId Int
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  name      String    // Örn: "character_dialogue_chapter1.wav" veya "ui_elements.json"
+  path      String    // Sunucudaki dosya yolu, örn: "/uploads/167..._dialogue.wav"
+  type      AssetType
+  
+  uploadedById Int
+  uploader     User      @relation(fields: [uploadedById], references: [id])
+  
+  createdAt    DateTime  @default(now())
+  
+  @@map("assets")
+}
+
+
 // =================================================================
 // BÖLÜM 2: KULLANICI, KİMLİK VE EKONOMİ
 // =================================================================
@@ -109,6 +135,7 @@ model User {
   receivedReports         Report[]                  @relation("Reported")
   sentInvitations         TeamInvitation[]          @relation("SentInvitations")
   receivedInvitations     TeamInvitation[]          @relation("ReceivedInvitations")
+  uploadedAssets          Asset[]
   conversationMemberships ConversationParticipant[]
 
   @@map("users")
@@ -336,6 +363,7 @@ model Project {
   tasks        Task[]
   packages     PackageVersion[]
   comments     Comment[]
+  assets       Asset[]
 
   @@unique([teamId, contentId]) // Bir ekip, bir içeriği sadece bir kere projelendirebilir.
   @@map("projects")

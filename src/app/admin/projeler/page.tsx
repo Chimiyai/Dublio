@@ -1,64 +1,49 @@
-// src/app/admin/projeler/page.tsx
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { PlusCircleIcon } from '@heroicons/react/24/outline';
-import AdminPageLayout from '@/components/admin/AdminPageLayout'; // Layout'u import et
-import ProjectsTable from '@/components/admin/ProjectsTable'; // Tabloyu ayrı bir client component'e taşıyacağız
 
-export const dynamic = 'force-dynamic';
-
-// Sunucu tarafında tüm projeleri çekiyoruz
-async function getAllProjects() {
+// Admin panelindeki proje listesi için tüm projeleri çekelim
+async function getAllProjectsForAdmin() {
   return prisma.project.findMany({
-    orderBy: {
-      createdAt: 'desc',
-    },
-    // Tablo için gerekli temel alanları seçebiliriz, detaylar düzenleme sayfasında
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      type: true,
-      releaseDate: true,
-      isPublished: true,
-      createdAt: true, // Sıralama veya bilgi için
+    orderBy: { createdAt: 'desc' },
+    include: {
+      team: { select: { name: true } },
+      content: { select: { title: true } },
     }
   });
 }
 
-export default async function AdminProjelerPage() {
-  const allProjects = await getAllProjects();
+export default async function AdminProjectsPage() {
+  const projects = await getAllProjectsForAdmin();
 
   return (
-    <AdminPageLayout
-      pageTitle="Proje Yönetimi"
-      // Breadcrumbs opsiyonel, bu ana sayfa olduğu için gerekmeyebilir
-      // breadcrumbs={[{ label: "Dashboard", href: "/admin" }, { label: "Projeler", href: "/admin/projeler" }]}
-    >
-      {/* Arama ve Yeni Ekle Butonu için bir üst bölüm */}
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 p-6 sm:p-0"> 
-      {/* Formlar AdminPageLayout içindeki beyaz kartta olacağı için buraya padding ekledim,
-          veya bu div'i AdminPageLayout'un child'ı olan ilk div içine taşıyabiliriz.
-          Şimdilik AdminPageLayout children'ına doğrudan ProjectsTable'ı vereceğiz.
-          Bu üst barı ProjectsTable component'inin içine almak daha iyi olabilir.
-      */}
-        <div>
-          {/* ARAMA INPUTU BURAYA GELECEK (ProjectsTable içinde) */}
-        </div>
-        <Link
-          href="/admin/projeler/yeni"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out flex items-center text-sm w-full sm:w-auto justify-center"
-        >
-          <PlusCircleIcon className="h-5 w-5 mr-2" />
-          Yeni Proje Ekle
-        </Link>
-      </div>
-
-      {/* Proje tablosunu ayrı bir Client Component'e taşıyoruz */}
-      {/* Bu sayede arama state'i ve filtreleme client'ta yönetilebilir */}
-      <div className="bg-white dark:bg-gray-900 shadow-xl rounded-lg overflow-hidden">
-        <ProjectsTable initialProjects={allProjects} />
-      </div>
-    </AdminPageLayout>
+    <div style={{ padding: '20px', color: 'white' }}>
+      <h1>Proje Yönetimi</h1>
+      <table style={{ width: '100%', marginTop: '20px', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={{ border: '1px solid #444', padding: '8px' }}>Proje Adı</th>
+            <th style={{ border: '1px solid #444', padding: '8px' }}>Ekip</th>
+            <th style={{ border: '1px solid #444', padding: '8px' }}>İçerik</th>
+            <th style={{ border: '1px solid #444', padding: '8px' }}>Durum</th>
+            <th style={{ border: '1px solid #444', padding: '8px' }}>İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          {projects.map(project => (
+            <tr key={project.id}>
+              <td style={{ border: '1px solid #444', padding: '8px' }}>{project.name}</td>
+              <td style={{ border: '1px solid #444', padding: '8px' }}>{project.team.name}</td>
+              <td style={{ border: '1px solid #444', padding: '8px' }}>{project.content.title}</td>
+              <td style={{ border: '1px solid #444', padding: '8px' }}>{project.status}</td>
+              <td style={{ border: '1px solid #444', padding: '8px', textAlign: 'center' }}>
+                <Link href={`/admin/projeler/duzenle/${project.id}`} style={{ color: 'lightblue' }}>
+                  Yönet / Düzenle
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
