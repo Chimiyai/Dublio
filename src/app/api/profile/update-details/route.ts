@@ -1,54 +1,80 @@
-// src/app/api/profile/update-details/route.ts (Yeni dosya olabilir)
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
+import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
-const updateDetailsSchema = z.object({
-  username: z.string().min(3).max(20).optional(),
-  bio: z.string().max(500).nullable().optional(),
-  profileImagePublicId: z.string().nullable().optional(),
-  bannerImagePublicId: z.string().nullable().optional(),
-  // E-posta ve şifre için ayrı endpoint'ler daha güvenli
+// Gelen isteğin body'sini doğrulamak için bir Zod şeması oluşturuyoruz.
+// Bu, hem güvenlik hem de veri tutarlılığı için çok önemlidir.
+const updateProfileSchema = z.object({
+  // Kullanıcı adının 3-20 karakter arasında, sadece harf, rakam, _ ve - içermesine izin verelim.
+  username: z.string()
+    .min(3, { message: "Kullanıcı adı en az 3 karakter olmalıdır." })
+    .max(20, { message: "Kullanıcı adı en fazla 20 karakter olabilir." })
+    .regex(/^[a-zA-Z0-9_-]+$/, { message: "Kullanıcı adı sadece harf, rakam, _ ve - içerebilir." }),
+  
+  // Bio en fazla 300 karakter olabilir.
+  bio: z.string()
+    .max(300, { message: "Biyografi en fazla 300 karakter olabilir." })
+    .optional(), // Bio'nun boş gönderilmesine izin veriyoruz.
 });
 
-export async function PATCH(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: 'Yetkisiz erişim.' }, { status: 401 });
-  }
-  const userId = parseInt(session.user.id);
 
+export async function PUT(request: Request) {
   try {
+    // 1. Kullanıcı oturumunu kontrol et
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return new NextResponse('Yetkisiz işlem', { status: 401 });
+    }
+    const userId = parseInt(session.user.id, 10);
+
+    // 2. Gelen veriyi al ve doğrula
     const body = await request.json();
-    const validation = updateDetailsSchema.safeParse(body);
+    const validation = updateProfileSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ message: 'Geçersiz veri.', errors: validation.error.issues }, { status: 400 });
+      // Eğer doğrulama başarısızsa, hataları detaylı bir şekilde geri döndür.
+      return new NextResponse(JSON.stringify({ message: "Geçersiz veri", errors: validation.error.flatten().fieldErrors }), { status: 400 });
     }
 
-    const dataToUpdate = validation.data;
+    const { username, bio } = validation.data;
 
-    // Kullanıcı adı unique kontrolü (eğer güncelleniyorsa)
-    if (dataToUpdate.username) {
-      const existingUser = await prisma.user.findUnique({ where: { username: dataToUpdate.username } });
-      if (existingUser && existingUser.id !== userId) {
-        return NextResponse.json({ message: 'Bu kullanıcı adı zaten kullanımda.' }, { status: 409 });
+    // 3. Yeni kullanıcı adının başkası tarafından kullanılıp kullanılmadığını kontrol et
+    // (Sadece mevcut kullanıcı adından farklıysa bu kontrolü yap)
+    if (username !== session.user.username) {
+      const existingUser = await prisma.user.findUnique({
+        where: { username },
+      });
+      if (existingUser) {
+        return new NextResponse(JSON.stringify({ message: "Bu kullanıcı adı zaten alınmış." }), { status: 409 }); // 409 Conflict
       }
     }
-    
+
+    // 4. Veritabanını güncelle
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: dataToUpdate,
-      select: { // Sadece güvenli alanları döndür
-        id: true, username: true, email: true, bio: true, 
-        profileImagePublicId: true, bannerImagePublicId: true, role: true
+      data: {
+        username: username,
+        bio: bio,
+      },
+      // Sadece gerekli alanları seçerek geri döndürelim
+      select: {
+        id: true,
+        username: true,
+        bio: true,
+        email: true,
+        skills: true,
+        demos: true,
       }
     });
-    return NextResponse.json(updatedUser);
-  } catch (error: any) {
-    console.error("Profil güncelleme hatası:", error);
-    return NextResponse.json({ message: error.message || 'Profil güncellenirken bir hata oluştu.' }, { status: 500 });
+
+    // 5. Başarılı yanıtı, güncellenmiş kullanıcı bilgileriyle birlikte döndür.
+    // Bu, frontend'in sayfayı anında güncellemesini sağlar.
+    return NextResponse.json(updatedUser, { status: 200 });
+
+  } catch (error) {
+    console.error("[PROFILE_UPDATE_ERROR]", error);
+    return new NextResponse('Sunucu hatası', { status: 500 });
   }
 }

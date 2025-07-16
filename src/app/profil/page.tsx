@@ -1,60 +1,49 @@
-// src/app/profil/page.tsx
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma'; 
-import UserProfileForm, { UserProfileFormProps } from '@/components/profile/UserProfileForm'; // UserProfileFormProps'u import et
-import { Metadata } from 'next';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import ProfileManagementContent from '@/components/profile/ProfileManagementContent'; // Yeni oluşturacağımız istemci bileşeni
 
-export const metadata: Metadata = {
-  title: 'Profilim | Dublio Dublaj',
+// Bu sayfa sadece giriş yapmış kullanıcılar için.
+// Bu yüzden bir veri çekme fonksiyonu yerine doğrudan ana bileşende yapacağız.
+
+// Veri yapımızı tanımlayalım
+const userForManagementQuery = {
+  include: {
+    skills: true,
+    demos: {
+      orderBy: { createdAt: 'desc' } as const
+    }
+  }
 };
+export type UserForManagement = Prisma.UserGetPayload<typeof userForManagementQuery>;
 
-export default async function ProfilePage() {
+
+export default async function ProfileManagementPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user?.id) {
-    redirect('/giris?callbackUrl=/profil');
+  // Eğer kullanıcı giriş yapmamışsa, giriş sayfasına yönlendir.
+  if (!session?.user?.id) {
+    redirect('/giris');
   }
 
-  const userIdAsNumber = parseInt(session.user.id, 10); 
-  if (isNaN(userIdAsNumber)) {
-       redirect('/'); 
-  }
-
-  const userFromDb = await prisma.user.findUnique({
-    where: { id: userIdAsNumber },
-    select: { // Sadece UserProfileForm'un ihtiyaç duyduğu alanlar
-      id: true,
-      username: true,
-      email: true,
-      bio: true,
-      role: true,
-      profileImagePublicId: true,
-      bannerImagePublicId: true,
-      createdAt: true,
-      updatedAt: true,
-    }
+  // Oturumdaki kullanıcının en güncel verisini veritabanından çek.
+  const user = await prisma.user.findUnique({
+    where: { id: parseInt(session.user.id, 10) },
+    ...userForManagementQuery
   });
 
-  if (!userFromDb) {
-    console.error(`Profil sayfası: Kullanıcı bulunamadı (ID: ${userIdAsNumber}).`);
-    redirect('/'); 
+  // Eğer bir sebepten ötürü kullanıcı veritabanında bulunamazsa (anormal bir durum)
+  if (!user) {
+    redirect('/giris');
   }
 
-  // user objesini Client Component'e prop olarak geç
-  // UserProfileForm'un beklediği tipe uygun olduğundan emin ol
-  const userForForm: UserProfileFormProps['user'] = {
-    id: userFromDb.id, // Prisma'dan number geliyor
-    username: userFromDb.username,
-    email: userFromDb.email,
-    bio: userFromDb.bio, // Artık bu alan var
-    role: userFromDb.role,
-    profileImagePublicId: userFromDb.profileImagePublicId,
-    bannerImagePublicId: userFromDb.bannerImagePublicId,
-    createdAt: userFromDb.createdAt, // Bunlar Date objesi olarak gelmeli
-    updatedAt: userFromDb.updatedAt, // Bunlar Date objesi olarak gelmeli
-  };
-
-  return <UserProfileForm user={userForForm} />;
+  // Veriyi istemci bileşenine aktar.
+  return (
+    <div>
+      <h1>Profilimi Yönet</h1>
+      <ProfileManagementContent user={user} />
+    </div>
+  );
 }
