@@ -116,6 +116,8 @@ model TranslationLine {
   status    TranslationStatus @default(NOT_TRANSLATED)
   notes     String?  // Çevirmen notları
 
+  voiceRecordingUrl String? // Kaydedilen ses dosyasının yolu
+
   @@unique([assetId, key]) // Bir dosyada aynı key'den iki tane olamaz
   @@map("translation_lines")
 }

@@ -50,11 +50,15 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
     return (
         <div>
             <h1>{project.content.title} Projesi</h1>
-            <div style={{display: 'flex', gap: '20px', marginBottom: '20px'}}>
-                <Link href={`/ekipler/${params.slug}/studyosu/projeler/${projectId}/ceviri`} style={{color: 'lightblue'}}>
+            {/* Navigasyon Linklerini Güncelliyoruz */}
+            <div style={{display: 'flex', gap: '20px', marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #444'}}>
+                <Link href={`/ekipler/${params.slug}/studyosu/projeler/${projectId}/ceviri`} style={{color: 'lightblue', textDecoration: 'underline'}}>
                     Çeviri Atölyesi
                 </Link>
-                <Link href="#" style={{color: 'gray'}}>Dublaj Atölyesi (Yakında)</Link>
+                <Link href={`/ekipler/${params.slug}/studyosu/projeler/${projectId}/dublaj`} style={{color: 'lightblue', textDecoration: 'underline'}}>
+                    Dublaj Atölyesi
+                </Link>
+                <Link href="#" style={{color: 'gray'}}>Mix Atölyesi (Yakında)</Link>
             </div>
             
             <TaskBoard 
