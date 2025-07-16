@@ -179,14 +179,34 @@ model Transaction {
   @@map("transactions")
 }
 
+model Skill {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // 'Seslendirme'
+  category  String   // 'SES', 'METİN', 'GÖRSEL', 'TEKNİK'
+  
+  userSkills UserSkill[]
+  showcasedInDemos UserDemo[]
+  @@map("skills")
+}
+
+model DemoCategory {
+  id    Int    @id @default(autoincrement())
+  name  String @unique // 'Oyun Dublajı', 'Anime Altyazı'
+  
+  demos UserDemo[] @relation("DemoToDemoCategory")
+  @@map("demo_categories")
+}
+
 // 2.7 `UserSkill`: Kullanıcının kanıtlanmış yetenekleri.
 model UserSkill {
-  userId     Int
-  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skillName  String // Örn: "Seslendirme", "Çeviri (İngilizce-Türkçe)", "Doku Sanatı"
-  isVerified Boolean @default(false) // "Onaylı Yetenek" rozeti için
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  skillId Int // skillName yerine skillId kullanacağız
+  skill   Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  @@id([userId, skillName])
+  // Artık bir kullanıcının bir yeteneği sadece bir kez olabilir
+  @@id([userId, skillId])
   @@map("user_skills")
 }
 
@@ -198,12 +218,22 @@ model UserDemo {
   title       String
   description String?
   type        DemoType
-  url         String // Cloudinary URL veya YouTube/Vimeo linki
+  url         String   // Şimdilik dosya yolu, sonra S3 URL'i olacak
   createdAt   DateTime @default(now())
+  
+  // YENİ İLİŞKİLER
+  // Bu demonun hangi ana içerik için yapıldığı (opsiyonel)
+  contentId   Int?
+  content     Content?  @relation(fields: [contentId], references: [id], onDelete: SetNull)
 
-  // Etkileşimler
+  // Bu demoda sergilenen yetenek
+  showcasedSkillId Int?
+  showcasedSkill   Skill? @relation(fields: [showcasedSkillId], references: [id], onDelete: SetNull)
+
+  // Demoya ait kategoriler (çoktan çoğa)
+  categories DemoCategory[] @relation("DemoToDemoCategory")
+  
   interactions Interaction[]
-
   @@map("user_demos")
 }
 
@@ -262,6 +292,7 @@ model Content {
 
   projects     Project[]
   interactions Interaction[]
+  userDemos    UserDemo[]
 
   @@map("contents")
 }
