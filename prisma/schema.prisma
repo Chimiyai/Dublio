@@ -107,6 +107,8 @@ model User {
   userNotifications       UserNotification[]
   sentReports             Report[]                  @relation("Reporter")
   receivedReports         Report[]                  @relation("Reported")
+  sentInvitations         TeamInvitation[]          @relation("SentInvitations")
+  receivedInvitations     TeamInvitation[]          @relation("ReceivedInvitations")
   conversationMemberships ConversationParticipant[]
 
   @@map("users")
@@ -258,6 +260,7 @@ model Team {
   // İlişkiler
   members      TeamMember[]
   projects     Project[]
+  invitations  TeamInvitation[]
 
   @@map("teams")
 }
@@ -273,6 +276,30 @@ model TeamMember {
 
   @@id([teamId, userId])
   @@map("team_members")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model TeamInvitation {
+  id        Int              @id @default(autoincrement())
+  teamId    Int
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  invitedUserId Int
+  invitedUser   User             @relation("ReceivedInvitations", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  
+  inviterId Int
+  inviter   User             @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  status    InvitationStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  @@unique([teamId, invitedUserId]) // Bir kullanıcı bir takıma sadece bir kez davet edilebilir (beklemedeyken)
+  @@map("team_invitations")
 }
 
 // 3.3 `Content`: Yerelleştirilecek ana içerik (Oyun, Anime vb.).

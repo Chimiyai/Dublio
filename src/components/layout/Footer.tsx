@@ -7,25 +7,30 @@ import { useState, useEffect } from 'react';
 
 // API'den gelecek proje verisi için basit bir tip (sadece linkler için gerekli)
 interface FooterProjectLink {
-  slug: string;
-  title: string;
-  type: 'oyun' | 'anime' | string; // API'den 'oyun' veya 'anime' olarak gelmeli
+  id: number; // ID'yi de alalım, key için daha güvenilir
+  slug: string; // Projenin kendi slug'ı (veya ID'si)
+  title: string; // İçeriğin başlığı
+  type: string;
 }
 
-// API'den veri çekme fonksiyonu
+// === SADECE BU FONKSİYONU DEĞİŞTİRİYORUZ ===
 async function fetchLatestFooterItems(type: 'oyun' | 'anime', limit: number): Promise<FooterProjectLink[]> {
   try {
+    // API endpoint'imiz doğru
     const res = await fetch(`/api/projects?type=${type}&limit=${limit}&orderBy=createdAt`);
     if (!res.ok) {
       console.error(`Footer için ${type} verisi çekilemedi, status: ${res.status}`);
       return [];
     }
     const data = await res.json();
-    // Sadece slug, title ve type alalım (API daha fazla alan dönebilir)
-    return data.map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      type: item.type,
+
+    // Yeni veri formatına göre map'leme yapıyoruz
+    return data.map((project: any) => ({
+      id: project.id, // Projenin ID'si
+      // Proje detay sayfasına giderken proje ID'sini kullanmak daha güvenilir
+      slug: project.id.toString(), 
+      title: project.content.title, // Doğru yol: project.content.title
+      type: project.content.type,   // Doğru yol: project.content.type
     }));
   } catch (error) {
     console.error(`Footer için ${type} fetch hatası:`, error);
@@ -120,14 +125,15 @@ const Footer = () => {
           ) : gameLinks.length > 0 ? (
             <ul className="space-y-2.5">
               {gameLinks.map(link => (
-                <li key={link.slug}>
-                  <Link 
-                    href={`/oyunlar/${link.slug}`} // Dinamik URL
-                    className="text-footer-link-text hover:text-footer-link-hover-text hover:underline transition-colors text-xs sm:text-sm"
-                    title={link.title}
-                  >
-                    {link.title.length > 25 ? `${link.title.substring(0, 25)}...` : link.title}
-                  </Link>
+  <li key={link.id}> {/* slug yerine id kullanmak daha iyi */}
+    {/* Proje detay sayfası ID beklediği için linki güncelliyoruz */}
+    <Link 
+      href={`/projeler/${link.id}`} // ID'yi kullanıyoruz
+      className="text-footer-link-text hover:text-footer-link-hover-text hover:underline transition-colors text-xs sm:text-sm"
+      title={link.title}
+    >
+      {link.title.length > 25 ? `${link.title.substring(0, 25)}...` : link.title}
+    </Link>
                 </li>
               ))}
             </ul>
@@ -145,14 +151,15 @@ const Footer = () => {
           ) : animeLinks.length > 0 ? (
             <ul className="space-y-2.5">
               {animeLinks.map(link => (
-                <li key={link.slug}>
-                  <Link 
-                    href={`/animeler/${link.slug}`} // Dinamik URL
-                    className="text-footer-link-text hover:text-footer-link-hover-text hover:underline transition-colors text-xs sm:text-sm"
-                    title={link.title}
-                  >
-                     {link.title.length > 25 ? `${link.title.substring(0, 25)}...` : link.title}
-                  </Link>
+  <li key={link.id}> {/* slug yerine id kullanmak daha iyi */}
+    {/* Proje detay sayfası ID beklediği için linki güncelliyoruz */}
+    <Link 
+      href={`/projeler/${link.id}`} // ID'yi kullanıyoruz
+      className="text-footer-link-text hover:text-footer-link-hover-text hover:underline transition-colors text-xs sm:text-sm"
+      title={link.title}
+    >
+      {link.title.length > 25 ? `${link.title.substring(0, 25)}...` : link.title}
+    </Link>
                 </li>
               ))}
             </ul>

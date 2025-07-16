@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import TeamProfileContent from '@/components/teams/TeamProfileContent'; // Yeni oluşturacağımız istemci bileşeni
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
 
 // 1. Ekip profili için veri yapımızı tanımlıyoruz
 const teamProfileQuery = {
@@ -41,15 +43,24 @@ async function getTeamProfile(slug: string): Promise<TeamWithProfile | null> {
 
 
 // 4. Ana Sayfa Bileşeni (Sunucu)
-export default async function TeamProfilePageServer({ params }: { params: { slug: string } }) {
-  const team = await getTeamProfile(params.slug);
+export default async function TeamProfilePageServer({ params }: { params: { slug:string } }) {
+  const { slug } = params; // Parametreyi başta al
+  const team = await getTeamProfile(slug); // Fonksiyona değişkeni gönder
 
-  if (!team) {
-    notFound(); // Ekip bulunamazsa 404 göster
+  if (!team) notFound();
+  
+  // YENİ: Oturum açmış kullanıcının bu ekipteki rolünü bulalım.
+  const session = await getServerSession(authOptions);
+  let viewerRole: string | null = null;
+  if (session?.user?.id) {
+    const userId = parseInt(session.user.id, 10);
+    const membership = team.members.find(m => m.userId === userId);
+    if(membership) {
+        viewerRole = membership.role;
+    }
   }
 
-  // Şimdilik sadece veriyi istemci bileşenine aktarıyoruz
   return (
-    <TeamProfileContent team={team} />
+    <TeamProfileContent team={team} viewerRole={viewerRole} /> // <-- viewerRole'ü prop olarak ekle
   );
 }

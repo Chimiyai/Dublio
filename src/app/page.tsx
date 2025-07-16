@@ -1,33 +1,24 @@
 // src/app/page.tsx
-// src/app/page.tsx
 
 import prisma from '@/lib/prisma';
-// DİKKAT: Prisma tiplerini ve enum'ları import ediyoruz.
-import { Prisma, InteractionType } from '@prisma/client';
+import { Prisma, ProjectStatus } from '@prisma/client';
 
 // İstemci bileşenleri
 import HeroSection from '@/components/home/HeroSection';
 import ProjectCarousel from '@/components/home/ProjectCarousel';
 import TalentShowcase from '@/components/home/TalentShowcase';
 
-// --- Proje Kartı için Sorgu ve Tip ---
-const projectCardQuery = {
+// --- Proje Kartı için Tip ve Include Objesi ---
+const projectCardArgs = {
   include: {
-    content: { select: { title: true, coverImageUrl: true, bannerUrl: true } }, // Banner'ı da alalım hero için
+    content: { select: { title: true, coverImageUrl: true, bannerUrl: true } },
     team: { select: { name: true, slug: true } },
-    // DİKKAT: _count sorgusunu doğru enum tipiyle güncelliyoruz.
-    _count: {
-      select: {
-        interactions: { 
-          where: { type: InteractionType.LIKE } // 'LIKE' yerine InteractionType.LIKE
-        }
-      }
-    }
+    _count: true
   }
 };
-export type ProjectForCard = Prisma.ProjectGetPayload<typeof projectCardQuery>;
+export type ProjectForCard = Prisma.ProjectGetPayload<typeof projectCardArgs>;
 
-// --- Demo Kartı için Sorgu ve Tip ---
+// --- Demo Kartı için Tip ve Sorgu ---
 const demoCardQuery = {
   include: {
     author: { select: { username: true, profileImage: true } }
@@ -36,28 +27,25 @@ const demoCardQuery = {
 export type DemoForCard = Prisma.UserDemoGetPayload<typeof demoCardQuery>;
 
 
-// --- Veri Çekme Fonksiyonları (Artık doğru tiplerle çalışıyor) ---
+// --- Veri Çekme Fonksiyonları (YENİ MANTIKLA) ---
 
 async function getLatestCompletedProjects(limit: number = 5): Promise<ProjectForCard[]> {
   const projects = await prisma.project.findMany({
-    where: { status: 'COMPLETED', isPublic: true },
+    where: { status: ProjectStatus.COMPLETED, isPublic: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
-    ...projectCardQuery // Sorguyu burada yayıyoruz
+    ...projectCardArgs
   });
   return projects;
 }
 
+// === POPÜLER PROJELERİ BULMA FONKSİYONU (YENİ) ===
 async function getPopularProjects(limit: number = 5): Promise<ProjectForCard[]> {
   const projects = await prisma.project.findMany({
     where: { isPublic: true },
-    orderBy: {
-      interactions: {
-        _count: 'desc'
-      }
-    },
+    orderBy: { createdAt: 'desc' },
     take: limit,
-    ...projectCardQuery // Sorguyu burada yayıyoruz
+    ...projectCardArgs
   });
   return projects;
 }
@@ -66,7 +54,7 @@ async function getLatestDemos(limit: number = 6): Promise<DemoForCard[]> {
   const demos = await prisma.userDemo.findMany({
     orderBy: { createdAt: 'desc' },
     take: limit,
-    ...demoCardQuery // Sorguyu burada yayıyoruz
+    ...demoCardQuery
   });
   return demos;
 }
@@ -84,7 +72,7 @@ export default async function HomePage() {
     getLatestDemos()
   ]);
   
-  const heroProject = popularProjects[0] || null;
+  const heroProject = popularProjects.length > 0 ? popularProjects[0] : (latestProjects.length > 0 ? latestProjects[0] : null);
 
   return (
     <main className="bg-[#101014] text-white">
