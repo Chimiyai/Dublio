@@ -87,6 +87,40 @@ enum NotificationType {
   COMMENT_REPLY
 }
 
+model Character {
+  id           Int      @id @default(autoincrement())
+  projectId    Int
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  name         String   // Karakterin adı
+  description  String?
+  // Karakterin varsayılan resmi (opsiyonel)
+  profileImage String?  
+  
+  // Bu karaktere atanmış seslendirmenler
+  voiceActors  ProjectCharacterVoiceActor[]
+  // Bu karaktere ait çeviri satırları
+  translationLines TranslationLine[] @relation("CharacterTranslationLines")
+
+  @@unique([projectId, name]) // Bir projede aynı isimde iki karakter olamaz
+  @@map("characters")
+}
+
+// Bir projede, bir karaktere atanmış seslendirmenler (çoktan çoğa ilişki).
+model ProjectCharacterVoiceActor {
+  id           Int      @id @default(autoincrement())
+  characterId  Int
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  
+  voiceActorId Int      // Bu karaktere seslendirmen olarak atanan kullanıcının ID'si
+  voiceActor   User     @relation(fields: [voiceActorId], references: [id], onDelete: Cascade)
+  
+  assignedAt   DateTime @default(now())
+
+  @@unique([characterId, voiceActorId]) // Bir karaktere aynı seslendirmen bir kez atanabilir
+  @@map("project_character_voice_actors")
+}
+
 // Bir projeye ait, işlenecek bir asset (metin dosyası).
 model TranslatableAsset {
   id        Int      @id @default(autoincrement())
@@ -118,6 +152,13 @@ model TranslationLine {
 
   voiceRecordingUrl String? // Kaydedilen ses dosyasının yolu
 
+  characterId    Int?       // Bu replik hangi karaktere ait? (opsiyonel)
+  character      Character? @relation("CharacterTranslationLines", fields: [characterId], references: [id], onDelete: SetNull)
+
+  // Bu repliğin orijinal İngilizce ses dosyasının asset'i hangisi? (opsiyonel)
+  originalVoiceAssetId Int?
+  originalVoiceAsset   Asset? @relation("OriginalVoiceAsset", fields: [originalVoiceAssetId], references: [id], onDelete: SetNull)
+
   @@unique([assetId, key]) // Bir dosyada aynı key'den iki tane olamaz
   @@map("translation_lines")
 }
@@ -134,6 +175,7 @@ model Asset {
   uploadedById Int
   uploader     User      @relation(fields: [uploadedById], references: [id])
   translatableAsset  TranslatableAsset?
+  originalVoiceForLines TranslationLine[] @relation("OriginalVoiceAsset")
   
   createdAt    DateTime  @default(now())
   
@@ -180,6 +222,7 @@ model User {
   receivedInvitations     TeamInvitation[]          @relation("ReceivedInvitations")
   uploadedAssets          Asset[]
   conversationMemberships ConversationParticipant[]
+  assignedVoiceActors     ProjectCharacterVoiceActor[]
 
   @@map("users")
 }
@@ -407,6 +450,7 @@ model Project {
   packages     PackageVersion[]
   assets       Asset[]
   translatableAssets  TranslatableAsset[]
+  characters          Character[]
 
   @@unique([teamId, contentId]) // Bir ekip, bir içeriği sadece bir kere projelendirebilir.
   @@map("projects")
