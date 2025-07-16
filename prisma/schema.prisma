@@ -403,7 +403,6 @@ model Project {
 
   tasks        Task[]
   packages     PackageVersion[]
-  comments     Comment[]
   assets       Asset[]
   translatableAssets  TranslatableAsset[]
 
@@ -429,7 +428,6 @@ model Task {
   createdAt   DateTime   @default(now())
 
   assignees TaskAssignee[]
-  comments  Comment[]
 
   @@map("tasks")
 }
@@ -482,10 +480,6 @@ model Comment {
   parentId Int?
   parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies  Comment[] @relation("CommentReplies")
-
-  // İlişkiler
-  project Project? @relation(fields: [targetId], references: [id], onDelete: Cascade) // Bu ve alttakiler opsiyonel
-  task    Task?    @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }

@@ -1,4 +1,5 @@
-//src/app/api/projects/[projectId]/tasks/route.ts
+// src/app/api/projects/[projectId]/tasks/route.ts
+
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
@@ -12,7 +13,6 @@ export async function GET(
     { params }: { params: { projectId: string } }
 ) {
     try {
-        // Bu isteği sadece projede yer alan üyeler yapabilmeli (güvenlik)
         const session = await getServerSession(authOptions);
         const projectId = parseInt(params.projectId, 10);
         if (!session?.user?.id || isNaN(projectId)) {
@@ -37,7 +37,7 @@ export async function GET(
 const createTaskSchema = z.object({
     title: z.string().min(3, "Başlık en az 3 karakter olmalıdır."),
     type: z.nativeEnum(TaskType),
-    assigneeIds: z.array(z.number().int()).optional(), // Göreve atanacak kullanıcıların ID'leri
+    assigneeIds: z.array(z.number().int()).optional(),
 });
 
 export async function POST(
@@ -52,22 +52,17 @@ export async function POST(
         }
         const userId = parseInt(session.user.id);
         
-        // === HATA 3'ün ÇÖZÜMÜ BURADA ===
-        // Önce projenin ait olduğu takımı buluyoruz.
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             select: { teamId: true }
         });
-
         if (!project) {
             return new NextResponse('Proje bulunamadı', { status: 404 });
         }
         
-        // Sonra, kullanıcının o takımda Lider veya Admin olup olmadığını kontrol ediyoruz.
         const membership = await prisma.teamMember.findUnique({
             where: { teamId_userId: { teamId: project.teamId, userId: userId } }
         });
-
         if (!membership || !['LEADER', 'ADMIN'].includes(membership.role)) {
             return new NextResponse('Görev oluşturma yetkiniz yok.', { status: 403 });
         }
@@ -84,8 +79,7 @@ export async function POST(
                 title,
                 type,
                 projectId,
-                status: TaskStatus.TODO, // Yeni görevler her zaman TODO sütununda başlar
-                // Eğer atanan kişiler varsa, onları da aynı anda ekle
+                status: TaskStatus.TODO,
                 assignees: assigneeIds ? {
                     create: assigneeIds.map(id => ({ userId: id }))
                 } : undefined,

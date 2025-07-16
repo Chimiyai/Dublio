@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 // Tipleri sunucu dosyasından import ediyoruz.
-import { ProjectWithDetails, UserInteractionData } from '@/app/projeler/[slug]/page';
+import { ProjectWithDetails, UserInteractionData } from '@/app/projeler/[projectId]/page';
 // Yeni etkileşim butonlarımızı import ediyoruz.
 import InteractionButtons from '@/components/shared/InteractionButtons';
 

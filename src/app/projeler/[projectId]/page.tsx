@@ -1,4 +1,4 @@
-// src/app/projeler/[slug]/page.tsx
+// src/app/projeler/[projectId]/page.tsx
 
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -23,10 +23,15 @@ const projectDetailQuery = {
         select: { 
             name: true, 
             slug: true,
-            // `TaskBoard`'un beklediği tüm alanları çekiyoruz
             members: { 
                 include: { 
-                    user: { select: { username: true, profileImage: true }}
+                    user: {
+                        select: { 
+                            id: true, // <-- EKSİK OLANI EKLEDİK
+                            username: true,
+                            profileImage: true // Profil resmini de alalım, ileride lazım olur.
+                        }
+                    }
                 } 
             }
         } 
@@ -38,7 +43,6 @@ const projectDetailQuery = {
                 include: { user: { select: { username: true, profileImage: true } } }
             }
         },
-        // orderBy'da string yerine Prisma'nın beklediği `SortOrder` enum'ını kullanıyoruz
         orderBy: { createdAt: 'asc' as const }
     }
   }
@@ -85,12 +89,13 @@ async function getUserSpecificData(userId: number | undefined, projectId: number
 
 
 // 5. Ana Sayfa Bileşeni (Sunucu)
-export default async function ProjectDetailPageServer({ params }: { params: { slug: string } }) {
-  const projectId = parseInt(params.slug, 10);
+export default async function ProjectDetailPageServer({ params }: { params: { projectId: string } }) {
+  const projectIdString = params.projectId; // 'params.slug' yerine 'params.projectId'
+  const projectId = parseInt(projectIdString, 10);
   if (isNaN(projectId)) notFound();
 
   const session = await getServerSession(authOptions);
-  const project = await getProjectDetails(projectId);
+  const project = await getProjectDetails(projectId); // Fonksiyon zaten ID alıyordu, bu doğru.
   if (!project) notFound();
 
   const userId = session?.user?.id ? parseInt(session.user.id) : undefined;

@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import CommentsSection from '@/components/project/CommentsSection';
-import { ProjectDataForDetail } from '@/app/projeler/[slug]/page';
+import { ProjectDataForDetail } from '@/app/projeler/[projectId]/page';
 import { RoleInProject } from '@prisma/client';
 import NextImage from 'next/image';
 import Link from 'next/link';

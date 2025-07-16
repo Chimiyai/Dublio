@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "downlevelIteration": true,
-    "target": "es5",
+    "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -9,11 +9,11 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "CommonJS", // <-- BU SATIRI DEĞİŞTİR
+    "module": "ESNext", // <-- BU SATIRI DEĞİŞTİR
     "moduleResolution": "node", // "node" veya "bundler" olabilir, "node" kalsın
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
