@@ -233,7 +233,6 @@ model UserDemo {
   // Demoya ait kategoriler (çoktan çoğa)
   categories DemoCategory[] @relation("DemoToDemoCategory")
   
-  interactions Interaction[]
   @@map("user_demos")
 }
 
@@ -259,7 +258,6 @@ model Team {
   // İlişkiler
   members      TeamMember[]
   projects     Project[]
-  interactions Interaction[]
 
   @@map("teams")
 }
@@ -291,7 +289,6 @@ model Content {
   createdAt     DateTime    @default(now())
 
   projects     Project[]
-  interactions Interaction[]
   userDemos    UserDemo[]
 
   @@map("contents")
@@ -311,7 +308,6 @@ model Project {
 
   tasks        Task[]
   packages     PackageVersion[]
-  interactions Interaction[]
   comments     Comment[]
 
   @@unique([teamId, contentId]) // Bir ekip, bir içeriği sadece bir kere projelendirebilir.
@@ -364,7 +360,6 @@ model PackageVersion {
   createdAt     DateTime @default(now())
 
   bugReports   Report[]
-  interactions Interaction[]
 
   @@unique([projectId, version])
   @@map("package_versions")
@@ -395,8 +390,6 @@ model Comment {
   project Project? @relation(fields: [targetId], references: [id], onDelete: Cascade) // Bu ve alttakiler opsiyonel
   task    Task?    @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
-  interactions Interaction[]
-
   @@map("comments")
 }
 
@@ -416,14 +409,6 @@ model Interaction {
   targetId   Int
 
   createdAt DateTime @default(now())
-
-  // İlişkiler
-  project        Project?        @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  team           Team?           @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  content        Content?        @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  userDemo       UserDemo?       @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  comment        Comment?        @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  packageVersion PackageVersion? @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   @@id([userId, type, targetType, targetId])
   @@map("interactions")

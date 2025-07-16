@@ -9,8 +9,8 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "CommonJS", // <-- BU SATIRI DEĞİŞTİR
+    "moduleResolution": "node", // "node" veya "bundler" olabilir, "node" kalsın
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
