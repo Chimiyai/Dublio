@@ -19,11 +19,14 @@ export default function ManageAssets({ initialProject }: Props) {
     const [file, setFile] = useState<File | null>(null);
     const [assetType, setAssetType] = useState<AssetType>(AssetType.OTHER);
     const [isLoading, setIsLoading] = useState(false);
+    const [format, setFormat] = useState<string>('UNITY_I2LOC'); // Varsayılan
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) setFile(e.target.files[0]);
     };
+    const [assetFormats, setAssetFormats] = useState<{ [key: number]: string }>({});
 
+    // --- 1. FONKSİYON: handleSubmit ---
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!file) {
@@ -41,7 +44,7 @@ export default function ManageAssets({ initialProject }: Props) {
         try {
             const response = await fetch(`/api/admin/projects/${project.id}/assets`, {
                 method: 'POST',
-                body: formData, // FormData gönderirken header belirtmeye gerek yok
+                body: formData,
             });
 
             const newAsset = await response.json();
@@ -52,14 +55,11 @@ export default function ManageAssets({ initialProject }: Props) {
             }
             
             toast.success("Asset başarıyla eklendi!");
-            // Liste anında güncellensin diye state'i set ediyoruz
             setProject(prev => ({
                 ...prev,
                 assets: [newAsset, ...prev.assets]
             }));
-            // Formu temizle
             setFile(null);
-            // Input'u programatik olarak temizlemek için:
             (e.target as HTMLFormElement).reset();
 
         } catch (error: any) {
@@ -69,7 +69,41 @@ export default function ManageAssets({ initialProject }: Props) {
             setIsLoading(false);
         }
     };
+    // --- handleSubmit BİTTİ ---
+
+
+    // --- 2. FONKSİYON: handleParseAsset ---
+    const handleParseAsset = async (assetId: number) => {
+    // Kullanıcının o an seçtiği formatı al.
+    // Eğer her asset için ayrı bir format seçimi yaptıracaksak, bu state'i güncellemeliyiz.
+    // Şimdilik, formdaki ana dropdown'dan aldığımızı varsayalım.
+    const selectedFormat = assetFormats[assetId] || 'UNITY_I2LOC'; // Varsayılan format
     
+    toast.loading("Dosya ayrıştırılıyor...");
+    try {
+        const response = await fetch(`/api/admin/assets/${assetId}/parse`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // Body'de formatı gönderiyoruz
+            body: JSON.stringify({ format: selectedFormat }) 
+        });
+            const result = await response.json();
+            toast.dismiss();
+
+            if (!response.ok) throw new Error(result.message || "İşlem başarısız.");
+
+            toast.success(result.message);
+            window.location.reload();
+
+        } catch (error: any) {
+            toast.dismiss();
+            toast.error(error.message);
+        }
+    };
+    // --- handleParseAsset BİTTİ ---
+
+    
+    // --- BİLEŞENİN RETURN İFADESİ ---
     return (
         <div style={{ display: 'flex', gap: '50px' }}>
             {/* Asset Yükleme Formu */}
@@ -83,6 +117,7 @@ export default function ManageAssets({ initialProject }: Props) {
                         <option value="VIDEO">Video</option>
                         <option value="OTHER">Diğer</option>
                     </select>
+                    
                     <input type="file" onChange={handleFileChange} required />
                     <button type="submit" disabled={isLoading} style={{ background: 'purple', padding: '10px' }}>
                         {isLoading ? "Yükleniyor..." : "Yükle ve Kaydet"}
@@ -94,12 +129,29 @@ export default function ManageAssets({ initialProject }: Props) {
             <div style={{ flex: 2, borderLeft: '1px solid #444', paddingLeft: '40px' }}>
                 <h3>Proje Assetleri ({project.assets.length})</h3>
                 {project.assets.map(asset => (
-                    <div key={asset.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid #333' }}>
-                        <div>
-                            <a href={asset.path} target="_blank" rel="noopener noreferrer" style={{color: 'lightblue'}}>{asset.name}</a>
-                            <small style={{display: 'block', color: '#888'}}>Tür: {asset.type} | Yükleyen: {asset.uploader.username}</small>
-                        </div>
-                        <button style={{background: 'darkred'}}>Sil</button>
+                    <div key={asset.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid #333', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {asset.type === 'TEXT' && (
+              <>
+                <select 
+                  value={assetFormats[asset.id] || ''}
+                  onChange={(e) => setAssetFormats(prev => ({ ...prev, [asset.id]: e.target.value }))}
+                >
+                  <option value="">Format Seç...</option>
+                  <option value="UNITY_I2LOC">Unity I2 JSON</option>
+                  <option value="UNREAL_LOCRES">Unreal Locres</option>
+                </select>
+                <button 
+                  onClick={() => handleParseAsset(asset.id)} 
+                  disabled={!assetFormats[asset.id]} // Format seçilmeden butonu pasif yap
+                  style={{background: 'darkblue'}}
+                >
+                  İşle
+                </button>
+              </>
+            )}
+            <button style={{background: 'darkred'}}>Sil</button>
+        </div>
                     </div>
                 ))}
             </div>

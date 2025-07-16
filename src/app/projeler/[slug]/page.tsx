@@ -6,25 +6,9 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/authOptions';
 import { Prisma, InteractionType } from '@prisma/client'; 
+import TaskBoard from '@/components/projects/TaskBoard';
 
 import ProjectDetailContent from '@/components/projects/ProjectDetailContent';
-
-// 1. Prisma'nın otomatik tip oluşturucusunu kullanarak veri yapımızı tanımlıyoruz.
-const projectDetailQuery = {
-  // === DÜZELTME BURADA ===
-  // Artık interactions'ı burada include etmiyoruz.
-  include: {
-    team: { select: { name: true, slug: true } },
-    content: true,
-    // tasks, packages, comments gibi diğer ilişkiler burada kalabilir.
-  }
-};
-
-
-export type ProjectWithDetails = Prisma.ProjectGetPayload<typeof projectDetailQuery> & {
-  // Etkileşimler ayrı bir sorguyla geleceği için tipi manuel olarak ekliyoruz.
-  interactions: { userId: number; type: InteractionType; }[];
-};
 
 export interface UserInteractionData {
     isLoggedIn: boolean;
@@ -32,33 +16,55 @@ export interface UserInteractionData {
     favorited: boolean;
 }
 
+// projectDetailQuery'ye görevleri de dahil edelim
+const projectDetailQuery = {
+  include: {
+    team: { 
+        select: { 
+            name: true, 
+            slug: true,
+            // `TaskBoard`'un beklediği tüm alanları çekiyoruz
+            members: { 
+                include: { 
+                    user: { select: { username: true, profileImage: true }}
+                } 
+            }
+        } 
+    },
+    content: true,
+    tasks: {
+        include: {
+            assignees: {
+                include: { user: { select: { username: true, profileImage: true } } }
+            }
+        },
+        // orderBy'da string yerine Prisma'nın beklediği `SortOrder` enum'ını kullanıyoruz
+        orderBy: { createdAt: 'asc' as const }
+    }
+  }
+};
+
+// Bu tip tanımları doğru, onlara dokunmuyoruz.
+export type ProjectWithDetailsForStudio = Prisma.ProjectGetPayload<typeof projectDetailQuery> & {
+    interactions: { userId: number; type: InteractionType; }[];
+};
+export type ProjectWithDetailsForPublic = Omit<ProjectWithDetailsForStudio, 'tasks'>;
+
 // 3. Veri çekme fonksiyonumuz (yeni şemaya göre)
-async function getProjectDetails(projectId: number): Promise<ProjectWithDetails | null> {
+async function getProjectDetails(projectId: number): Promise<ProjectWithDetailsForStudio | null> {
     const projectPromise = prisma.project.findUnique({
         where: { id: projectId },
         ...projectDetailQuery
     });
-    
-    // Etkileşimleri AYRI bir sorgu ile çekiyoruz.
     const interactionsPromise = prisma.interaction.findMany({
-        where: {
-            targetType: 'PROJECT',
-            targetId: projectId
-        },
+        where: { targetType: 'PROJECT', targetId: projectId },
         select: { userId: true, type: true }
     });
-
     const [project, interactions] = await Promise.all([projectPromise, interactionsPromise]);
-
-    if (!project) {
-        return null;
-    }
-
-    // İki sonucu birleştirip tek bir obje olarak döndürüyoruz.
+    if (!project) return null;
     return { ...project, interactions };
 }
 
-// 4. Kullanıcıya özel etkileşim verisini çekme fonksiyonu (yeni şemaya göre)
 async function getUserSpecificData(userId: number | undefined, projectId: number): Promise<Omit<UserInteractionData, 'isLoggedIn'>> {
     if (!userId) return { liked: false, favorited: false };
 
@@ -80,31 +86,47 @@ async function getUserSpecificData(userId: number | undefined, projectId: number
 
 // 5. Ana Sayfa Bileşeni (Sunucu)
 export default async function ProjectDetailPageServer({ params }: { params: { slug: string } }) {
-  // URL'den gelen slug'ın bir sayı (ID) olduğunu varsayıyoruz.
   const projectId = parseInt(params.slug, 10);
-  if (isNaN(projectId)) {
-    notFound(); // Eğer sayı değilse 404 göster.
-  }
+  if (isNaN(projectId)) notFound();
 
-  // Gerekli tüm verileri paralel olarak çekiyoruz.
   const session = await getServerSession(authOptions);
   const project = await getProjectDetails(projectId);
-  
-  if (!project) {
-    notFound();
-  }
+  if (!project) notFound();
 
   const userId = session?.user?.id ? parseInt(session.user.id) : undefined;
   const userInteractionStatus = await getUserSpecificData(userId, project.id);
+  const viewerMembership = session?.user ? project.team.members.find(m => m.userId === userId) : null;
   
-  // Çektiğimiz tüm veriyi tek bir pakette istemciye gönderiyoruz.
+  // === HATA 1'in ÇÖZÜMÜ BURADA ===
+  // Tüm JSX'i tek bir kapsayıcı içine alıyoruz
   return (
-    <ProjectDetailContent
-      project={project}
-      userInteraction={{
-        isLoggedIn: !!userId,
-        ...userInteractionStatus
-      }}
-    />
+    <div>
+      {/* Herkesin gördüğü genel proje vitrini */}
+      <ProjectDetailContent
+        project={project}
+        userInteraction={{
+          isLoggedIn: !!userId,
+          ...userInteractionStatus
+        }}
+      />
+
+      <hr style={{margin: '40px 0', borderColor: '#444'}}/>
+
+      {/* Sadece ekip üyelerinin gördüğü Proje Stüdyosu */}
+      {viewerMembership ? (
+          <div style={{padding: '20px'}}>
+            <TaskBoard 
+                initialTasks={project.tasks} 
+                teamMembers={project.team.members}
+                viewerRole={viewerMembership.role}
+                projectId={project.id}
+            />
+          </div>
+      ) : (
+          <div style={{textAlign: 'center', padding: '40px', color: 'gray'}}>
+            <p>Bu projenin çalışma alanını görmek için ekip üyesi olmalısınız.</p>
+          </div>
+      )}
+    </div>
   );
 }

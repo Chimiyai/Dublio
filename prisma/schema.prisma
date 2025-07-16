@@ -16,6 +16,13 @@ datasource db {
 // BÖLÜM 1: ENUMLAR (Merkezi Tip Tanımları)
 // =================================================================
 
+enum TranslationStatus {
+  NOT_TRANSLATED
+  TRANSLATED
+  REVIEWED
+  APPROVED
+}
+
 enum AssetType {
   AUDIO
   TEXT
@@ -80,6 +87,39 @@ enum NotificationType {
   COMMENT_REPLY
 }
 
+// Bir projeye ait, işlenecek bir asset (metin dosyası).
+model TranslatableAsset {
+  id        Int      @id @default(autoincrement())
+  assetId   Int      @unique // Orijinal Asset modeline referans
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  isProcessed Boolean @default(false) // Ayrıştırıcı tarafından işlendi mi?
+  
+  lines     TranslationLine[]
+  @@map("translatable_assets")
+}
+
+
+// Ayrıştırılmış her bir metin satırı.
+model TranslationLine {
+  id        Int      @id @default(autoincrement())
+  assetId   Int      // Hangi dosyadan geldiğini bilmek için
+  asset     TranslatableAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  key       String   // Örn: "MENU/ADVANCED_AA" (Bu anahtar benzersiz olmalı)
+  originalText String
+  translatedText String?
+  
+  status    TranslationStatus @default(NOT_TRANSLATED)
+  notes     String?  // Çevirmen notları
+
+  @@unique([assetId, key]) // Bir dosyada aynı key'den iki tane olamaz
+  @@map("translation_lines")
+}
+
 model Asset {
   id        Int       @id @default(autoincrement())
   projectId Int
@@ -91,6 +131,7 @@ model Asset {
   
   uploadedById Int
   uploader     User      @relation(fields: [uploadedById], references: [id])
+  translatableAsset  TranslatableAsset?
   
   createdAt    DateTime  @default(now())
   
@@ -364,6 +405,7 @@ model Project {
   packages     PackageVersion[]
   comments     Comment[]
   assets       Asset[]
+  translatableAssets  TranslatableAsset[]
 
   @@unique([teamId, contentId]) // Bir ekip, bir içeriği sadece bir kere projelendirebilir.
   @@map("projects")
