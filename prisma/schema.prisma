@@ -16,6 +16,13 @@ datasource db {
 // BÖLÜM 1: ENUMLAR (Merkezi Tip Tanımları)
 // =================================================================
 
+enum AssetClassification {
+  UNCLASSIFIED
+  DIALOGUE
+  AMBIANCE
+  NON_DIALOGUE_VOCAL
+}
+
 enum TranslationStatus {
   NOT_TRANSLATED
   TRANSLATED
@@ -168,6 +175,7 @@ model Asset {
   type                 AssetType
   isNonDialogue        Boolean           @default(false)
   
+  classification       AssetClassification @default(UNCLASSIFIED)
   uploadedById         Int
   uploader             User              @relation(fields: [uploadedById], references: [id])
   createdAt            DateTime          @default(now())

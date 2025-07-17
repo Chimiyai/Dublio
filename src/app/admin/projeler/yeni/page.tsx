@@ -2,32 +2,23 @@
 
 import prisma from '@/lib/prisma';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
-import NewProjectForm from '@/components/projects/NewProjectForm';
-import { ContentType } from '@prisma/client'; // ContentType'ı import etmeyi unutma
+import EditProjectForm from '@/components/admin/EditProjectForm'; // Bu component artık hem yeni hem düzenleme için kullanılıyor
 
-async function getNewProjectData() {
-  // DÜZELTME: `select` bloğunu kaldırıyoruz.
-  // Bu, Prisma'nın `Content` modelinin tüm skalar (temel) alanlarını getirmesini sağlar.
-  const contents = await prisma.content.findMany();
-
-  // DÜZELTME: `select` bloğunu kaldırıyoruz.
-  // Bu, Prisma'nın `Team` modelinin tüm skalar (temel) alanlarını getirmesini sağlar.
-  const teams = await prisma.team.findMany();
-
-  return {
-    allContents: contents,
-    allTeams: teams,
-  };
+async function getFormData() {
+  const allContents = await prisma.content.findMany();
+  const allTeams = await prisma.team.findMany();
+  return { allContents, allTeams };
 }
 
 export default async function AddNewProjectPage() {
-  const formData = await getNewProjectData();
+  const formData = await getFormData();
 
   return (
-    <AdminPageLayout pageTitle="Yeni Proje Başlat">
-      <NewProjectForm
-        contents={formData.allContents}
-        teams={formData.allTeams}
+    <AdminPageLayout pageTitle="Yeni Proje Oluştur">
+      <EditProjectForm
+        isEditing={false} // Yeni proje modunda
+        allContents={formData.allContents}
+        allTeams={formData.allTeams}
       />
     </AdminPageLayout>
   );

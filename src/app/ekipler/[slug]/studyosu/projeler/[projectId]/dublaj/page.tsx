@@ -6,54 +6,43 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { TranslationStatus, Prisma } from '@prisma/client';
 import DubbingStudioClient from '@/components/projects/DubbingStudioClient';
-import { TranslationLineForModder } from '@/app/ekipler/[slug]/studyosu/projeler/[projectId]/modder/page';
 
-export type LineForDubbingWithDetails = TranslationLineForModder;
+// === YENİ TİP TANIMI ===
+// Dublaj stüdyosunun ihtiyacı olan tam veri yapısını burada tanımlıyoruz.
+export type LineForDubbing = Prisma.TranslationLineGetPayload<{
+    include: {
+        character: { select: { id: true, name: true, profileImage: true } },
+        originalVoiceReferenceAsset: { select: { id: true, name: true, path: true } }
+    }
+}>;
 
-async function getLinesForDubbing(projectId: number, userId: number): Promise<LineForDubbingWithDetails[]> {
-  const lines = await prisma.translationLine.findMany({
+// === YENİ VERİ ÇEKME FONKSİYONU ===
+async function getLinesForDubbing(projectId: number, userId: number): Promise<LineForDubbing[]> {
+  return prisma.translationLine.findMany({
     where: {
-      // DÜZELTME: Asset artık doğrudan projeye bağlı değil.
-      // `translatableAsset` üzerinden gidiyoruz.
+      // 1. Satır, bu projeye ait bir asset'ten gelmeli
       sourceAsset: {
-        translatableAsset: {
-          projectId: projectId
-        }
+        projectId: projectId
       },
+      // 2. Satır, bu kullanıcıya (seslendirmen) atanmış bir karaktere ait olmalı
       character: {
         voiceActors: {
           some: { voiceActorId: userId }
         }
       },
+      // 3. Ya "onaylanmış" olmalı YA DA "diyalog dışı" olmalı
       OR: [
         { status: TranslationStatus.APPROVED },
         { isNonDialogue: true }
       ]
     },
-    // DÜZELTME: Tip ile %100 eşleşmesi için `select` bloğunu güncelliyoruz.
-    select: {
-        id: true,
-        sourceAssetId: true,
-        key: true,
-        originalText: true,
-        translatedText: true,
-        status: true,
-        notes: true,
-        voiceRecordingUrl: true,
-        characterId: true,
-        originalVoiceReferenceAssetId: true,
-        isNonDialogue: true,
+    include: {
         character: { select: { id: true, name: true, profileImage: true } },
-        // DÜZELTME: isNonDialogue artık Asset'te yok.
-        originalVoiceReferenceAsset: { select: { id: true, name: true, path: true, type: true } },
-        sourceAsset: { select: { id: true, name: true, path: true, type: true } },
-    }
+        originalVoiceReferenceAsset: { select: { id: true, name: true, path: true } }
+    },
+    orderBy: { key: 'asc' }
   });
-  
-  // TypeScript'in emin olması için `as` kullanabiliriz, ama select doğruysa gerek kalmaz.
-  return lines as LineForDubbingWithDetails[];
 }
-
 
 export default async function DubbingStudioPage({ params }: { params: { projectId: string } }) {
     const projectId = parseInt(params.projectId, 10);
@@ -93,9 +82,7 @@ export default async function DubbingStudioPage({ params }: { params: { projectI
             {linesForDubbing.length > 0 ? (
                 <DubbingStudioClient lines={linesForDubbing} />
             ) : (
-                <p style={{color: 'gray', fontStyle: 'italic'}}>
-                    Size atanmış ve seslendirme için hazır (onaylanmış veya diyalog dışı) bir replik bulunmuyor.
-                </p>
+                <p>Size atanmış ve seslendirme için hazır bir replik bulunmuyor.</p>
             )}
         </div>
     );

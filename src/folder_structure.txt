@@ -18,6 +18,8 @@
             page.tsx
             icerikler/
                 page.tsx
+                yeni/
+                    page.tsx
             kategoriler/
                 page.tsx
             kullanicilar/
@@ -38,6 +40,8 @@
                         page.tsx
                 yeni/
                     page.tsx
+            teklifler/
+                page.tsx
         api/
             admin/
                 assets/
@@ -65,6 +69,8 @@
                     [projectId]/
                         assets/
                             route.ts
+                        sync-assets/
+                            route.ts
                 reports/
                     route.ts
                     [reportId]/
@@ -82,6 +88,13 @@
                             route.ts
                         update-username/
                             route.ts
+            assets/
+                [assetId]/
+                    route.ts
+                    classify/
+                        route.ts
+                    parse/
+                        route.ts
             auth/
                 [...nextauth]/
                     route.ts
@@ -90,6 +103,8 @@
             comments/
                 [commentId]/
                     route.ts
+            contents/
+                route.ts
             games/
                 add-to-library/
                     route.ts
@@ -136,9 +151,17 @@
                 top-favorites/
                     route.ts
                 [projectId]/
+                    asset-settings/
+                        [assetId]/
+                            route.ts
+                    assets/
+                        route.ts
+                        next-unclassified/
+                            route.ts
                     characters/
                         route.ts
                         [characterId]/
+                            route.ts
                             voice-actors/
                                 route.ts
                     comments/
@@ -149,6 +172,13 @@
                         route.ts
             projeler/
                 route.ts
+            proposals/
+                route.ts
+                [proposalId]/
+                    approve/
+                        route.ts
+                    reject/
+                        route.ts
             register/
                 route.ts
             sounds/
@@ -166,6 +196,8 @@
                 route.ts
                 [teamId]/
                     invitations/
+                        route.ts
+                    storages/
                         route.ts
             translation-lines/
                 route.ts
@@ -207,6 +239,8 @@
                 studyosu/
                     layout.tsx
                     page.tsx
+                    depolama/
+                        page.tsx
                     projeler/
                         [projectId]/
                             page.tsx
@@ -219,6 +253,8 @@
         gizlilik-politikasi/
             page.tsx
         hakkimizda/
+            page.tsx
+        icerikler/
             page.tsx
         kadromuz/
             page.tsx
@@ -242,6 +278,9 @@
                 page.tsx
             [projectId]/
                 page.tsx
+        teklif-ver/
+            [slug]/
+                page.tsx
     components/
         ArtistAvatar.tsx
         DynamicProjectCover.tsx
@@ -261,6 +300,7 @@
             AdminPageLayout.tsx
             BanUserButton.tsx
             CategoryManager.tsx
+            ContentForm.tsx
             CoverImageUploader.tsx
             DeleteArtistButton.tsx
             DeleteProjectButton.tsx
@@ -277,13 +317,17 @@
             ProjectPricingFields.tsx
             ProjectPublishSettings.tsx
             ProjectsTable.tsx
+            ProposalCard.tsx
             ReportManager.tsx
             UpdateUserRole.tsx
+            UsersTable.tsx
         artists/
             ArtistInteractionButtons.tsx
         auth/
             GirisPageClient.tsx
             SignOutButton.tsx
+        contents/
+            ContentCard.tsx
         home/
             DubbedAnimeSection.tsx
             DubbedGamesSection.tsx
@@ -338,7 +382,7 @@
             CommentModal.tsx
             DubbingStudioClient.tsx
             FilterSidebar.tsx
-            ModderPanelPageClient.tsx
+            ModderStudioClient.tsx
             NewProjectForm.tsx
             ProjectDetailContent.tsx
             ProjectGrid.tsx
@@ -348,11 +392,14 @@
             TaskBoard.tsx
             TaskDetailModal.tsx
             TranslationStudioClient.tsx
+        proposals/
+            ProposalForm.tsx
         shared/
             InteractionButtons.tsx
         teams/
             TeamList.tsx
             TeamProfileContent.tsx
+            TeamStorageManager.tsx
         ui/
             button.tsx
             card.tsx
