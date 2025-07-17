@@ -8,71 +8,85 @@ import HeroSection from '@/components/home/HeroSection';
 import ProjectCarousel from '@/components/home/ProjectCarousel';
 import TalentShowcase from '@/components/home/TalentShowcase';
 
-// --- Proje Kartı için Tip ve Include Objesi ---
+// === 1. MERKEZİ TİP ve SORGULAMA ARGÜMANLARI ===
+
+// Proje kartlarında gösterilecek TÜM veriler için tek bir sorgu objesi
 const projectCardArgs = {
   include: {
-    content: { select: { title: true, coverImageUrl: true, bannerUrl: true } },
+    content: true, // Kartlar başlık, kapak resmi vb. için tüm content'i istiyor
     team: { select: { name: true, slug: true } },
-    _count: true
+    // DÜZELTME: İhtiyacımız olan sayıları `select` ile belirtiyoruz.
+    _count: {
+      select: {
+        tasks: true,      // Örnek: Projedeki görev sayısı
+        packages: true,   // Örnek: Yayınlanmış paket sayısı
+        // NOT: Yorum/Beğeni için ayrı mantık gerekecek.
+      }
+    }
   }
-};
+} as const; // `as const` ile bu objenin değiştirilemez olduğunu belirtiyoruz.
+
+// Bu sorgudan dönecek verinin tipini export edelim ki component'ler de kullanabilsin.
 export type ProjectForCard = Prisma.ProjectGetPayload<typeof projectCardArgs>;
 
-// --- Demo Kartı için Tip ve Sorgu ---
-const demoCardQuery = {
+// Demo kartı için sorgu objesi ve tip
+const demoCardArgs = {
   include: {
     author: { select: { username: true, profileImage: true } }
   }
-};
-export type DemoForCard = Prisma.UserDemoGetPayload<typeof demoCardQuery>;
+} as const;
+
+export type DemoForCard = Prisma.UserDemoGetPayload<typeof demoCardArgs>;
 
 
-// --- Veri Çekme Fonksiyonları (YENİ MANTIKLA) ---
+// === 2. VERİ ÇEKME FONKSİYONLARI (TEMİZLENMİŞ) ===
 
+// Yeni tamamlanan projeleri çeken fonksiyon
 async function getLatestCompletedProjects(limit: number = 5): Promise<ProjectForCard[]> {
   const projects = await prisma.project.findMany({
     where: { status: ProjectStatus.COMPLETED, isPublic: true },
     orderBy: { createdAt: 'desc' },
     take: limit,
-    ...projectCardArgs
+    ...projectCardArgs // Merkezi sorgu objemizi kullanıyoruz
   });
   return projects;
 }
 
-// === POPÜLER PROJELERİ BULMA FONKSİYONU (YENİ) ===
+// Popüler projeleri çeken fonksiyon
 async function getPopularProjects(limit: number = 5): Promise<ProjectForCard[]> {
+  // Popülerlik mantığı şimdilik en yeniler, gelecekte _count.likes gibi bir şeye göre sıralanabilir.
   const projects = await prisma.project.findMany({
     where: { isPublic: true },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: 'desc' }, // Şimdilik popülerliği de en yeniye göre alalım
     take: limit,
-    ...projectCardArgs
+    ...projectCardArgs // Merkezi sorgu objemizi kullanıyoruz
   });
   return projects;
 }
 
+// Son demoları çeken fonksiyon
 async function getLatestDemos(limit: number = 6): Promise<DemoForCard[]> {
-  const demos = await prisma.userDemo.findMany({
+  return prisma.userDemo.findMany({
     orderBy: { createdAt: 'desc' },
     take: limit,
-    ...demoCardQuery
+    ...demoCardArgs
   });
-  return demos;
 }
 
 
-// --- Ana Sayfa Bileşeni (Sunucu) ---
+// === 3. ANA SAYFA BİLEŞENİ (DEĞİŞİKLİK YOK) ===
 export default async function HomePage() {
   const [
     latestProjects, 
     popularProjects, 
     latestDemos
   ] = await Promise.all([
-    getLatestCompletedProjects(),
-    getPopularProjects(),
-    getLatestDemos()
+    getLatestCompletedProjects(5),
+    getPopularProjects(5),
+    getLatestDemos(6)
   ]);
   
-  const heroProject = popularProjects.length > 0 ? popularProjects[0] : (latestProjects.length > 0 ? latestProjects[0] : null);
+  const heroProject = popularProjects[0] ?? latestProjects[0] ?? null;
 
   return (
     <main className="bg-[#101014] text-white">

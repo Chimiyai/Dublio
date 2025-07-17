@@ -1,4 +1,5 @@
-//src/app/api/projects/[projectId]/characters/[characterId]/voice-actors/route.ts
+// src/app/api/projects/[projectId]/characters/[characterId]/voice-actors/route.ts
+
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
@@ -6,7 +7,8 @@ import { authOptions } from '@/lib/authOptions';
 import { z } from 'zod';
 
 const updateVoiceActorsSchema = z.object({
-  voiceActorIds: z.array(z.number().int()).min(0, "Seslendirmen ID'leri listesi boş olamaz (boşsa hiç atanmamalı)."),
+  // min(0) gereksiz, boş diziye izin veriyoruz.
+  voiceActorIds: z.array(z.number().int()),
 });
 
 export async function PUT(
@@ -20,33 +22,35 @@ export async function PUT(
     if (!session?.user?.id || isNaN(projectId) || isNaN(characterId)) {
       return new NextResponse('Yetkisiz veya geçersiz istek', { status: 401 });
     }
-    const userId = parseInt(session.user.id);
 
-    // 1. Yetki Kontrolü: Kullanıcı bu projenin Modder'ı, Lideri veya Admini mi?
-    const project = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { team: { select: { members: { where: { userId: userId }, select: { role: true } } } } }
+    // --- İYİLEŞTİRİLMİŞ YETKİ KONTROLÜ ---
+    const membership = await prisma.teamMember.findFirst({
+        where: {
+            userId: parseInt(session.user.id),
+            team: { projects: { some: { id: projectId } } },
+            role: { in: ['LEADER', 'ADMIN', 'MODDER'] }
+        }
     });
-    const isAuthorized = project?.team.members.some(m => ['LEADER', 'ADMIN', 'MODDER'].includes(m.role));
-    if (!isAuthorized) {
+    if (!membership) {
         return new NextResponse('Bu işlemi yapma yetkiniz yok.', { status: 403 });
     }
+    // --- Yetki Kontrolü Sonu ---
 
     const body = await request.json();
     const validation = updateVoiceActorsSchema.safeParse(body);
     if (!validation.success) {
-      return new NextResponse('Geçersiz veri', { status: 400 });
+      return NextResponse.json({ message: "Geçersiz veri", errors: validation.error.flatten() }, { status: 400 });
     }
     const { voiceActorIds } = validation.data;
 
-    // 2. İşlemi Transaction ile yap: Öncekileri sil, yenileri ekle
+    // İşlemi Transaction ile yapmak doğru bir yaklaşım.
     await prisma.$transaction(async (tx) => {
-        // Mevcut atamaları sil
+        // Mevcut tüm atamaları bu karakter için sil
         await tx.projectCharacterVoiceActor.deleteMany({
             where: { characterId: characterId }
         });
 
-        // Yeni atamaları oluştur
+        // Eğer yeni bir atama listesi geldiyse, onları ekle
         if (voiceActorIds.length > 0) {
             await tx.projectCharacterVoiceActor.createMany({
                 data: voiceActorIds.map(actorId => ({
@@ -57,12 +61,18 @@ export async function PUT(
         }
     });
 
-    // 3. Güncellenmiş karakteri, yeni seslendirmenleriyle birlikte geri döndür
+    // Güncellenmiş karakteri, yeni seslendirmenleriyle birlikte geri döndür
     const updatedCharacter = await prisma.character.findUnique({
         where: { id: characterId },
         include: {
+            // İYİLEŞTİRME: İstemcinin tam veriye ihtiyacı var.
             voiceActors: {
-                include: { voiceActor: { select: { username: true, profileImage: true } } }
+                include: { 
+                  // Sadece ID değil, kullanıcı adını ve resmini de alalım
+                  voiceActor: {
+                    select: { id: true, username: true, profileImage: true }
+                  } 
+                }
             }
         }
     });

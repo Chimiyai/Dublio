@@ -157,34 +157,24 @@ model TranslationLine {
 }
 
 model Asset {
-  id        Int     @id @default(autoincrement())
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  name String
-  path String
-  type AssetType
-
-  // YENİ YAPI: Proje bazlı ayarlar artık doğrudan Asset üzerinde olabilir.
-  // Çünkü bu Asset zaten o projeye özel.
-  isNonDialogue Boolean @default(false)
-
-  uploadedById Int
-  uploader     User     @relation(fields: [uploadedById], references: [id])
-  createdAt    DateTime @default(now())
-
+  id                   Int               @id @default(autoincrement())
+  
+  // DÜZELTME: Asset artık doğrudan tek bir projeye ait.
+  projectId            Int
+  project              Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  name                 String
+  path                 String
+  type                 AssetType
+  isNonDialogue        Boolean           @default(false)
+  
+  uploadedById         Int
+  uploader             User              @relation(fields: [uploadedById], references: [id])
+  createdAt            DateTime          @default(now())
+  
   sourcedTranslationLines    TranslationLine[] @relation("AssetSourceLines")
   referencedTranslationLines TranslationLine[] @relation("AssetVoiceReferences")
-
-  // YENİ KARŞI ALAN: Bu asset hangi projeye ait?
-  // Bizim yeni mimarimizde bir asset doğrudan bir projeye ait DEĞİL.
-  // Bu nedenle bu alanı Project modelinden kaldıracağız.
-  // Ama eğer bir projeye ait olmak zorunda ise:
-  // projectId Int?
-  // project   Project? @relation(fields: [projectId], references: [id])
-  Content   Content? @relation(fields: [contentId], references: [id])
-  contentId Int?
-
+  
   @@map("assets")
 }
 
@@ -468,16 +458,16 @@ model Content {
   slug          String      @unique
   type          ContentType
   description   String?
-  coverImageUrl String? // Cloudinary URL
-  bannerUrl     String? // Cloudinary URL
+  coverImageUrl String?
+  bannerUrl     String?
   releaseDate   DateTime?
-  metadata      Json? // Örn: { "developer": "CD Projekt Red", "publisher": "CDPR" }
+  metadata      Json?
   createdAt     DateTime    @default(now())
-  assets        Asset[]
-
-  projects        Project[]
-  userDemos       UserDemo[]
-  ProjectProposal ProjectProposal[]
+  
+  // Bu ilişkiler doğru.
+  projects     Project[]
+  userDemos    UserDemo[]
+  proposals    ProjectProposal[]
 
   @@map("contents")
 }
@@ -494,15 +484,18 @@ model Project {
   isPublic  Boolean       @default(true)
   createdAt DateTime      @default(now())
 
-  // YENİ İLİŞKİ: Bu proje hangi tekliften doğdu?
-  proposalId Int?             @unique
+  proposalId Int? @unique
   proposal   ProjectProposal? @relation(fields: [proposalId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
   tasks      Task[]
   packages   PackageVersion[]
   characters Character[]
-  // YENİ İLİŞKİ: Bu projeye özel, bağımsız asset'ler.
+  
+  // DÜZELTME: Sadece bu ilişki kalıyor.
   assets     Asset[]
+
+  // KALDIRILDI: Bu modele artık ihtiyacımız yok.
+  // projectAssetSettings ProjectAssetSetting[]
 }
 
 // =================================================================
