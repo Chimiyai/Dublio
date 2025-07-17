@@ -92,10 +92,6 @@ export async function PUT(
             data: validation.data,
             include: { // Güncellenmiş görevi tüm detaylarıyla geri döndür
                 assignees: { include: { user: { select: { id: true, username: true, profileImage: true } } } },
-                comments: { 
-                    include: { author: { select: { username: true, profileImage: true } } },
-                    orderBy: { createdAt: 'asc' }
-                }
             }
         });
 

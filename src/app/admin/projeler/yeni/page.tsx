@@ -1,33 +1,33 @@
 // src/app/admin/projeler/yeni/page.tsx
-import prisma from '@/lib/prisma';
-import EditProjectForm from '@/components/admin/EditProjectForm';
-import AdminPageLayout from '@/components/admin/AdminPageLayout';
-import { RoleInProject } from '@prisma/client';
 
-async function getFormData() {
-  const artists = await prisma.dubbingArtist.findMany({
-    select: { id: true, firstName: true, lastName: true }
-  });
-  const categories = await prisma.category.findMany({
-    select: { id: true, name: true }
-  });
+import prisma from '@/lib/prisma';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
+import NewProjectForm from '@/components/projects/NewProjectForm';
+import { ContentType } from '@prisma/client'; // ContentType'ı import etmeyi unutma
+
+async function getNewProjectData() {
+  // DÜZELTME: `select` bloğunu kaldırıyoruz.
+  // Bu, Prisma'nın `Content` modelinin tüm skalar (temel) alanlarını getirmesini sağlar.
+  const contents = await prisma.content.findMany();
+
+  // DÜZELTME: `select` bloğunu kaldırıyoruz.
+  // Bu, Prisma'nın `Team` modelinin tüm skalar (temel) alanlarını getirmesini sağlar.
+  const teams = await prisma.team.findMany();
+
   return {
-    allArtists: artists.map(a => ({ value: a.id, label: `${a.firstName} ${a.lastName}` })),
-    allCategories: categories.map(c => ({ value: c.id, label: c.name })),
-    availableRoles: Object.values(RoleInProject),
+    allContents: contents,
+    allTeams: teams,
   };
 }
 
 export default async function AddNewProjectPage() {
-  const formData = await getFormData();
+  const formData = await getNewProjectData();
 
   return (
-    <AdminPageLayout pageTitle="Yeni Proje Ekle"> {/* Layout'u kullan */}
-      <EditProjectForm
-        allArtists={formData.allArtists}
-        allCategories={formData.allCategories}
-        availableRoles={formData.availableRoles}
-        isEditing={false}
+    <AdminPageLayout pageTitle="Yeni Proje Başlat">
+      <NewProjectForm
+        contents={formData.allContents}
+        teams={formData.allTeams}
       />
     </AdminPageLayout>
   );

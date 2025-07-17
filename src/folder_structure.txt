@@ -14,7 +14,10 @@
             kayit/
                 page.tsx
         admin/
+            layout.tsx
             page.tsx
+            icerikler/
+                page.tsx
             kategoriler/
                 page.tsx
             kullanicilar/
@@ -22,7 +25,7 @@
             projeler/
                 page.tsx
                 duzenle/
-                    [slug]/
+                    [projectId]/
                         page.tsx
                 yeni/
                     page.tsx
@@ -37,6 +40,11 @@
                     page.tsx
         api/
             admin/
+                assets/
+                    [assetId]/
+                        route.ts
+                        parse/
+                            route.ts
                 categories/
                     route.ts
                     [id]/
@@ -44,6 +52,8 @@
                 cloudinary-utils/
                     delete-image/
                         route.ts
+                contents/
+                    route.ts
                 project-characters/
                     route.ts
                     [characterId]/
@@ -52,9 +62,8 @@
                     route.ts
                     cover-image/
                         route.ts
-                    [slug]/
-                        route.ts
-                        characters/
+                    [projectId]/
+                        assets/
                             route.ts
                 reports/
                     route.ts
@@ -73,8 +82,6 @@
                             route.ts
                         update-username/
                             route.ts
-            artists/
-                [artistId]/
             auth/
                 [...nextauth]/
                     route.ts
@@ -90,13 +97,13 @@
                 route.ts
             interactions/
                 route.ts
+            invitations/
+                route.ts
             messages/
                 route.ts
                 conversations/
                     route.ts
                 mark-as-read/
-                    route.ts
-                unread-count/
                     route.ts
                 [userId]/
                     route.ts
@@ -111,6 +118,8 @@
                         route.ts
             profile/
                 route.ts
+                demos/
+                    route.ts
                 email/
                     request/
                         route.ts
@@ -120,15 +129,24 @@
                     route.ts
                 update-details/
                     route.ts
+                update-skills/
+                    route.ts
             projects/
                 route.ts
                 top-favorites/
                     route.ts
                 [projectId]/
+                    characters/
+                        route.ts
+                        [characterId]/
+                            voice-actors/
+                                route.ts
                     comments/
                         route.ts
                         [commentId]/
                             route.ts
+                    tasks/
+                        route.ts
             projeler/
                 route.ts
             register/
@@ -136,6 +154,26 @@
             sounds/
                 route.ts
             stats/
+                route.ts
+            tasks/
+                [taskId]/
+                    route.ts
+                    comments/
+                        route.ts
+                    status/
+                        route.ts
+            teams/
+                route.ts
+                [teamId]/
+                    invitations/
+                        route.ts
+            translation-lines/
+                route.ts
+                [lineId]/
+                    route.ts
+                    comments/
+                        route.ts
+            upload/
                 route.ts
             users/
                 [userId]/
@@ -154,8 +192,30 @@
                         route.ts
                     overview-stats/
                         route.ts
+            voice-recordings/
+                route.ts
         banlandiniz/
             page.tsx
+        davetlerim/
+            page.tsx
+        ekipler/
+            page.tsx
+            yeni/
+                page.tsx
+            [slug]/
+                page.tsx
+                studyosu/
+                    layout.tsx
+                    page.tsx
+                    projeler/
+                        [projectId]/
+                            page.tsx
+                            ceviri/
+                                page.tsx
+                            dublaj/
+                                page.tsx
+                            modder/
+                                page.tsx
         gizlilik-politikasi/
             page.tsx
         hakkimizda/
@@ -178,11 +238,9 @@
                 page.tsx
         projeler/
             page.tsx
-            [slug]/
+            yeni/
                 page.tsx
-        sanatcilar/
-            page.tsx
-            [artistId]/
+            [projectId]/
                 page.tsx
     components/
         ArtistAvatar.tsx
@@ -210,6 +268,7 @@
             EditArtistForm.tsx
             EditProjectForm.tsx
             ImageUploader.tsx
+            ManageAssets.tsx
             ProjectAssignmentsManager.tsx
             ProjectCategoriesSelect.tsx
             ProjectCharactersManager.tsx
@@ -233,12 +292,14 @@
             MainShowcase.tsx
             MainShowcasePlaceholder.tsx
             PopularContentSection.tsx
+            ProjectCarousel.tsx
             ShowcaseSection.tsx
             SideShowcaseItem.tsx
             SideShowcaseItemPlaceholder.tsx
             SiteStatsSection.tsx
             SuggestGameSection.tsx
             SuggestOptionCard.tsx
+            TalentShowcase.tsx
             TopProjectCard.tsx
             TopProjectCardPlaceholder.tsx
         layout/
@@ -256,29 +317,42 @@
             BannerImageUploader.tsx
             FavoriteArtistCard.tsx
             LibraryContent.tsx
+            ManageDemos.tsx
+            ManageSkillsForm.tsx
             OverviewContent.tsx
             ProfileImageUploader.tsx
+            ProfileManagementContent.tsx
             UpdateBioForm.tsx
             UpdateEmailForm.tsx
             UpdatePasswordForm.tsx
+            UpdateProfileForm.tsx
             UpdateUsernameForm.tsx
             UserProfileBanner.tsx
+            UserProfileContent.tsx
             UserProfileForm.tsx
             UserProfileInfo.tsx
             UserProfileStatsBar.tsx
             UserProfileTabs.tsx
             VerifyEmailClientContent.tsx
-        project/
-            CommentsSection.tsx
         projects/
+            CommentModal.tsx
+            DubbingStudioClient.tsx
             FilterSidebar.tsx
+            ModderPanelPageClient.tsx
+            NewProjectForm.tsx
             ProjectDetailContent.tsx
             ProjectGrid.tsx
             ProjectsPageClient.tsx
             ProjectTabs.tsx
             SortDropdown.tsx
+            TaskBoard.tsx
+            TaskDetailModal.tsx
+            TranslationStudioClient.tsx
         shared/
             InteractionButtons.tsx
+        teams/
+            TeamList.tsx
+            TeamProfileContent.tsx
         ui/
             button.tsx
             card.tsx
@@ -296,7 +370,12 @@
         cloudinary.ts
         prisma.ts
         utils.ts
+        parsers/
+            index.ts
+            unity-i2loc-parser.ts
+            unreal-locres-parser.ts
     types/
+        dubbing.ts
         hero.ts
         next-auth.d.ts
         showcase.ts

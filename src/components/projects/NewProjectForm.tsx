@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Team, Content } from '@prisma/client';
+// DİKKAT: Prop olarak tam Prisma modellerini alacağımız için onları import ediyoruz.
+import { Team, Content } from '@prisma/client'; 
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
@@ -16,6 +17,7 @@ export default function NewProjectForm({ teams, contents }: Props) {
     const [isLoading, setIsLoading] = useState(false);
     
     // Form state'leri
+    // Artık gelen `teams` prop'unu kullanarak başlangıç değerini güvenle atayabiliriz.
     const [selectedTeamId, setSelectedTeamId] = useState<string>(teams[0]?.id.toString() || '');
     const [selectedContentId, setSelectedContentId] = useState<string>('');
     const [projectName, setProjectName] = useState('');

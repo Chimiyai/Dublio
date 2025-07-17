@@ -88,19 +88,19 @@ enum NotificationType {
 }
 
 model Character {
-  id           Int      @id @default(autoincrement())
-  projectId    Int
-  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  name         String   // Karakterin adı
+  id        Int     @id @default(autoincrement())
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name         String // Karakterin adı
   description  String?
   // Karakterin varsayılan resmi (opsiyonel)
-  profileImage String?  
-  
+  profileImage String?
+
   // Bu karaktere atanmış seslendirmenler
-  voiceActors  ProjectCharacterVoiceActor[]
+  voiceActors      ProjectCharacterVoiceActor[]
   // Bu karaktere ait çeviri satırları
-  translationLines TranslationLine[] @relation("CharacterTranslationLines")
+  translationLines TranslationLine[]            @relation("CharacterLines")
 
   @@unique([projectId, name]) // Bir projede aynı isimde iki karakter olamaz
   @@map("characters")
@@ -108,80 +108,85 @@ model Character {
 
 // Bir projede, bir karaktere atanmış seslendirmenler (çoktan çoğa ilişki).
 model ProjectCharacterVoiceActor {
-  id           Int      @id @default(autoincrement())
-  characterId  Int
-  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  
-  voiceActorId Int      // Bu karaktere seslendirmen olarak atanan kullanıcının ID'si
-  voiceActor   User     @relation(fields: [voiceActorId], references: [id], onDelete: Cascade)
-  
-  assignedAt   DateTime @default(now())
+  id          Int       @id @default(autoincrement())
+  characterId Int
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  voiceActorId Int // Bu karaktere seslendirmen olarak atanan kullanıcının ID'si
+  voiceActor   User @relation(fields: [voiceActorId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
 
   @@unique([characterId, voiceActorId]) // Bir karaktere aynı seslendirmen bir kez atanabilir
   @@map("project_character_voice_actors")
 }
 
-// Bir projeye ait, işlenecek bir asset (metin dosyası).
-model TranslatableAsset {
-  id        Int      @id @default(autoincrement())
-  assetId   Int      @unique // Orijinal Asset modeline referans
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  
-  projectId Int
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  isProcessed Boolean @default(false) // Ayrıştırıcı tarafından işlendi mi?
-  
-  lines     TranslationLine[]
-  @@map("translatable_assets")
-}
-
-
 // Ayrıştırılmış her bir metin satırı.
 model TranslationLine {
-  id        Int      @id @default(autoincrement())
-  assetId   Int      // Hangi dosyadan geldiğini bilmek için
-  asset     TranslatableAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  
-  key       String   // Örn: "MENU/ADVANCED_AA" (Bu anahtar benzersiz olmalı)
-  originalText String
+  id Int @id @default(autoincrement())
+
+  // 1. Bu çeviri satırı hangi ham Asset dosyasından (örn: JSON metin dosyası) türetildi?
+  // Bir Asset, birçok TranslationLine'ın kaynağı olabilir.
+  sourceAssetId Int
+  sourceAsset   Asset @relation("AssetSourceLines", fields: [sourceAssetId], references: [id], onDelete: Cascade)
+
+  key            String
+  originalText   String?
   translatedText String?
-  
-  status    TranslationStatus @default(NOT_TRANSLATED)
-  notes     String?  // Çevirmen notları
 
-  voiceRecordingUrl String? // Kaydedilen ses dosyasının yolu
+  status TranslationStatus @default(NOT_TRANSLATED)
+  notes  String?
 
-  characterId    Int?       // Bu replik hangi karaktere ait? (opsiyonel)
-  character      Character? @relation("CharacterTranslationLines", fields: [characterId], references: [id], onDelete: SetNull)
+  voiceRecordingUrl String? // Kullanıcının kaydettiği Türkçe ses dosyası
 
-  // Bu repliğin orijinal İngilizce ses dosyasının asset'i hangisi? (opsiyonel)
-  originalVoiceAssetId Int?
-  originalVoiceAsset   Asset? @relation("OriginalVoiceAsset", fields: [originalVoiceAssetId], references: [id], onDelete: SetNull)
+  // Bu satırın diyalog metni yok mu? (Sadece inleme, efekt vb.)
+  // Bu property TranslationLine'ın kendisine ait.
+  isNonDialogue Boolean @default(false)
 
-  @@unique([assetId, key]) // Bir dosyada aynı key'den iki tane olamaz
+  // 2. Bu çeviri satırı hangi karaktere ait?
+  characterId Int?
+  character   Character? @relation("CharacterLines", fields: [characterId], references: [id], onDelete: SetNull)
+
+  // 3. Bu çeviri satırı için dinlenmesi gereken orijinal ses referans Asset'i hangisi?
+  // Bir Asset, birçok TranslationLine'ın orijinal ses referansı olabilir.
+  originalVoiceReferenceAssetId Int? // İsmi daha netleştirdik.
+  originalVoiceReferenceAsset   Asset? @relation("AssetVoiceReferences", fields: [originalVoiceReferenceAssetId], references: [id], onDelete: SetNull)
+
+  @@unique([sourceAssetId, key]) // Her kaynak Asset için anahtar benzersiz olmalı
   @@map("translation_lines")
 }
 
 model Asset {
-  id        Int       @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   projectId Int
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  name      String    // Örn: "character_dialogue_chapter1.wav" veya "ui_elements.json"
-  path      String    // Sunucudaki dosya yolu, örn: "/uploads/167..._dialogue.wav"
-  type      AssetType
-  
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name String
+  path String
+  type AssetType
+
+  // YENİ YAPI: Proje bazlı ayarlar artık doğrudan Asset üzerinde olabilir.
+  // Çünkü bu Asset zaten o projeye özel.
+  isNonDialogue Boolean @default(false)
+
   uploadedById Int
-  uploader     User      @relation(fields: [uploadedById], references: [id])
-  translatableAsset  TranslatableAsset?
-  originalVoiceForLines TranslationLine[] @relation("OriginalVoiceAsset")
-  
-  createdAt    DateTime  @default(now())
-  
+  uploader     User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  sourcedTranslationLines    TranslationLine[] @relation("AssetSourceLines")
+  referencedTranslationLines TranslationLine[] @relation("AssetVoiceReferences")
+
+  // YENİ KARŞI ALAN: Bu asset hangi projeye ait?
+  // Bizim yeni mimarimizde bir asset doğrudan bir projeye ait DEĞİL.
+  // Bu nedenle bu alanı Project modelinden kaldıracağız.
+  // Ama eğer bir projeye ait olmak zorunda ise:
+  // projectId Int?
+  // project   Project? @relation(fields: [projectId], references: [id])
+  Content   Content? @relation(fields: [contentId], references: [id])
+  contentId Int?
+
   @@map("assets")
 }
-
 
 // =================================================================
 // BÖLÜM 2: KULLANICI, KİMLİK VE EKONOMİ
@@ -210,16 +215,16 @@ model User {
   wallet                  Wallet?
   skills                  UserSkill[]
   demos                   UserDemo[]
-  ownedTeams              Team[]                    @relation("TeamOwner")
+  ownedTeams              Team[]                       @relation("TeamOwner")
   teamMemberships         TeamMember[]
   assignedTasks           TaskAssignee[]
   comments                Comment[]
   interactions            Interaction[]
   userNotifications       UserNotification[]
-  sentReports             Report[]                  @relation("Reporter")
-  receivedReports         Report[]                  @relation("Reported")
-  sentInvitations         TeamInvitation[]          @relation("SentInvitations")
-  receivedInvitations     TeamInvitation[]          @relation("ReceivedInvitations")
+  sentReports             Report[]                     @relation("Reporter")
+  receivedReports         Report[]                     @relation("Reported")
+  sentInvitations         TeamInvitation[]             @relation("SentInvitations")
+  receivedInvitations     TeamInvitation[]             @relation("ReceivedInvitations")
   uploadedAssets          Asset[]
   conversationMemberships ConversationParticipant[]
   assignedVoiceActors     ProjectCharacterVoiceActor[]
@@ -295,20 +300,22 @@ model Transaction {
 }
 
 model Skill {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique // 'Seslendirme'
-  category  String   // 'SES', 'METİN', 'GÖRSEL', 'TEKNİK'
-  
-  userSkills UserSkill[]
+  id       Int    @id @default(autoincrement())
+  name     String @unique // 'Seslendirme'
+  category String // 'SES', 'METİN', 'GÖRSEL', 'TEKNİK'
+
+  userSkills       UserSkill[]
   showcasedInDemos UserDemo[]
+
   @@map("skills")
 }
 
 model DemoCategory {
-  id    Int    @id @default(autoincrement())
-  name  String @unique // 'Oyun Dublajı', 'Anime Altyazı'
-  
+  id   Int    @id @default(autoincrement())
+  name String @unique // 'Oyun Dublajı', 'Anime Altyazı'
+
   demos UserDemo[] @relation("DemoToDemoCategory")
+
   @@map("demo_categories")
 }
 
@@ -316,7 +323,7 @@ model DemoCategory {
 model UserSkill {
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   skillId Int // skillName yerine skillId kullanacağız
   skill   Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
@@ -333,13 +340,13 @@ model UserDemo {
   title       String
   description String?
   type        DemoType
-  url         String   // Şimdilik dosya yolu, sonra S3 URL'i olacak
+  url         String // Şimdilik dosya yolu, sonra S3 URL'i olacak
   createdAt   DateTime @default(now())
-  
+
   // YENİ İLİŞKİLER
   // Bu demonun hangi ana içerik için yapıldığı (opsiyonel)
-  contentId   Int?
-  content     Content?  @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  contentId Int?
+  content   Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
 
   // Bu demoda sergilenen yetenek
   showcasedSkillId Int?
@@ -347,7 +354,7 @@ model UserDemo {
 
   // Demoya ait kategoriler (çoktan çoğa)
   categories DemoCategory[] @relation("DemoToDemoCategory")
-  
+
   @@map("user_demos")
 }
 
@@ -371,9 +378,11 @@ model Team {
   createdAt       DateTime @default(now())
 
   // İlişkiler
-  members      TeamMember[]
-  projects     Project[]
-  invitations  TeamInvitation[]
+  members     TeamMember[]
+  projects    Project[]
+  invitations TeamInvitation[]
+  storages    TeamStorage[]
+  proposals   ProjectProposal[]
 
   @@map("teams")
 }
@@ -398,21 +407,58 @@ enum InvitationStatus {
 }
 
 model TeamInvitation {
-  id        Int              @id @default(autoincrement())
-  teamId    Int
-  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  
+  id     Int  @id @default(autoincrement())
+  teamId Int
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
   invitedUserId Int
-  invitedUser   User             @relation("ReceivedInvitations", fields: [invitedUserId], references: [id], onDelete: Cascade)
-  
+  invitedUser   User @relation("ReceivedInvitations", fields: [invitedUserId], references: [id], onDelete: Cascade)
+
   inviterId Int
-  inviter   User             @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  inviter   User @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
 
   status    InvitationStatus @default(PENDING)
   createdAt DateTime         @default(now())
 
   @@unique([teamId, invitedUserId]) // Bir kullanıcı bir takıma sadece bir kez davet edilebilir (beklemedeyken)
   @@map("team_invitations")
+}
+
+// YENİ MODEL: Ekiplerin depolama çözümlerini tutar.
+model TeamStorage {
+  id     Int  @id @default(autoincrement())
+  teamId Int
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  name       String // Örn: "Ana Google Drive", "Ses Dosyaları Drive'ı"
+  provider   String // "GOOGLE_DRIVE", "ONEDRIVE" vb.
+  config     Json // Erişim linki, token, klasör ID'si gibi bilgileri tutar.
+  assetTypes String // Bu depolama hangi tip asset'ler için? [AUDIO, VIDEO]
+
+  @@map("team_storages")
+}
+
+// YENİ MODEL: Bir ekibin bir content'e talip olma isteği.
+model ProjectProposal {
+  id        Int     @id @default(autoincrement())
+  teamId    Int
+  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  contentId Int
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  status  String // "PENDING", "APPROVED", "REJECTED"
+  message String? // Ekibin talebiyle ilgili notu
+
+  // Hangi asset tipi, hangi depolamaya gidecek?
+  // Örn: { "AUDIO": 1, "TEXT": 2 } (AUDIO tipi asset'ler ID=1 olan TeamStorage'a)
+  storageMapping Json
+
+  createdAt DateTime @default(now())
+
+  // Bu teklif onaylandığında hangi projeye dönüştü?
+  resultingProject Project?
+
+  @@map("project_proposals")
 }
 
 // 3.3 `Content`: Yerelleştirilecek ana içerik (Oyun, Anime vb.).
@@ -427,9 +473,11 @@ model Content {
   releaseDate   DateTime?
   metadata      Json? // Örn: { "developer": "CD Projekt Red", "publisher": "CDPR" }
   createdAt     DateTime    @default(now())
+  assets        Asset[]
 
-  projects     Project[]
-  userDemos    UserDemo[]
+  projects        Project[]
+  userDemos       UserDemo[]
+  ProjectProposal ProjectProposal[]
 
   @@map("contents")
 }
@@ -441,19 +489,20 @@ model Project {
   team      Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
   contentId Int
   content   Content       @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  name      String // Örn: "Cyberpunk 2077 - Türkçe Dublaj Projesi"
+  name      String
   status    ProjectStatus @default(RECRUITING)
   isPublic  Boolean       @default(true)
   createdAt DateTime      @default(now())
 
-  tasks        Task[]
-  packages     PackageVersion[]
-  assets       Asset[]
-  translatableAssets  TranslatableAsset[]
-  characters          Character[]
+  // YENİ İLİŞKİ: Bu proje hangi tekliften doğdu?
+  proposalId Int?             @unique
+  proposal   ProjectProposal? @relation(fields: [proposalId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
-  @@unique([teamId, contentId]) // Bir ekip, bir içeriği sadece bir kere projelendirebilir.
-  @@map("projects")
+  tasks      Task[]
+  packages   PackageVersion[]
+  characters Character[]
+  // YENİ İLİŞKİ: Bu projeye özel, bağımsız asset'ler.
+  assets     Asset[]
 }
 
 // =================================================================
@@ -500,7 +549,7 @@ model PackageVersion {
   downloadCount Int      @default(0)
   createdAt     DateTime @default(now())
 
-  bugReports   Report[]
+  bugReports Report[]
 
   @@unique([projectId, version])
   @@map("package_versions")

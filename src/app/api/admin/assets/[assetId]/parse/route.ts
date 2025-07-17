@@ -1,16 +1,15 @@
+// src/app/api/admin/assets/[assetId]/parse/route.ts
+
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { readFile } from 'fs/promises';
 import path from 'path';
-// DİKKAT: Parser'ları ve tipi doğru şekilde import ediyoruz.
 import { parsers, ParserFormat } from '@/lib/parsers';
 
-// Hata ayıklama ve tip güvenliği için parser'dan dönen verinin tipini tanımlayalım.
 type ParsedLine = { key: string, originalText: string };
 
-// "İŞLE" BUTONUNA BASILDIĞINDA ÇALIŞACAK API
 export async function POST(
     request: Request,
     { params }: { params: { assetId: string } }
@@ -23,63 +22,68 @@ export async function POST(
         const assetId = parseInt(params.assetId, 10);
         if (isNaN(assetId)) return new NextResponse('Geçersiz Asset ID', { status: 400 });
 
+        const body = await request.json();
+        // DÜZELTME: projectId'yi artık body'den alıyoruz.
+        const projectId = body.projectId as number;
+        const format = body.format as ParserFormat;
+
+        if (!projectId || !format) {
+            return new NextResponse('Eksik bilgi: projectId ve format gereklidir', { status: 400 });
+        }
+        
         const asset = await prisma.asset.findUnique({ where: { id: assetId } });
         if (!asset) return new NextResponse('Asset bulunamadı', { status: 404 });
 
+        // Bu asset için daha önce oluşturulmuş bir TranslatableAsset var mı kontrol et.
         const existingTranslatable = await prisma.translatableAsset.findUnique({ where: { assetId }});
-        if (existingTranslatable?.isProcessed) {
-            return new NextResponse('Bu dosya zaten işlenmiş.', { status: 409 });
+
+        // Body'den formatı al
+        if (!projectId) {
+            return new NextResponse('Proje ID eksik', { status: 400 });
         }
         
-        // Body'den formatı alıyoruz
-        const body = await request.json();
-        const format = body.format as ParserFormat;
-        
-        // === HATA 1'in ÇÖZÜMÜ BURADA ===
-        // Seçilen formatın `parsers` objesinde gerçekten var olup olmadığını kontrol ediyoruz.
         if (!(format in parsers)) {
             return new NextResponse('Desteklenmeyen veya geçersiz format seçildi.', { status: 400 });
         }
-        const parser = parsers[format];
-        // ================================
-
         const fullPath = path.join(process.cwd(), 'public', asset.path);
         const fileContent = await readFile(fullPath, 'utf-8');
-
-        const parsedLines: ParsedLine[] = await parser(fileContent as any); // "any" cast'ı farklı parser tipleri için esneklik sağlar
+        const parser = parsers[format];
+        const parsedLines: ParsedLine[] = await parser(fileContent as any);
 
         if (parsedLines.length === 0) {
             return new NextResponse('Dosyadan çevrilecek metin bulunamadı.', { status: 400 });
         }
         
         await prisma.$transaction(async (tx) => {
-            // Önce TranslatableAsset kaydını oluştur/bul
-            let translatableAsset = existingTranslatable;
-            if (!translatableAsset) {
-                translatableAsset = await tx.translatableAsset.create({
-                    data: { assetId: asset.id, projectId: asset.projectId }
+            const existingTranslatable = await tx.translatableAsset.findUnique({ where: { assetId }});
+
+            let translatableAssetRecord = existingTranslatable;
+            if (!translatableAssetRecord) {
+                // DÜZELTME: projectId'yi asset'ten değil, body'den gelen değişkenden alıyoruz.
+                translatableAssetRecord = await tx.translatableAsset.create({
+                    data: { assetId: asset.id, projectId: projectId }
                 });
             }
-            await tx.translationLine.deleteMany({ where: { assetId: translatableAsset.id }});
+            
+            await tx.translationLine.deleteMany({ where: { sourceAssetId: asset.id }});
 
-            // === HATA 2'nin ÇÖZÜMÜ BURADA ===
-            // `line` parametresine açıkça tipini belirtiyoruz.
-            await tx.translationLine.createMany({
-                data: parsedLines.map((line: ParsedLine) => ({
-                    assetId: translatableAsset!.id,
-                    key: line.key,
-                    originalText: line.originalText,
-                }))
-            });
-            // ================================
-
+            if (parsedLines.length > 0) {
+                 await tx.translationLine.createMany({
+                    data: parsedLines.map((line: ParsedLine) => ({
+                        sourceAssetId: asset.id,
+                        key: line.key,
+                        originalText: line.originalText,
+                    }))
+                });
+            }
+           
             await tx.translatableAsset.update({
-                where: { id: translatableAsset.id },
+                where: { id: translatableAssetRecord.id },
                 data: { isProcessed: true }
             });
         });
 
-        return NextResponse.json({ message: `${parsedLines.length} satır başarıyla veritabanına işlendi.` });
+        return NextResponse.json({ message: `${parsedLines.length} satır başarıyla işlendi.` });
 
     } catch (error) {
         console.error("[ASSET_PARSE_ERROR]", error);

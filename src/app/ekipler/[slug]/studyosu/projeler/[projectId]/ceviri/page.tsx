@@ -5,32 +5,31 @@ import { notFound } from 'next/navigation';
 import TranslationStudioClient from '@/components/projects/TranslationStudioClient';
 import { Prisma } from '@prisma/client';
 
-// Artık _count içermeyen, sadece temel alanları içeren bir tip tanımlıyoruz.
+// Bu tip tanımı doğru. Sadece veri çekerken bu tipe uyduğumuzdan emin olacağız.
 export type LineForStudio = Prisma.TranslationLineGetPayload<{
     select: {
-        id: true,
-        key: true,
-        originalText: true,
-        translatedText: true,
-        status: true,
+        id: true, sourceAssetId: true, key: true, originalText: true, translatedText: true, status: true, notes: true, voiceRecordingUrl: true, isNonDialogue: true, characterId: true, originalVoiceReferenceAssetId: true,
+        character: { select: { id: true, name: true, profileImage: true } },
+        originalVoiceReferenceAsset: { select: { id: true, name: true, path: true, type: true } },
+        sourceAsset: { select: { id: true, name: true, path: true, type: true } }
     }
 }>;
 
 async function getTranslationData(projectId: number): Promise<LineForStudio[]> {
     const allLines = await prisma.translationLine.findMany({
         where: {
-            asset: {
-                projectId: projectId,
-                isProcessed: true
-            }
+            sourceAsset: {
+                translatableAsset: { // Doğru yol
+                    projectId: projectId,
+                    isProcessed: true,
+                }
+            } 
         },
-        // Sadece temel alanları seçiyoruz, _count yok.
-        select: {
-            id: true,
-            key: true,
-            originalText: true,
-            translatedText: true,
-            status: true,
+        select: { // İstemcinin beklediği tüm alanları seç
+            id: true, sourceAssetId: true, key: true, originalText: true, translatedText: true, status: true, notes: true, voiceRecordingUrl: true, isNonDialogue: true, characterId: true, originalVoiceReferenceAssetId: true,
+            character: { select: { id: true, name: true, profileImage: true } },
+            originalVoiceReferenceAsset: { select: { id: true, name: true, path: true, type: true } },
+            sourceAsset: { select: { id: true, name: true, path: true, type: true } }
         },
         orderBy: { key: 'asc' }
     });
@@ -40,11 +39,7 @@ async function getTranslationData(projectId: number): Promise<LineForStudio[]> {
 export default async function TranslationStudioPage({ params }: { params: { projectId: string } }) {
     const projectId = parseInt(params.projectId, 10);
     if (isNaN(projectId)) return notFound();
-
-    // Yetki kontrolü (gerekirse burada yapılabilir)
-    
     const allLines = await getTranslationData(projectId);
-
     return (
         <div>
             <h1>Çeviri Stüdyosu</h1>
