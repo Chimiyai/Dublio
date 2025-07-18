@@ -93,7 +93,13 @@
                     route.ts
                     classify/
                         route.ts
+                    link-character-non-dialogue/
+                        route.ts
                     parse/
+                        route.ts
+                    undo/
+                        route.ts
+                    unlink/
                         route.ts
             auth/
                 [...nextauth]/
@@ -121,6 +127,9 @@
                 mark-as-read/
                     route.ts
                 [userId]/
+                    route.ts
+            modder-studio/
+                [projectId]/
                     route.ts
             notifications/
                 route.ts
@@ -168,7 +177,11 @@
                         route.ts
                         [commentId]/
                             route.ts
+                    ready-for-translation/
+                        route.ts
                     tasks/
+                        route.ts
+                    translation-lines/
                         route.ts
             projeler/
                 route.ts
@@ -200,10 +213,14 @@
                     storages/
                         route.ts
             translation-lines/
-                route.ts
+                delete-by-asset/
+                    [assetId]/
+                        route.ts
                 [lineId]/
                     route.ts
                     comments/
+                        route.ts
+                    link-audio/
                         route.ts
             upload/
                 route.ts
@@ -379,9 +396,11 @@
             UserProfileTabs.tsx
             VerifyEmailClientContent.tsx
         projects/
+            AssetLibraryTab.tsx
             CommentModal.tsx
             DubbingStudioClient.tsx
             FilterSidebar.tsx
+            LinkAudioModal.tsx
             ModderStudioClient.tsx
             NewProjectForm.tsx
             ProjectDetailContent.tsx
@@ -392,6 +411,8 @@
             TaskBoard.tsx
             TaskDetailModal.tsx
             TranslationStudioClient.tsx
+            TriageTab.tsx
+            WaveformPlayer.tsx
         proposals/
             ProposalForm.tsx
         shared/
@@ -416,13 +437,19 @@
         authOptions.ts
         cloudinary.ts
         prisma.ts
+        storage.ts
         utils.ts
+        hooks/
+            useAudioWaveform.ts
         parsers/
             index.ts
             unity-i2loc-parser.ts
             unreal-locres-parser.ts
+    scripts/
+        fixNonDialogueOriginalText.ts
     types/
         dubbing.ts
         hero.ts
+        modder.ts
         next-auth.d.ts
         showcase.ts

@@ -27,6 +27,7 @@ interface CharacterOption { value: number; label: string; }
 interface TriageProps {
   projectId: number;
   allCharacters: Character[];
+  onTriageComplete: () => void; // YENİ: Bu satırı ekleyin.
 }
 
 type LastAction = {
@@ -36,7 +37,7 @@ type LastAction = {
 };
 
 // === ANA SEKME KAPSAYICI (Aynı kalıyor) ===
-export const TriageTab = ({ projectId, allCharacters }: TriageProps) => {
+export const TriageTab = ({ projectId, allCharacters, onTriageComplete }: TriageProps) => {
   const [activeSubTab, setActiveSubTab] = useState<'todo' | 'completed'>('todo');
   const [refreshTrigger, setRefreshTrigger] = useState(0); 
 
@@ -48,10 +49,11 @@ export const TriageTab = ({ projectId, allCharacters }: TriageProps) => {
       </div>
       {activeSubTab === 'todo' ? (
         <TriageWorkspace 
-        key={refreshTrigger}
-        projectId={projectId} 
-        // allLines'ı artık paslamıyoruz
-        allCharacters={allCharacters} />
+          key={refreshTrigger}
+          projectId={projectId} 
+          allCharacters={allCharacters}
+          onTriageComplete={onTriageComplete} // YENİ: Prop'u buraya ekleyin.
+        />
       ) : (
         <CompletedWorkspace projectId={projectId} onUndo={() => setRefreshTrigger(p => p + 1)} />
       )}
@@ -61,7 +63,7 @@ export const TriageTab = ({ projectId, allCharacters }: TriageProps) => {
 
 
 // === ÇALIŞMA ALANI - HOOK KURALLARINA UYGUN NİHAİ VERSİYON ===
-const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
+const TriageWorkspace = ({ projectId, allCharacters, onTriageComplete }: TriageProps) => {
   // ====================================================================
   // ADIM 1: TÜM HOOK'LARI KOŞULSUZ OLARAK EN ÜSTE TAŞIYORUZ
   // ====================================================================
@@ -146,7 +148,10 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
       toast.success("Bu sayfadaki tüm sesler bitti, yenileri getiriliyor...");
       fetchAssets();
     }
-  }, [assets, fetchAssets]); // Bağımlılıkları sadeleştir
+    
+    onTriageComplete(); // YENİ: Ana bileşene haber veriyoruz!
+
+}, [assets, fetchAssets, onTriageComplete]); // YENİ: onTriageComplete'i bağımlılıklara ekleyin.
 
   // ==========================================================
   // handleClassify FONKSİYONUNUN YENİ HALİ
