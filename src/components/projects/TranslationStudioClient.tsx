@@ -18,88 +18,144 @@ type LineForStudioWithComments = LineForStudio & { commentCount: number };
 
 
 // ===================================================================
-// === BÖLÜM 1: Arayüz & Metinler Sekmesi İçin Component ===
+// === YENİ BÖLÜM 1.1: Tek Bir Çeviri Kartı Component'i ===
 // ===================================================================
-const UiTextTable = ({ lines, onOpenComments }: { lines: LineForStudioWithComments[], onOpenComments: (line: LineForStudioWithComments) => void }) => {
-    const LineRow = ({ line, onOpenComments }: { line: LineForStudioWithComments, onOpenComments: (line: LineForStudioWithComments) => void }) => {
-        const [translation, setTranslation] = useState(line.translatedText || '');
-        const [isSaving, setIsSaving] = useState(false);
-        const [currentStatus, setCurrentStatus] = useState(line.status);
+const TranslationLineCard = ({ line, onSave, onOpenComments }: { line: LineForStudioWithComments, onSave: (updatedLine: LineForStudioWithComments) => void, onOpenComments: (line: LineForStudioWithComments) => void }) => {
+    const [translation, setTranslation] = useState(line.translatedText || '');
+    const [isSaving, setIsSaving] = useState(false);
+    
+    const statusColors: { [key: string]: string } = { NOT_TRANSLATED: '#ef4444', TRANSLATED: '#f97316', REVIEWED: '#facc15', APPROVED: '#22c55e' };
 
-        const handleSave = async () => {
-            setIsSaving(true);
-            try {
-                const res = await fetch(`/api/translation-lines/${line.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ translatedText: translation })
-                });
-                if(!res.ok) throw new Error("Kaydedilemedi");
-                const updatedLine = await res.json();
-                
-                toast.success("Kaydedildi!");
-                setCurrentStatus(updatedLine.status);
-            } catch (error) {
-                toast.error("Kaydederken hata oluştu.");
-            } finally {
-                setIsSaving(false);
-            }
-        };
-
-        const statusColors: { [key: string]: string } = { NOT_TRANSLATED: 'red', TRANSLATED: 'orange', REVIEWED: 'yellow', APPROVED: 'green' };
-
-        return (
-            <tr style={{ background: '#2a2a2a' }}>
-                <td style={{ padding: '8px', border: '1px solid #444' }}><div style={{ width: '10px', height: '10px', borderRadius: '50%', background: statusColors[currentStatus] }} title={currentStatus}></div></td>
-                <td style={{ padding: '8px', border: '1px solid #444', fontFamily: 'monospace' }}>{line.key}</td>
-                <td style={{ padding: '8px', border: '1px solid #444' }}>{line.originalText}</td>
-                <td style={{ padding: '8px', border: '1px solid #444' }}>
-                    <input type="text" value={translation} onChange={e => setTranslation(e.target.value)} style={{ width: '100%', background: '#333', color: 'white', border: '1px solid #555', padding: '5px' }} />
-                </td>
-                <td style={{ padding: '8px', border: '1px solid #444', display: 'flex', gap: '5px' }}>
-    <button onClick={handleSave} disabled={isSaving}>{isSaving ? '...' : 'Kaydet'}</button>
-    <button onClick={() => onOpenComments(line)} title="Yorumlar" style={{ position: 'relative' }}>
-    <ChatBubbleBottomCenterTextIcon style={{width: 20}} />
-    {/* YENİ: Bildirim Balonu */}
-    {line.commentCount > 0 && (
-        <span style={{
-            position: 'absolute', top: '-5px', right: '-5px',
-            background: 'red', color: 'white',
-            borderRadius: '50%', width: '18px', height: '18px',
-            fontSize: '11px', display: 'flex',
-            alignItems: 'center', justifyContent: 'center'
-        }}>
-            {line.commentCount}
-        </span>
-    )}
-</button>
-</td>
-            </tr>
-        );
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const res = await fetch(`/api/translation-lines/${line.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ translatedText: translation })
+            });
+            if(!res.ok) throw new Error("Kaydedilemedi");
+            const updatedLine: LineForStudioWithComments = await res.json();
+            
+            // Yorum sayısını korumak için eski sayı ile birleştir
+            const finalUpdatedLine = { ...updatedLine, commentCount: line.commentCount };
+            
+            toast.success("Kaydedildi!");
+            onSave(finalUpdatedLine); // Değişikliği ana state'e bildir
+        } catch (error) {
+            toast.error("Kaydederken hata oluştu.");
+        } finally {
+            setIsSaving(false);
+        }
     };
-
-    if (lines.length === 0) {
-        return <p>Çevrilecek arayüz veya metin satırı bulunmuyor.</p>;
-    }
+    
+    const hasChanged = translation !== (line.translatedText || '');
 
     return (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-            <thead>
-                <tr style={{ background: '#1c1c1c' }}>
-                    <th style={{ padding: '10px', border: '1px solid #444' }}>S</th>
-                    <th style={{ padding: '10px', border: '1px solid #444' }}>Anahtar</th>
-                    <th style={{ padding: '10px', border: '1px solid #444' }}>Orijinal Metin</th>
-                    <th style={{ padding: '10px', border: '1px solid #444' }}>Çeviri</th>
-                    <th style={{ padding: '10px', border: '1px solid #444' }}>İşlem</th>
-                </tr>
-            </thead>
-            <tbody>
-                {lines.map(line => <LineRow key={line.id} line={line} onOpenComments={onOpenComments} />)}
-            </tbody>
-        </table>
+        <div style={{ background: '#2a2a2a', borderRadius: '8px', borderLeft: `4px solid ${statusColors[line.status]}`, padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Kartın Üst Kısmı: Anahtar ve Durum */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.9em', color: '#a1a1aa' }}>{line.key}</span>
+                <span style={{ fontSize: '0.8em', background: statusColors[line.status], color: 'white', padding: '2px 8px', borderRadius: '12px' }}>
+                    {line.status.replace('_', ' ')}
+                </span>
+            </div>
+            {/* Metinler */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                    <label style={{ fontSize: '0.8em', color: '#a1a1aa' }}>ORİJİNAL METİN</label>
+                    <p style={{ margin: '4px 0 0 0', background: '#1c1c1c', padding: '8px', borderRadius: '4px', minHeight: '40px' }}>{line.originalText}</p>
+                </div>
+                <div>
+                    <label style={{ fontSize: '0.8em', color: '#a1a1aa' }}>ÇEVİRİ</label>
+                    <textarea value={translation} onChange={e => setTranslation(e.target.value)} rows={2} style={{ width: '100%', background: '#333', color: 'white', border: '1px solid #555', padding: '8px', borderRadius: '4px', resize: 'vertical' }} />
+                </div>
+            </div>
+            {/* İşlemler */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button onClick={() => onOpenComments(line)} title="Yorumlar" style={{ position: 'relative', background: 'transparent', border: '1px solid #555' }}>
+                    <ChatBubbleBottomCenterTextIcon style={{width: 20}} />
+                    {line.commentCount > 0 && (
+                        <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {line.commentCount}
+                        </span>
+                    )}
+                </button>
+                <button onClick={handleSave} disabled={isSaving || !hasChanged} style={{ minWidth: '100px' }}>
+                    {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+            </div>
+        </div>
     );
 };
 
+// ===================================================================
+// === YENİ BÖLÜM 1.2: Arayüz Sekmesinin Ana Kapsayıcısı ===
+// ===================================================================
+const UiTextTabContainer = ({ initialLines, onOpenComments }: { initialLines: LineForStudioWithComments[], onOpenComments: (line: LineForStudioWithComments) => void }) => {
+    const [lines, setLines] = useState(initialLines);
+    const [activeStatus, setActiveStatus] = useState<TranslationStatus | 'ALL'>('ALL');
+    const [visibleCount, setVisibleCount] = useState(20); // Başlangıçta 20 kart göster
+
+    const statusFilters: (TranslationStatus | 'ALL')[] = ['ALL', 'NOT_TRANSLATED', 'TRANSLATED', 'REVIEWED', 'APPROVED'];
+
+    const filteredLines = useMemo(() => {
+        if (activeStatus === 'ALL') return lines;
+        return lines.filter(line => line.status === activeStatus);
+    }, [lines, activeStatus]);
+
+    const linesToDisplay = useMemo(() => {
+        return filteredLines.slice(0, visibleCount);
+    }, [filteredLines, visibleCount]);
+
+    const handleLineUpdate = (updatedLine: LineForStudioWithComments) => {
+        setLines(prevLines => prevLines.map(l => l.id === updatedLine.id ? updatedLine : l));
+    };
+
+    return (
+        <div>
+            {/* Filtreleme Sekmeleri */}
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                {statusFilters.map(status => (
+                    <button 
+                        key={status}
+                        onClick={() => setActiveStatus(status)}
+                        style={{ background: activeStatus === status ? 'purple' : '#3f3f46', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '16px', cursor: 'pointer' }}
+                    >
+                        {status.replace('_', ' ')} ({status === 'ALL' ? lines.length : lines.filter(l => l.status === status).length})
+                    </button>
+                ))}
+            </div>
+
+            {/* Çeviri Kartları */}
+            <div style={{ display: 'grid', gap: '15px' }}>
+                {linesToDisplay.map(line => (
+                    <TranslationLineCard 
+                        key={line.id} 
+                        line={line}
+                        onSave={handleLineUpdate}
+                        onOpenComments={onOpenComments} 
+                    />
+                ))}
+            </div>
+
+            {/* "Daha Fazla Yükle" Butonu */}
+            {visibleCount < filteredLines.length && (
+                <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                    <button onClick={() => setVisibleCount(prev => prev + 20)} style={{ padding: '10px 30px', fontSize: '1rem' }}>
+                        Daha Fazla Yükle ({filteredLines.length - visibleCount} tane daha)
+                    </button>
+                </div>
+            )}
+            
+            {linesToDisplay.length === 0 && (
+                <p style={{ textAlign: 'center', color: '#a1a1aa', marginTop: '40px' }}>
+                    Bu filtrede gösterilecek satır bulunmuyor.
+                </p>
+            )}
+        </div>
+    );
+};
 // ===================================================================
 // === YENİ BÖLÜM: Diyaloglar Sekmesi İçin Component'ler ===
 // ===================================================================
@@ -357,18 +413,19 @@ export default function TranslationStudioClient({ initialDialogueLines, initialU
       </div>
 
       <div>
-        {activeTab === 'dialogue' ? (
-          <DialogueTabContent 
-            allDialogueLines={initialDialogueLines} 
-            onOpenComments={handleOpenComments} 
-          />
-        ) : (
-          <UiTextTable 
-            lines={initialUiLines} 
-            onOpenComments={handleOpenComments} 
-          />
-        )}
-      </div>
+    {activeTab === 'dialogue' ? (
+      <DialogueTabContent 
+        allDialogueLines={initialDialogueLines} 
+        onOpenComments={handleOpenComments} 
+      />
+    ) : (
+      // DÜZENLEME: Yeni container component'imizi burada kullanıyoruz.
+      <UiTextTabContainer 
+        initialLines={initialUiLines} 
+        onOpenComments={handleOpenComments} 
+      />
+    )}
+</div>
 
       {commentingLine && (
         <CommentModal 

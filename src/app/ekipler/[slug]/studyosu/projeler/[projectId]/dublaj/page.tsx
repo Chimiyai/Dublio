@@ -1,5 +1,4 @@
 // src/app/ekipler/[slug]/studyosu/projeler/[projectId]/dublaj/page.tsx
-
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
@@ -7,42 +6,83 @@ import { authOptions } from '@/lib/authOptions';
 import { TranslationStatus, Prisma } from '@prisma/client';
 import DubbingStudioClient from '@/components/projects/DubbingStudioClient';
 
-// === YENİ TİP TANIMI ===
-// Dublaj stüdyosunun ihtiyacı olan tam veri yapısını burada tanımlıyoruz.
-export type LineForDubbing = Prisma.TranslationLineGetPayload<{
-    include: {
-        character: { select: { id: true, name: true, profileImage: true } },
-        originalVoiceReferenceAsset: { select: { id: true, name: true, path: true } }
-    }
-}>;
+// ==========================================================
+// === BÖLÜM 1: DOĞRU TİP TANIMI ===
+// ==========================================================
+// "select" kullanarak verinin tam ve doğru şeklini tanımlıyoruz.
+// Yorum sayısını döndüren yardımcı fonksiyon
+async function getCommentCountForLine(lineId: number) {
+    return prisma.comment.count({
+        where: {
+            targetType: 'TRANSLATION_LINE',
+            targetId: lineId
+        }
+    });
+}
 
-// === YENİ VERİ ÇEKME FONKSİYONU ===
-async function getLinesForDubbing(projectId: number, userId: number): Promise<LineForDubbing[]> {
-  return prisma.translationLine.findMany({
+export type LineForDubbingWithDetails = Prisma.TranslationLineGetPayload<{
+    select: {
+        id: true,
+        key: true,
+        translatedText: true,
+        voiceRecordingUrl: true,
+        isNonDialogue: true,
+        status: true,
+        character: { 
+            select: { id: true, name: true, profileImage: true } 
+        },
+        originalVoiceReferenceAsset: { 
+            select: { id: true, name: true, path: true } 
+        }
+    }
+}> & { commentCount: number };
+
+// ==========================================================
+// === BÖLÜM 2: DOĞRU VERİ ÇEKME FONKSİYONU ===
+// ==========================================================
+async function getLinesForDubbing(projectId: number, userId: number): Promise<LineForDubbingWithDetails[]> {
+  const lines = await prisma.translationLine.findMany({
     where: {
-      // 1. Satır, bu projeye ait bir asset'ten gelmeli
       sourceAsset: {
         projectId: projectId
       },
-      // 2. Satır, bu kullanıcıya (seslendirmen) atanmış bir karaktere ait olmalı
       character: {
         voiceActors: {
           some: { voiceActorId: userId }
         }
       },
-      // 3. Ya "onaylanmış" olmalı YA DA "diyalog dışı" olmalı
       OR: [
         { status: TranslationStatus.APPROVED },
         { isNonDialogue: true }
       ]
     },
-    include: {
+    select: {
+        id: true,
+        key: true,
+        translatedText: true,
+        voiceRecordingUrl: true,
+        isNonDialogue: true,
+        status: true,
         character: { select: { id: true, name: true, profileImage: true } },
         originalVoiceReferenceAsset: { select: { id: true, name: true, path: true } }
     },
     orderBy: { key: 'asc' }
   });
+  
+  // Her satıra commentCount ekle
+  const linesWithCommentCount = await Promise.all(
+    lines.map(async line => ({
+      ...line,
+      commentCount: await getCommentCountForLine(line.id)
+    }))
+  );
+  
+  return linesWithCommentCount;
 }
+
+// ==========================================================
+// === BÖLÜM 3: SAYFA COMPONENT'İ (DEĞİŞİKLİK YOK) ===
+// ==========================================================
 
 export default async function DubbingStudioPage({ params }: { params: { projectId: string } }) {
     const projectId = parseInt(params.projectId, 10);
@@ -52,7 +92,6 @@ export default async function DubbingStudioPage({ params }: { params: { projectI
     if (!session?.user?.id) return notFound();
     const userId = parseInt(session.user.id);
     
-    // Yetki kontrolü (bu zaten doğru)
     const isMember = await prisma.teamMember.findFirst({
         where: {
             user: { id: userId },
@@ -69,7 +108,7 @@ export default async function DubbingStudioPage({ params }: { params: { projectI
       );
     }
 
-    const linesForDubbing = await getLinesForDubbing(projectId, userId);
+    const linesWithDetails = await getLinesForDubbing(projectId, userId);
 
     return (
         <div>
@@ -79,8 +118,8 @@ export default async function DubbingStudioPage({ params }: { params: { projectI
             </p>
             <hr style={{margin: '20px 0'}} />
 
-            {linesForDubbing.length > 0 ? (
-                <DubbingStudioClient lines={linesForDubbing} />
+            {linesWithDetails.length > 0 ? (
+                <DubbingStudioClient lines={linesWithDetails} />
             ) : (
                 <p>Size atanmış ve seslendirme için hazır bir replik bulunmuyor.</p>
             )}

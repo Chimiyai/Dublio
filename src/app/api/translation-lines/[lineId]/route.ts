@@ -8,15 +8,16 @@ import { TranslationStatus } from '@prisma/client';
 // Bu dosyaya bir PUT fonksiyonu ekliyoruz.
 export async function PUT(
   request: Request,
-  { params }: { params: { lineId: string } }
+  context: { params: { lineId: string } } // İmza context olarak değiştirildi
 ) {
+  const params = await context.params; // <<< YENİ: params burada bekleniyor
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return new NextResponse('Yetkisiz', { status: 401 });
     }
 
-    const lineId = parseInt(params.lineId, 10);
+    const lineId = parseInt(params.lineId, 10); // <<< ARTIK DOĞRU
     const body = await request.json();
     const { translatedText } = body;
 
@@ -56,9 +57,7 @@ export async function PUT(
     const updatedLine = await prisma.translationLine.update({
       where: { id: lineId },
       data: {
-        translatedText: translatedText,
-        // Mantık: Eğer çeviri metni varsa durumu "Çevrildi" yap, yoksa "Çevrilmedi" olarak kalsın.
-        // Bu, çeviriyi silme durumunu da yönetir.
+        translatedText: translatedText, // Virgül ve süslü parantez kaldırıldı
         status: translatedText ? TranslationStatus.TRANSLATED : TranslationStatus.NOT_TRANSLATED,
       },
     });
