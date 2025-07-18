@@ -16,17 +16,31 @@ export type LineForStudio = Prisma.TranslationLineGetPayload<{
 }>;
 
 async function getTranslationData(projectId: number): Promise<LineForStudio[]> {
+    // 1. Sorgunun sonucunu 'allLines' adında bir değişkene ata.
     const allLines = await prisma.translationLine.findMany({
         where: {
             sourceAsset: {
-                translatableAsset: { // Doğru yol
-                    projectId: projectId,
-                    isProcessed: true,
-                }
-            } 
+                projectId: projectId
+            },
+            characterId: {
+                not: null
+            },
+            originalVoiceReferenceAssetId: {
+                not: null
+            }
         },
-        select: { // İstemcinin beklediği tüm alanları seç
-            id: true, sourceAssetId: true, key: true, originalText: true, translatedText: true, status: true, notes: true, voiceRecordingUrl: true, isNonDialogue: true, characterId: true, originalVoiceReferenceAssetId: true,
+        select: {
+            id: true,
+            sourceAssetId: true,
+            key: true,
+            originalText: true,
+            translatedText: true,
+            status: true,
+            notes: true,
+            voiceRecordingUrl: true,
+            isNonDialogue: true,
+            characterId: true,
+            originalVoiceReferenceAssetId: true,
             character: { select: { id: true, name: true, profileImage: true } },
             originalVoiceReferenceAsset: { select: { id: true, name: true, path: true, type: true } },
             sourceAsset: { select: { id: true, name: true, path: true, type: true } }
@@ -36,15 +50,20 @@ async function getTranslationData(projectId: number): Promise<LineForStudio[]> {
     return allLines;
 }
 
+
 export default async function TranslationStudioPage({ params }: { params: { projectId: string } }) {
     const projectId = parseInt(params.projectId, 10);
     if (isNaN(projectId)) return notFound();
-    const allLines = await getTranslationData(projectId);
+    
+    // Değişken adını daha net hale getirelim ki karışıklık olmasın.
+    const linesForStudio = await getTranslationData(projectId);
+    
     return (
         <div>
             <h1>Çeviri Stüdyosu</h1>
             <p>Projedeki tüm çevrilebilir metin satırları aşağıdadır.</p>
-            <TranslationStudioClient initialLines={allLines} />
+            {/* Component'e doğru değişkeni verdiğimizden emin oluyoruz. */}
+            <TranslationStudioClient initialLines={linesForStudio} />
         </div>
     );
 }

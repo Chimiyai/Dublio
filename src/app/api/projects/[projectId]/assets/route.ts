@@ -40,25 +40,37 @@ export async function GET(
             },
             take: limit,
             skip: (page - 1) * limit,
-            orderBy: { createdAt: 'desc' },
+            orderBy: { id: 'asc' }, // Triyaj için en eskiden en yeniye sıralamak daha mantıklı
         };
 
-        if (classificationParam === 'ALL_BUT_UNCLASSIFIED') {
+        // ==========================================================
+        // === DÜZELTME BURADA ===
+        // ==========================================================
+        if (classificationParam === 'UNCLASSIFIED') {
+            // TriageWorkspace'in istediği koşul
+            queryArgs.where!.classification = AssetClassification.UNCLASSIFIED;
+            // YENİ EKLENTİ: Ve tipi mutlaka AUDIO olmalı
+            queryArgs.where!.type = AssetType.AUDIO;
+        }
+        else if (classificationParam === 'ALL_BUT_UNCLASSIFIED') {
+            // CompletedWorkspace'in istediği koşul
             queryArgs.where!.classification = {
                 not: AssetClassification.UNCLASSIFIED
             };
-            // YENİ VE KRİTİK KISIM: İlgili çeviri satırını da veriye dahil et
+            queryArgs.orderBy = { createdAt: 'desc' }; // Tamamlananları en yeniden eskiye sırala
             queryArgs.include = {
                 referencedTranslationLines: {
                     select: {
                         originalText: true,
-                        character: { // Karakter adını da alalım, bonus!
+                        character: {
                             select: { name: true }
                         }
                     }
                 }
             };
-        } else if (typeParam && Object.values(AssetType).includes(typeParam as AssetType)) {
+        } 
+        else if (typeParam && Object.values(AssetType).includes(typeParam as AssetType)) {
+            // AssetLibraryTab'in istediği koşul
             queryArgs.where!.type = typeParam as AssetType;
         }
 

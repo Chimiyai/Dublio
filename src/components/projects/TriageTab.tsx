@@ -117,23 +117,32 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
     setIsTitleExpanded(false);
   }, [currentAsset]);
 
-  const advanceToNext = useCallback(() => {
+  const advanceToNext = useCallback((processedAssetId: number) => {
+    // Arayüzü temizle
     setStatus('CLASSIFYING');
     setSearchTerm('');
     setSelectedCharacterId(null);
     setHighlightedLineIndex(0);
 
-    if (currentIndex < assets.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
+    // İşlenen asset'i listeden çıkararak state'i GÜVENLİ bir şekilde güncelle
+    const newAssets = assets.filter(asset => asset.id !== processedAssetId);
+    setAssets(newAssets);
+
+    // Eğer yeni liste boşaldıysa, sunucudan yenilerini çek
+    if (newAssets.length === 0) {
       toast.success("Bu sayfadaki tüm sesler bitti, yenileri getiriliyor...");
       fetchAssets();
     }
-    // Artık audioRef'e ihtiyacımız olmadığı için bağımlılıklardan da kaldırabiliriz.
-  }, [currentIndex, assets.length, fetchAssets]);
+  }, [assets, fetchAssets]); // Bağımlılıkları sadeleştir
 
+  // ==========================================================
+  // handleClassify FONKSİYONUNUN YENİ HALİ
+  // ==========================================================
   const handleClassify = useCallback(async (classification: AssetClassification) => {
     if (!currentAsset) return;
+
+    const assetToProcess = currentAsset; // İşlem yapılacak asset'i bir değişkene kaydet
+
     const undoFunction = async () => {
       await fetch(`/api/assets/${currentAsset.id}/classify`, {
         method: 'POST',
@@ -141,35 +150,45 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
         body: JSON.stringify({ classification: AssetClassification.UNCLASSIFIED }),
       });
     };
-    setLastAction(() => undoFunction);
-    setPreviousAsset(currentAsset);
+    
     const toastId = toast.loading("Sınıflandırılıyor...");
     try {
-      const res = await fetch(`/api/assets/${currentAsset.id}/classify`, {
+      const res = await fetch(`/api/assets/${assetToProcess.id}/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ classification }),
       });
       if (!res.ok) throw new Error("Sınıflandırma başarısız.");
+      
       toast.success("Ortam sesi olarak işaretlendi.", { id: toastId });
-      advanceToNext();
+
+      // İŞLEM BAŞARILI OLDUĞUNDA:
+      // 1. Geri alma bilgilerini kaydet
+      setLastAction(() => undoFunction);
+      setPreviousAsset(assetToProcess);
+      
+      // 2. Merkezi state güncelleme fonksiyonunu çağır
+      advanceToNext(assetToProcess.id);
+
     } catch (error: any) {
       toast.error(error.message, { id: toastId });
     }
-  }, [currentAsset, advanceToNext]);
+  }, [currentAsset, advanceToNext]); // Bağımlılıkları sadeleştir
 
+
+  // ==========================================================
+  // handleLink FONKSİYONUNUN YENİ HALİ
+  // ==========================================================
   const handleLink = useCallback(async (line: TranslationLine) => {
     if (!selectedCharacterId || !currentAsset) return;
+
+    const assetToProcess = currentAsset; // İşlem yapılacak asset'i bir değişkene kaydet
+
     const undoFunction = async () => {
-      await fetch(`/api/assets/${currentAsset.id}/classify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classification: AssetClassification.UNCLASSIFIED }),
-      });
+      // Hem classify'ı geri alır hem de link'i koparır
       await fetch(`/api/assets/${currentAsset.id}/unlink`, { method: 'POST' });
     };
-    setLastAction(() => undoFunction);
-    setPreviousAsset(currentAsset);
+
     const toastId = toast.loading("Eşleştiriliyor...");
     try {
       const res = await fetch(`/api/translation-lines/${line.id}/link-audio`, {
@@ -178,42 +197,70 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
         body: JSON.stringify({ assetId: currentAsset.id, characterId: selectedCharacterId }),
       });
       if (!res.ok) throw new Error("Eşleştirme başarısız.");
+      
       toast.success("Başarıyla eşleştirildi.", { id: toastId });
-      advanceToNext();
+
+      // İŞLEM BAŞARILI OLDUĞUNDA:
+      // 1. Geri alma bilgilerini kaydet
+      setLastAction(() => undoFunction);
+      setPreviousAsset(assetToProcess);
+
+      // 2. Merkezi state güncelleme fonksiyonunu çağır
+      advanceToNext(assetToProcess.id);
+
     } catch (error: any) {
       toast.error(error.message, { id: toastId });
     }
-  }, [selectedCharacterId, currentAsset, advanceToNext]);
+  }, [selectedCharacterId, currentAsset, advanceToNext]); // Bağımlılıkları sadeleştir
 
   const handleConfirmLink = useCallback(() => {
+    if (!currentAsset) return;
+
+    // Durum 1: Arama kutusu BOŞ
     if (!searchTerm.trim()) {
-      if (!currentAsset) return;
-      const toastId = toast(
-        (t) => (
-          <span style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-            <span>...emin misiniz?</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { toast.dismiss(t.id); setActiveToastId(null); }}>İptal</button>
-              <button onClick={() => { 
-                handleClassify(AssetClassification.NON_DIALOGUE_VOCAL); 
-                toast.dismiss(t.id); 
-                setActiveToastId(null); 
-              }}>
-                Evet, Onayla
-              </button>
-            </div>
-          </span>
-        ), { duration: 10000 }
-      );
-      setActiveToastId(toastId);
-      return;
+        // Durum 1a: Karakter SEÇİLMEMİŞ -> Bu basit bir ortam sesidir.
+        if (!selectedCharacterId) {
+            toast.error("Lütfen bir metin arayın veya bu sesin bir karaktere ait olmayan bir efekt olduğunu belirtmek için 'Ortam Sesi' butonunu kullanın.");
+            return;
+        }
+
+        // Durum 1b: Karakter SEÇİLMİŞ -> Bu, o karaktere ait diyalogsuz bir vokaldir (inleme vb.)
+        const toastId = toast.loading(`${selectedCharacterId} ID'li karaktere diyalogsuz vokal olarak atanıyor...`);
+        fetch(`/api/assets/${currentAsset.id}/link-character-non-dialogue`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ characterId: selectedCharacterId })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Atama başarısız.");
+            return res.json();
+        })
+        .then(() => {
+            toast.success("Karaktere özel efekt olarak atandı.", { id: toastId });
+            
+            // DÜZELTME: Geri alma bilgilerini burada da kaydediyoruz
+            // (Bu mantığı eklemek tutarlılık için önemlidir)
+            const undoFunction = async () => {
+                await fetch(`/api/assets/${currentAsset.id}/unlink`, { method: 'POST' });
+            };
+            setLastAction(() => undoFunction);
+            setPreviousAsset(currentAsset);
+
+            // DÜZELTME: advanceToNext'i doğru argümanla çağırıyoruz
+            advanceToNext(currentAsset.id);
+        })
+        .catch(err => toast.error(err.message, { id: toastId }));
+
+        return;
     }
+
+    // Durum 2: Arama kutusu DOLU -> Bu, metinli bir diyalogdur.
     if (filteredLines[highlightedLineIndex]) {
-      handleLink(filteredLines[highlightedLineIndex]);
+        handleLink(filteredLines[highlightedLineIndex]);
     } else {
-      toast.error("Lütfen listeden geçerli bir metin seçin.");
+        toast.error("Lütfen listeden geçerli bir metin seçin.");
     }
-  }, [searchTerm, currentAsset, filteredLines, highlightedLineIndex, handleClassify, handleLink]);
+  }, [currentAsset, searchTerm, selectedCharacterId, filteredLines, highlightedLineIndex, assets, currentIndex, handleLink, advanceToNext, fetchAssets]);
 
   const handleUndoLastAction = useCallback(async () => {
     if (!lastAction || !previousAsset) {
