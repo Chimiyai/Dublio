@@ -14,8 +14,9 @@ const classifySchema = z.object({
 
 export async function POST(
     request: Request,
-    { params }: { params: { assetId: string } }
+    context: { params: { assetId: string } }
 ) {
+    const params = await context.params;
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user?.id) {

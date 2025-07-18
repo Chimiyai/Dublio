@@ -7,8 +7,9 @@ import { projectForModderQuery } from '@/types/modder';
 
 export async function GET(
     request: Request,
-    { params }: { params: { projectId: string } }
+    context: { params: { projectId: string } }
 ) {
+    const params = await context.params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return new NextResponse('Yetkisiz', { status: 401 });

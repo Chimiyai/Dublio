@@ -6,6 +6,11 @@ import { authOptions } from '@/lib/authOptions';
 import Link from 'next/link';
 import { ReactNode } from 'react';
 
+interface TeamStudioLayoutProps {
+  children: ReactNode;
+  params: { slug: string; projectId?: string };
+}
+
 // Bu fonksiyonu layout'a taşıyoruz, çünkü tüm alt sayfalarda bu veriye ihtiyacımız olacak.
 async function getTeamForLayout(slug: string, userId: number) {
     const team = await prisma.team.findUnique({
@@ -24,16 +29,9 @@ async function getTeamForLayout(slug: string, userId: number) {
     return team;
 }
 
-export default async function TeamStudioLayout({
-    children,
-    params
-}: {
-    children: ReactNode;
-    // DÜZELTME: params'ın projectId'yi de içerebileceğini belirtiyoruz.
-    // Proje detay sayfalarında bu parametre dolu olacak.
-    params: { slug: string; projectId?: string }; 
-}) {
-    const { slug, projectId } = params; // slug ve projectId'yi alıyoruz
+export default async function TeamStudioLayout({ children, params }: TeamStudioLayoutProps) {
+    const awaitedParams = await params;
+    const { slug, projectId } = awaitedParams;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return notFound();
 

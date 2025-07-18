@@ -4,11 +4,6 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { AssetClassification } from '@prisma/client';
-import { z } from 'zod';
-
-const linkCharacterSchema = z.object({
-  characterId: z.number(),
-});
 
 export async function POST(
     request: Request,
@@ -22,53 +17,52 @@ export async function POST(
     try {
         const assetId = parseInt(params.assetId, 10);
         const body = await request.json();
-        const validation = linkCharacterSchema.safeParse(body);
+        const { characterId } = body;
 
-        if (!validation.success) {
-            return NextResponse.json({ message: "Geçersiz veri: characterId gerekli." }, { status: 400 });
+        if (!characterId) {
+            return NextResponse.json({ message: 'Karakter ID gerekli.' }, { status: 400 });
         }
-        const { characterId } = validation.data;
-        
-        // TODO: Yetki kontrolü (kullanıcının bu asset'in projesinde olduğundan emin ol)
 
+        // İşlemleri tek bir transaction'da yapalım ki tutarlı olsun
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Asset'i "NON_DIALOGUE_VOCAL" olarak sınıflandır.
+            // 1. Önce bu sese bağlı eski bir diyalogsuz satır var mı diye kontrol et ve sil.
+            // Bu, "Geri Al" işlemi başarısız olsa bile sistemi temizler.
+            await tx.translationLine.deleteMany({
+                where: {
+                    originalVoiceReferenceAssetId: assetId,
+                    isNonDialogue: true,
+                }
+            });
+
+            // 2. YENİ bir TranslationLine oluştur
+            const newLine = await tx.translationLine.create({
+                data: {
+                    // Bu satırın bir metin dosyasından gelmediğini belirtmek için
+                    // sourceAssetId'yi assetId'nin kendisine bağlıyoruz.
+                    // Ya da projedeki "dummy" bir text asset'ine bağlanabilir.
+                    // Şimdilik en basit çözüm:
+                    sourceAsset: { connect: { id: assetId } },
+                    key: `non_dialogue_${assetId}_${characterId}`, // Benzersiz bir key
+                    isNonDialogue: true,
+                    status: 'APPROVED', // Direkt onaylı olsun
+                    character: { connect: { id: characterId } },
+                    originalVoiceReferenceAsset: { connect: { id: assetId } },
+                }
+            });
+
+            // 3. Asset'in kendisini de NON_DIALOGUE_VOCAL olarak sınıflandır
             await tx.asset.update({
                 where: { id: assetId },
                 data: { classification: AssetClassification.NON_DIALOGUE_VOCAL },
             });
 
-            // 2. Bu asset için "referans" oluşturan, diyalogsuz bir TranslationLine yarat.
-            // Bu, sistemin tutarlılığı için en önemli adımdır.
-            const newLine = await tx.translationLine.create({
-                data: {
-                    // Bu satırın kaynağı da bu asset'in kendisidir.
-                    sourceAssetId: assetId, 
-                    // Benzersiz bir key oluşturuyoruz.
-                    key: `non_dialogue_${assetId}`, 
-                    // Bu bir diyalog değil.
-                    isNonDialogue: true, 
-                    // Karakteri bağlıyoruz.
-                    characterId: characterId, 
-                    // Bu satırın orijinal ses referansı, asset'in kendisidir.
-                    originalVoiceReferenceAssetId: assetId, 
-                    // Bu tür satırlar direkt onaylı olabilir, çeviri gerektirmez.
-                    status: 'APPROVED', 
-                },
-            });
-
             return newLine;
         });
 
-        return NextResponse.json(result);
+        return NextResponse.json(result, { status: 201 });
 
-    } catch (error: any) {
-        console.error("[LINK_CHAR_NON_DIALOGUE_ERROR]", error);
-        // Eğer aynı key ile oluşturmaya çalışırsak (örn. butona 2. kez basılırsa)
-        // Prisma P2002 hatası verir. Bunu yakalayalım.
-        if (error.code === 'P2002') {
-            return new NextResponse('Bu ses dosyası için zaten bir atama yapılmış.', { status: 409 });
-        }
-        return new NextResponse('Sunucu hatası', { status: 500 });
+    } catch (error) {
+        console.error("[LINK_NON_DIALOGUE_ERROR]", error);
+        return new NextResponse("Sunucu Hatası", { status: 500 });
     }
 }

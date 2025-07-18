@@ -4,17 +4,15 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 
-export async function GET(
-    request: Request,
-    { params }: { params: { projectId: string } }
-) {
+export async function GET(request: Request, context: { params: { projectId: string } }) {
+    const params = await context.params;
+    const { projectId: projectIdStr } = params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return new NextResponse('Yetkisiz', { status: 401 });
     }
 
     try {
-        const { projectId: projectIdStr } = params;
         const projectId = parseInt(projectIdStr, 10);
 
         // TODO: Kullanıcının bu projeye erişim yetkisi olup olmadığını kontrol et.

@@ -3,13 +3,9 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { toast } from 'react-hot-toast';
-import { useParams } from 'next/navigation'; 
-// YENİ: Tipi ortak dosyadan import ediyoruz
 import { type ProjectForModderStudio } from '@/types/modder'; 
 import { TriageTab } from './TriageTab';
 import Select, { type MultiValue } from 'react-select';
-// YENİ: Eksik olan Prisma tiplerini import ediyoruz
-import { Character, TeamMember } from '@prisma/client';
 import { AssetLibraryTab } from './AssetLibraryTab';
 
 interface SelectOption {
@@ -165,27 +161,24 @@ interface ModderStudioClientProps {
 }
 
 export default function ModderStudioClient({ projectId }: ModderStudioClientProps) {
-
     const [activeTab, setActiveTab] = useState<'triage' | 'characters' | 'library'>('triage');
-    const [project, setProject] = useState<ProjectForModderStudio | null>(null); // DÜZELTME: null ile başlatıyoruz.
-    const [triageRefreshKey, setTriageRefreshKey] = useState(0);
+    const [project, setProject] = useState<ProjectForModderStudio | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [triageRefreshKey, setTriageRefreshKey] = useState(0);
 
-    // Bu useEffect artık sadece URL'den gelen projectId değiştiğinde çalışır.
-    // Bu, en sağlam yöntemdir.
     useEffect(() => {
-        // Eğer projectId geçerli bir sayı değilse, işlemi durdur.
-        if (isNaN(projectId)) {
-            setError("Geçersiz Proje ID'si.");
-            setIsLoading(false);
-            return;
-        }
-
+        // Fonksiyonu SADECE BİR KEZ tanımlıyoruz.
         const fetchProjectData = async () => {
             setIsLoading(true);
             setError(null);
             try {
+                // projectId kontrolünü try bloğunun dışına taşıyabiliriz,
+                // ama burada kalması da sorun değil.
+                if (isNaN(projectId)) {
+                    throw new Error("Geçersiz Proje ID'si.");
+                }
+
                 const res = await fetch(`/api/modder-studio/${projectId}`);
                 if (!res.ok) {
                     const errorData = await res.json();
@@ -195,14 +188,14 @@ export default function ModderStudioClient({ projectId }: ModderStudioClientProp
                 setProject(data);
             } catch (err: any) {
                 setError(err.message);
-                toast.error(err.message);
+                // toast.error(err.message); // Hata mesajını iki kez göstermemek için bunu kaldırabiliriz.
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchProjectData();
-    }, [projectId]); // Bağımlılık dizisi artık %100 güvenilir.
+    }, [projectId]);
 
     if (isLoading) return <div>Modder Stüdyosu yükleniyor...</div>;
     if (error) return <div>Hata: {error}</div>;
@@ -224,15 +217,9 @@ export default function ModderStudioClient({ projectId }: ModderStudioClientProp
     const renderActiveTab = () => {
         switch (activeTab) {
             case 'triage':
-                return (
-                  <TriageTab 
-                    key={triageRefreshKey} // KEY'İ BURADA KULLANIYORUZ
-                    projectId={project.id} 
-                    allCharacters={project.characters} 
-                  />
-                );
+                return <TriageTab key={triageRefreshKey} projectId={project.id} allCharacters={project.characters} />;
             case 'characters':
-                return <CharacterManagerTab project={project} onProjectUpdate={handleProjectUpdate} />;
+                return <CharacterManagerTab project={project} onProjectUpdate={setProject} />;
             case 'library':
                 return <AssetLibraryTab projectId={project.id} onParseSuccess={handleParseSuccess} />;
             default:

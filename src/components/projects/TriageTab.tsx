@@ -12,7 +12,9 @@ import { useAudioWaveform } from '@/lib/hooks/useAudioWaveform';
 // API'den gelen yeni, zenginleştirilmiş Asset tipini tanımlıyoruz
 type CompletedAsset = Asset & {
   referencedTranslationLines: {
+    id: number;
     originalText: string | null;
+    isNonDialogue: boolean;
     character: {
       name: string;
     } | null;
@@ -26,6 +28,12 @@ interface TriageProps {
   projectId: number;
   allCharacters: Character[];
 }
+
+type LastAction = {
+  type: 'CLASSIFY_AMBIANCE' | 'CLASSIFY_NON_DIALOGUE' | 'LINK_DIALOGUE';
+  assetId: number;
+  linkedLineId?: number; 
+};
 
 // === ANA SEKME KAPSAYICI (Aynı kalıyor) ===
 export const TriageTab = ({ projectId, allCharacters }: TriageProps) => {
@@ -63,8 +71,11 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState<TriageStatus>('CLASSIFYING');
-  const [lastAction, setLastAction] = useState<(() => Promise<void>) | null>(null);
+  
+  // DÜZELTME: Bu iki state'in tipi ve başlangıç değeri güncellendi
+  const [lastAction, setLastAction] = useState<LastAction | null>(null);
   const [previousAsset, setPreviousAsset] = useState<Asset | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCharacterId, setSelectedCharacterId] = useState<number | null>(null);
   const [highlightedLineIndex, setHighlightedLineIndex] = useState(0);
@@ -77,16 +88,18 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
   const fetchAssets = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/assets?classification=UNCLASSIFIED&limit=10`);
-      if (!res.ok) throw new Error("Ses dosyaları getirilemedi.");
-      const data = await res.json();
-      setAssets(data.assets || []);
-      setCurrentIndex(0);
+        // NİHAİ DÜZELTME: Bu isteğin asla önbellekten gelmemesini sağlıyoruz.
+        const res = await fetch(`/api/projects/${projectId}/assets?classification=UNCLASSIFIED&limit=10`, { cache: 'no-store' });
+        
+        if (!res.ok) throw new Error("Ses dosyaları getirilemedi.");
+        const data = await res.json();
+        setAssets(data.assets || []);
+        setCurrentIndex(0); // Her zaman en baştan başla
     } catch (error: any) {
-      toast.error(error.message);
-      setAssets([]);
+        toast.error(error.message);
+        setAssets([]);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   }, [projectId]);
   
@@ -102,15 +115,15 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
   useEffect(() => { fetchAssets(); }, [fetchAssets]);
   const currentAsset = assets[currentIndex];
 
-  const { 
-    waveform, 
-    progress, 
-    isLoading: isWaveformLoading, 
-    error: waveformError, 
-    isPlaying, 
-    playPause, 
-    seekTo 
-  } = useAudioWaveform(currentAsset?.path || null);
+  const { waveform, progress, isLoading: isWaveformLoading, error: waveformError, isPlaying, playPause, seekTo, loadAudio } = useAudioWaveform();
+
+  // YENİ useEffect: currentAsset değiştiğinde, sesi YÜKLE
+  useEffect(() => {
+    // Ses dosyasını yükleyen effect
+    if (currentAsset?.path) {
+      loadAudio(currentAsset.path);
+    }
+  }, [currentAsset, loadAudio]);
 
   // YENİ useEffect: Asset değiştiğinde başlığı daralt.
   useEffect(() => {
@@ -162,14 +175,12 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
       
       toast.success("Ortam sesi olarak işaretlendi.", { id: toastId });
 
-      // İŞLEM BAŞARILI OLDUĞUNDA:
-      // 1. Geri alma bilgilerini kaydet
-      setLastAction(() => undoFunction);
-      setPreviousAsset(assetToProcess);
-      
-      // 2. Merkezi state güncelleme fonksiyonunu çağır
-      advanceToNext(assetToProcess.id);
-
+      setLastAction({
+          type: classification === AssetClassification.AMBIANCE ? 'CLASSIFY_AMBIANCE' : 'CLASSIFY_NON_DIALOGUE',
+          assetId: assetToProcess.id,
+        });
+        setPreviousAsset(assetToProcess);
+        advanceToNext(assetToProcess.id);
     } catch (error: any) {
       toast.error(error.message, { id: toastId });
     }
@@ -200,14 +211,13 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
       
       toast.success("Başarıyla eşleştirildi.", { id: toastId });
 
-      // İŞLEM BAŞARILI OLDUĞUNDA:
-      // 1. Geri alma bilgilerini kaydet
-      setLastAction(() => undoFunction);
-      setPreviousAsset(assetToProcess);
-
-      // 2. Merkezi state güncelleme fonksiyonunu çağır
-      advanceToNext(assetToProcess.id);
-
+      setLastAction({
+          type: 'LINK_DIALOGUE',
+          assetId: assetToProcess.id,
+          linkedLineId: line.id,
+        });
+        setPreviousAsset(assetToProcess);
+        advanceToNext(assetToProcess.id);
     } catch (error: any) {
       toast.error(error.message, { id: toastId });
     }
@@ -243,13 +253,17 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
             const undoFunction = async () => {
                 await fetch(`/api/assets/${currentAsset.id}/unlink`, { method: 'POST' });
             };
-            setLastAction(() => undoFunction);
-            setPreviousAsset(currentAsset);
-
-            // DÜZELTME: advanceToNext'i doğru argümanla çağırıyoruz
-            advanceToNext(currentAsset.id);
-        })
-        .catch(err => toast.error(err.message, { id: toastId }));
+            setLastAction({
+            type: 'CLASSIFY_NON_DIALOGUE', // Bu bir diyalogsuz atama
+            assetId: currentAsset.id
+        });
+        setPreviousAsset(currentAsset);
+        advanceToNext(currentAsset.id);
+    })
+        .catch(err => {
+            // API'den gelen daha anlamlı hata mesajını göster
+            toast.error(err.message || "Atama sırasında bir hata oluştu.", { id: toastId });
+        });
 
         return;
     }
@@ -263,22 +277,61 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
   }, [currentAsset, searchTerm, selectedCharacterId, filteredLines, highlightedLineIndex, assets, currentIndex, handleLink, advanceToNext, fetchAssets]);
 
   const handleUndoLastAction = useCallback(async () => {
-    if (!lastAction || !previousAsset) {
+    if (!lastAction) {
       toast.error("Geri alınacak bir işlem yok.");
       return;
     }
+
     const toastId = toast.loading("Son işlem geri alınıyor...");
     try {
-      await lastAction();
-      setAssets(prev => [previousAsset, ...prev.filter(a => a.id !== previousAsset.id)]);
-      setCurrentIndex(0);
+      // 1. Her durumda, asset'in classification'ını UNCLASSIFIED'e geri döndür.
+      // Bu adım doğru ve kalmalı.
+      await fetch(`/api/assets/${lastAction.assetId}/classify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classification: AssetClassification.UNCLASSIFIED }),
+      });
+
+      // ====================================================================
+      // === DÜZELTME BURADA ===
+      // ====================================================================
+
+      // 2. İşlemin tipine göre doğru temizliği yap.
+      if (lastAction.type === 'LINK_DIALOGUE') {
+        // Eğer bir diyalog bağlanmışsa, sadece bağlantıyı kopar.
+        await fetch(`/api/assets/${lastAction.assetId}/unlink`, { method: 'POST' });
+      } 
+      else if (lastAction.type === 'CLASSIFY_NON_DIALOGUE') {
+        // EĞER DİYALOGSUZ VOKAL ATANMIŞSA, O ÖZEL TranslationLine SATIRINI SİL.
+        // Doğru API endpoint'ini (`delete-by-asset`) çağırdığımızdan emin oluyoruz.
+        await fetch(`/api/translation-lines/delete-by-asset/${lastAction.assetId}`, {
+            method: 'DELETE'
+        });
+      }
+      
+      // ====================================================================
+
+      // 3. State'i güncelle (Geri alınan asset'i tekrar listeye ekle)
+      const res = await fetch(`/api/assets/${lastAction.assetId}`);
+      const assetToRestore: Asset = await res.json();
+      
+      if (assetToRestore) {
+          // Geri alınan asset'i "Yapılacaklar" listesinin başına ekle
+          setAssets(prev => [assetToRestore, ...prev.filter(a => a.id !== lastAction.assetId)]);
+          // currentIndex'i 0'a çekerek yeni gelen asset'in gösterilmesini sağla
+          setCurrentIndex(0);
+      }
+      
+      // Geri alma state'ini temizle
       setLastAction(null);
-      setPreviousAsset(null);
+      
       toast.success("İşlem geri alındı.", { id: toastId });
+
     } catch (error) {
       toast.error("Geri alma başarısız.", { id: toastId });
     }
-  }, [lastAction, previousAsset]);
+    // `previousAsset`'i kaldırdığımız için bağımlılıklardan da çıkarıyoruz.
+  }, [lastAction]);
 
   // ====================================================================
   // ADIM 3: TÜM useEffect'leri en sonda GRUPLUYORUZ
@@ -481,13 +534,13 @@ const TriageWorkspace = ({ projectId, allCharacters }: TriageProps) => {
 
 // === TAMAMLANANLAR SEKMESİ ===
 const CompletedWorkspace = ({ projectId, onUndo }: { projectId: number, onUndo: () => void }) => {
-    // State'in tipini yeni oluşturduğumuz CompletedAsset tipiyle güncelliyoruz
     const [completedAssets, setCompletedAssets] = useState<CompletedAsset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchCompleted = useCallback(async () => {
         setIsLoading(true);
         try {
+            // API'den zenginleştirilmiş veriyi çekiyoruz (bu kısım doğru)
             const res = await fetch(`/api/projects/${projectId}/assets?classification=ALL_BUT_UNCLASSIFIED`);
             if (!res.ok) throw new Error("Tamamlananlar getirilemedi.");
             const data = await res.json();
@@ -501,21 +554,43 @@ const CompletedWorkspace = ({ projectId, onUndo }: { projectId: number, onUndo: 
 
     useEffect(() => { fetchCompleted(); }, [fetchCompleted]);
     
-    const handleUndo = async (assetId: number) => {
+    // ====================================================================
+    // === handleUndo FONKSİYONUNUN NİHAİ HALİ ===
+    // ====================================================================
+    const handleUndo = async (assetToUndo: CompletedAsset) => {
         const toastId = toast.loading("İşlem geri alınıyor...");
         try {
-            await fetch(`/api/assets/${assetId}/classify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ classification: AssetClassification.UNCLASSIFIED }),
+            // Senin istediğin mantığı burada uyguluyoruz.
+            const linkedLine = assetToUndo.referencedTranslationLines?.[0];
+
+            // 1. Eğer bağlı bir satır varsa VE bu satır diyalogsuz ise, ONU SİL.
+            if (linkedLine && linkedLine.isNonDialogue) {
+                await fetch(`/api/translation-lines/${linkedLine.id}`, { // ID'si bilinen satırı silmek için yeni API
+                    method: 'DELETE'
+                });
+            }
+
+            // 2. Her durumda asset'in classification'ını UNCLASSIFIED yap
+            //    ve tüm bağlantıları (varsa) kopar.
+            //    Bunun için daha önce yazdığımız tek, akıllı API'yi kullanabiliriz.
+            const undoRes = await fetch(`/api/assets/${assetToUndo.id}/undo`, {
+                method: 'POST'
             });
-            await fetch(`/api/assets/${assetId}/unlink`, { method: 'POST' });
+
+            if (!undoRes.ok) {
+                throw new Error("Geri alma işlemi sunucuda başarısız oldu.");
+            }
 
             toast.success("Geri alındı!", { id: toastId });
-            onUndo();
-            setCompletedAssets(prev => prev.filter(asset => asset.id !== assetId));
-        } catch (error) {
-            toast.error("Geri alınamadı.", { id: toastId });
+            
+            // "Yapılacaklar" listesinin yenilenmesi için ana component'e sinyal gönder
+            onUndo(); 
+            
+            // Geri alınan asset'i bu listeden anında kaldır
+            setCompletedAssets(prev => prev.filter(asset => asset.id !== assetToUndo.id));
+
+        } catch (error: any) {
+            toast.error(error.message || "Geri alınamadı.", { id: toastId });
         }
     };
 
@@ -536,10 +611,18 @@ const CompletedWorkspace = ({ projectId, onUndo }: { projectId: number, onUndo: 
                 </thead>
                 <tbody>
                     {completedAssets.map((asset) => {
-                        // Atanmış metin ve karakter bilgisini alalım
-                        const linkedLine = asset.referencedTranslationLines[0];
-                        const displayText = linkedLine?.originalText || 'N/A';
+                        // NİHAİ DÜZELTME: Gelen veriyi akıllıca işliyoruz
+                        const linkedLine = asset.referencedTranslationLines?.[0]; // Varsa ilk bağlı satırı al
                         const characterName = linkedLine?.character?.name;
+                        
+                        let displayText = "N/A"; // Varsayılan metin
+                        if (linkedLine) {
+                            if (linkedLine.isNonDialogue) {
+                                displayText = "[Diyalogsuz Vokal]";
+                            } else if (linkedLine.originalText) {
+                                displayText = `"${linkedLine.originalText}"`;
+                            }
+                        }
 
                         return (
                             <tr key={asset.id} style={{borderBottom: '1px solid #333'}}>
@@ -552,15 +635,21 @@ const CompletedWorkspace = ({ projectId, onUndo }: { projectId: number, onUndo: 
                                         )}
                                     </div>
                                 </td>
-                                {/* YENİ: Atanan metni göster */}
+                                {/* Atanan Metin Sütunu */}
                                 <td style={{padding: '8px'}}>
-                                    "{displayText}"
-                                    {characterName && <span style={{display: 'block', fontSize: '0.8em', color: 'lightblue'}}>Karakter: {characterName}</span>}
+                                    {displayText}
+                                    {characterName && (
+                                        <span style={{display: 'block', fontSize: '0.8em', color: 'lightblue', marginTop: '4px'}}>
+                                            Karakter: {characterName}
+                                        </span>
+                                    )}
                                 </td>
+                                
                                 <td style={{padding: '8px'}}>{asset.classification}</td>
                                 <td style={{textAlign: 'right', padding: '8px'}}>
-                                    <button onClick={() => handleUndo(asset.id)}>Geri Al</button>
-                                </td>
+    {/* DÜZELTME: Fonksiyona asset objesinin tamamını gönderiyoruz */}
+    <button onClick={() => handleUndo(asset)}>Geri Al</button>
+</td>
                             </tr>
                         );
                     })}

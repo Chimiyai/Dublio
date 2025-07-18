@@ -5,8 +5,9 @@ import prisma from '@/lib/prisma';
 
 export async function POST(
     request: Request,
-    { params }: { params: { assetId: string } }
+    context: { params: { assetId: string } }
 ) {
+    const params = await context.params;
     try {
         const assetId = parseInt(params.assetId, 10);
         // TODO: Yetki Kontrolü
