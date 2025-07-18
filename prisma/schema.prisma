@@ -164,25 +164,25 @@ model TranslationLine {
 }
 
 model Asset {
-  id                   Int               @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // DÜZELTME: Asset artık doğrudan tek bir projeye ait.
-  projectId            Int
-  project              Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  name                 String
-  path                 String
-  type                 AssetType
-  isNonDialogue        Boolean           @default(false)
-  
-  classification       AssetClassification @default(UNCLASSIFIED)
-  uploadedById         Int
-  uploader             User              @relation(fields: [uploadedById], references: [id])
-  createdAt            DateTime          @default(now())
-  
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name          String
+  path          String
+  type          AssetType
+  isNonDialogue Boolean   @default(false)
+
+  classification AssetClassification @default(UNCLASSIFIED)
+  uploadedById   Int
+  uploader       User                @relation(fields: [uploadedById], references: [id])
+  createdAt      DateTime            @default(now())
+
   sourcedTranslationLines    TranslationLine[] @relation("AssetSourceLines")
   referencedTranslationLines TranslationLine[] @relation("AssetVoiceReferences")
-  
+
   @@map("assets")
 }
 
@@ -471,11 +471,11 @@ model Content {
   releaseDate   DateTime?
   metadata      Json?
   createdAt     DateTime    @default(now())
-  
+
   // Bu ilişkiler doğru.
-  projects     Project[]
-  userDemos    UserDemo[]
-  proposals    ProjectProposal[]
+  projects  Project[]
+  userDemos UserDemo[]
+  proposals ProjectProposal[]
 
   @@map("contents")
 }
@@ -492,15 +492,15 @@ model Project {
   isPublic  Boolean       @default(true)
   createdAt DateTime      @default(now())
 
-  proposalId Int? @unique
+  proposalId Int?             @unique
   proposal   ProjectProposal? @relation(fields: [proposalId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
   tasks      Task[]
   packages   PackageVersion[]
   characters Character[]
-  
+
   // DÜZELTME: Sadece bu ilişki kalıyor.
-  assets     Asset[]
+  assets Asset[]
 
   // KALDIRILDI: Bu modele artık ihtiyacımız yok.
   // projectAssetSettings ProjectAssetSetting[]

@@ -2,49 +2,69 @@
 
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-// DÜZELTME: Gerekli enum'ları import ediyoruz
-import { AssetClassification, AssetType } from '@prisma/client';
+import { AssetClassification } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/authOptions';
+import { AssetType, Prisma } from '@prisma/client';
 
 export async function GET(
     request: Request,
     { params }: { params: { projectId: string } }
 ) {
+    const { projectId: projectIdStr } = params;
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return new NextResponse('Yetkisiz', { status: 401 });
+
     const { searchParams } = new URL(request.url);
+    // Artık 'classification' parametresini sorgu için kullanacağız
     const classificationParam = searchParams.get('classification');
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = 25;
+    const limit = parseInt(searchParams.get('limit') || '50', 10); // Sınırı 50 yapalım
+    const typeParam = searchParams.get('type');
 
     try {
         const projectId = parseInt(params.projectId, 10);
-        
-        // Yetki kontrolü (gerekirse eklenebilir)
 
-        // DÜZELTME: Prisma'nın anlayacağı bir `where` koşulu oluşturuyoruz.
-        const whereClause: any = {
-            projectId: projectId,
-            type: AssetType.AUDIO, // `type`'ı doğrudan enum'dan alıyoruz.
-        };
-        
-        // Gelen parametrenin geçerli bir AssetClassification olup olmadığını kontrol et
-        if (classificationParam && classificationParam !== 'ALL' && Object.values(AssetClassification).includes(classificationParam as AssetClassification)) {
-            whereClause.classification = classificationParam as AssetClassification;
-        }
-
-        const assets = await prisma.asset.findMany({
-            where: whereClause,
-            take: limit,
-            skip: (page - 1) * limit,
-            orderBy: { id: 'desc' },
-            include: {
-                // `sourcedTranslationLines` ve `referencedTranslationLines` ilişkilerini
-                // `Asset` modelinde tanımladığımızdan emin olmalıyız.
-                sourcedTranslationLines: {
-                    select: { key: true, originalText: true, character: { select: { name: true } } }
-                }
+        // Yetki kontrolü
+        const membership = await prisma.teamMember.findFirst({
+            where: {
+                userId: parseInt(session.user.id),
+                team: { projects: { some: { id: projectId } } }
             }
         });
+        if (!membership) return new NextResponse('Bu projeye erişim yetkiniz yok', { status: 403 });
 
-        const totalCount = await prisma.asset.count({ where: whereClause });
+        let queryArgs: Prisma.AssetFindManyArgs = {
+            where: {
+                projectId: projectId,
+            },
+            take: limit,
+            skip: (page - 1) * limit,
+            orderBy: { createdAt: 'desc' },
+        };
+
+        if (classificationParam === 'ALL_BUT_UNCLASSIFIED') {
+            queryArgs.where!.classification = {
+                not: AssetClassification.UNCLASSIFIED
+            };
+            // YENİ VE KRİTİK KISIM: İlgili çeviri satırını da veriye dahil et
+            queryArgs.include = {
+                referencedTranslationLines: {
+                    select: {
+                        originalText: true,
+                        character: { // Karakter adını da alalım, bonus!
+                            select: { name: true }
+                        }
+                    }
+                }
+            };
+        } else if (typeParam && Object.values(AssetType).includes(typeParam as AssetType)) {
+            queryArgs.where!.type = typeParam as AssetType;
+        }
+
+        const assets = await prisma.asset.findMany(queryArgs);
+
+        const totalCount = await prisma.asset.count({ where: queryArgs.where });
 
         return NextResponse.json({
             assets,

@@ -1,34 +1,30 @@
-// src/components/projects/ModderStudioClient.tsx
-
+//src/components/projects/ModderStudioClient.tsx
 'use client';
 
-import { useState, useEffect, useCallback, useRef, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, FormEvent } from 'react';
 import { toast } from 'react-hot-toast';
-import { Asset, AssetClassification, TranslationLine } from '@prisma/client';
-import { type ProjectForModderStudio } from '@/app/ekipler/[slug]/studyosu/projeler/[projectId]/modder/page';
-// DÜZELTME: react-select'ten tipleri doğru import etme
-import Select, { type SingleValue, type MultiValue } from 'react-select';
+import { useParams } from 'next/navigation'; 
+// YENİ: Tipi ortak dosyadan import ediyoruz
+import { type ProjectForModderStudio } from '@/types/modder'; 
+import { TriageTab } from './TriageTab';
+import Select, { type MultiValue } from 'react-select';
+// YENİ: Eksik olan Prisma tiplerini import ediyoruz
+import { Character, TeamMember } from '@prisma/client';
+import { AssetLibraryTab } from './AssetLibraryTab';
 
-// ===================================================================
-// === TİPLER ve İÇ COMPONENT'LER ===
-// ===================================================================
-
-// react-select için tip
 interface SelectOption {
   value: number;
   label: string;
 }
 
-// --- Karakter Yönetimi Sekmesi ---
 const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectForModderStudio, onProjectUpdate: (updatedProject: ProjectForModderStudio) => void }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [newCharName, setNewCharName] = useState('');
     const [newCharImage, setNewCharImage] = useState('');
 
-    const teamMemberOptions = project.team.members.map(member => ({
+    const teamMemberOptions = project.team.members.map((member: any) => ({
         value: member.userId,
-        label: member.user.username,
+        label: member.user.username, // Artık hata vermeyecek
     }));
 
     const handleCreateCharacter = async (e: FormEvent) => {
@@ -42,12 +38,18 @@ const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectFor
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newCharName, profileImage: newCharImage }),
             });
-            const newCharacter = await res.json();
-            if (!res.ok) throw new Error(newCharacter.message);
+            const newCharacterData = await res.json();
+            if (!res.ok) throw new Error(newCharacterData.message || "Karakter oluşturulamadı.");
 
-            const characterWithRelations = { ...newCharacter, voiceActors: [] };
-            const updatedProject = { ...project, characters: [...project.characters, characterWithRelations] };
+            // DÜZELTME: Gelen veriye doğru tipi atayarak state'in tutarlı kalmasını sağlıyoruz.
+            const newCharacter: ProjectForModderStudio['characters'][0] = { 
+                ...newCharacterData, 
+                voiceActors: [] 
+            };
+            
+            const updatedProject = { ...project, characters: [...project.characters, newCharacter] };
             onProjectUpdate(updatedProject);
+            
             setNewCharName('');
             setNewCharImage('');
             toast.success("Karakter eklendi!", { id: toastId });
@@ -59,7 +61,7 @@ const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectFor
     };
 
     const handleUpdateVoiceActors = async (characterId: number, selectedOptions: MultiValue<SelectOption>) => {
-        const voiceActorIds = selectedOptions.map(opt => opt.value);
+        const voiceActorIds = selectedOptions.map((opt: SelectOption) => opt.value);
         const toastId = toast.loading("Seslendirmenler güncelleniyor...");
         setIsLoading(true);
         try {
@@ -69,9 +71,12 @@ const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectFor
                 body: JSON.stringify({ voiceActorIds }),
             });
             const updatedCharacter = await res.json();
-            if (!res.ok) throw new Error(updatedCharacter.message);
+            if (!res.ok) throw new Error(updatedCharacter.message || "Güncelleme başarısız.");
 
-            const updatedProject = { ...project, characters: project.characters.map(c => c.id === characterId ? updatedCharacter : c) };
+            const updatedProject = { 
+                ...project, 
+                characters: project.characters.map(c => c.id === characterId ? updatedCharacter : c) 
+            };
             onProjectUpdate(updatedProject);
             toast.success("Seslendirmenler güncellendi.", { id: toastId });
         } catch (error: any) {
@@ -80,31 +85,23 @@ const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectFor
             setIsLoading(false);
         }
     };
-    // === YENİ FONKSİYON: Karakter Silme ===
+
     const handleDeleteCharacter = async (characterId: number, characterName: string) => {
-        if (!confirm(`'${characterName}' karakterini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
-            return;
-        }
+        if (!confirm(`'${characterName}' karakterini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) return;
 
         const toastId = toast.loading("Karakter siliniyor...");
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/projects/${project.id}/characters/${characterId}`, {
-                method: 'DELETE',
-            });
-            
-            if (res.status !== 204) { // Başarılı silme işleminde 204 döner
+            const res = await fetch(`/api/projects/${project.id}/characters/${characterId}`, { method: 'DELETE' });
+            if (res.status !== 204) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || "Karakter silinemedi.");
             }
-            
-            // Client state'inden karakteri kaldır
             const updatedProject = { ...project, characters: project.characters.filter(c => c.id !== characterId) };
             onProjectUpdate(updatedProject);
-
             toast.success("Karakter başarıyla silindi.", { id: toastId });
-
         } catch (error: any) {
+            // DÜZELTME: Eksik olan süslü parantezleri ekliyoruz.
             toast.error(error.message, { id: toastId });
         } finally {
             setIsLoading(false);
@@ -115,27 +112,24 @@ const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectFor
         <div>
             <div style={{ marginBottom: '40px' }}>
                 <h3>Yeni Karakter Ekle</h3>
-                <form onSubmit={handleCreateCharacter} style={{ display: 'flex', gap: '10px' }}>
-                    <input type="text" value={newCharName} onChange={e => setNewCharName(e.target.value)} placeholder="Karakter Adı" required />
-                    <input type="url" value={newCharImage} onChange={e => setNewCharImage(e.target.value)} placeholder="Resim URL'si" />
-                    <button type="submit" disabled={isLoading}>Ekle</button>
+                <form onSubmit={handleCreateCharacter} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <input type="text" value={newCharName} onChange={e => setNewCharName(e.target.value)} placeholder="Karakter Adı" required style={{ padding: '8px' }} />
+                    <input type="url" value={newCharImage} onChange={e => setNewCharImage(e.target.value)} placeholder="Resim URL'si (opsiyonel)" style={{ padding: '8px' }} />
+                    <button type="submit" disabled={isLoading} style={{ padding: '8px 12px' }}>Ekle</button>
                 </form>
             </div>
             <h3>Karakterler ve Seslendirmen Atamaları</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                {project.characters.map(character => (
+                {project.characters.map((character: ProjectForModderStudio['characters'][0]) => ( // Tip eklendi
                     <div key={character.id} style={{ background: '#1e1e1e', padding: '15px', borderRadius: '8px', position: 'relative' }}>
-                        {/* === YENİ: Silme Butonu === */}
                         <button 
                             onClick={() => handleDeleteCharacter(character.id, character.name)}
                             disabled={isLoading}
-                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'darkred', border: 'none', color: 'white', cursor: 'pointer', width: '24px', height: '24px', borderRadius: '50%' }}
+                            style={{ position: 'absolute', top: '10px', right: '10px', background: 'darkred', border: 'none', color: 'white', cursor: 'pointer', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             title="Karakteri Sil"
                         >
                             X
                         </button>
-
-                        {/* === GÜNCELLEME: Resim Önizleme === */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                             <img 
                                 src={character.profileImage || '/images/default-avatar.png'} 
@@ -144,16 +138,16 @@ const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectFor
                             />
                             <p style={{ fontSize: '1.4rem', margin: 0 }}><strong>{character.name}</strong></p>
                         </div>
-
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px' }}>Seslendirmenler:</label>
                             <Select
-                            isMulti
-                            options={teamMemberOptions}
-                            value={character.voiceActors.map(va => ({ value: va.voiceActor.id, label: va.voiceActor.username }))}
-                            onChange={(selected) => handleUpdateVoiceActors(character.id, selected)}
-                            isDisabled={isLoading}
-                        />
+                                isMulti
+                                options={teamMemberOptions}
+                                defaultValue={character.voiceActors.map(va => ({ value: va.voiceActor.id, label: va.voiceActor.username }))}
+                                onChange={(selected: MultiValue<SelectOption>) => handleUpdateVoiceActors(character.id, selected)}
+                                isDisabled={isLoading}
+                                instanceId={`select-char-${character.id}`}
+                            />
                         </div>
                     </div>
                 ))}
@@ -163,29 +157,84 @@ const CharacterManagerTab = ({ project, onProjectUpdate }: { project: ProjectFor
 };
 
 
-// === ANA KAPSAYICI COMPONENT ===
-interface Props {
-  project: ProjectForModderStudio;
-  initialLines: TranslationLine[];
+// ===================================================================
+// === Ana ModderStudioClient COMPONENT'İ ===
+// ===================================================================
+interface ModderStudioClientProps {
+  projectId: number;
 }
 
-export default function ModderStudioClient({ project: initialProject }: Props) {
-    const [activeTab, setActiveTab] = useState<'triage' | 'characters' | 'library'>('triage');
-    const [project, setProject] = useState(initialProject);
+export default function ModderStudioClient({ projectId }: ModderStudioClientProps) {
 
+    const [activeTab, setActiveTab] = useState<'triage' | 'characters' | 'library'>('triage');
+    const [project, setProject] = useState<ProjectForModderStudio | null>(null); // DÜZELTME: null ile başlatıyoruz.
+    const [triageRefreshKey, setTriageRefreshKey] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Bu useEffect artık sadece URL'den gelen projectId değiştiğinde çalışır.
+    // Bu, en sağlam yöntemdir.
+    useEffect(() => {
+        // Eğer projectId geçerli bir sayı değilse, işlemi durdur.
+        if (isNaN(projectId)) {
+            setError("Geçersiz Proje ID'si.");
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchProjectData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const res = await fetch(`/api/modder-studio/${projectId}`);
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.message || `Hata: ${res.status}`);
+                }
+                const data: ProjectForModderStudio = await res.json();
+                setProject(data);
+            } catch (err: any) {
+                setError(err.message);
+                toast.error(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProjectData();
+    }, [projectId]); // Bağımlılık dizisi artık %100 güvenilir.
+
+    if (isLoading) return <div>Modder Stüdyosu yükleniyor...</div>;
+    if (error) return <div>Hata: {error}</div>;
+    if (!project) return <div>Proje verisi bulunamadı.</div>;
+    
     const handleProjectUpdate = (updatedProject: ProjectForModderStudio) => {
         setProject(updatedProject);
+    };
+
+    // YENİ FONKSİYON: AssetLibraryTab'den bu fonksiyonu çağıracağız
+    const handleParseSuccess = () => {
+        // Key'i değiştirerek TriageTab component'inin yeniden mount olmasını tetikle
+        setTriageRefreshKey(prevKey => prevKey + 1);
+        // Kullanıcıyı bilgilendirip doğru sekmeye yönlendir
+        toast.success("Ayrıştırma tamamlandı! Eşleştirme sekmesi güncellendi.");
+        setActiveTab('triage');
     };
 
     const renderActiveTab = () => {
         switch (activeTab) {
             case 'triage':
-                // TriageTab component'ini buraya koyacağız
-                return <div>Triyaj Stüdyosu (Yakında)</div>;
+                return (
+                  <TriageTab 
+                    key={triageRefreshKey} // KEY'İ BURADA KULLANIYORUZ
+                    projectId={project.id} 
+                    allCharacters={project.characters} 
+                  />
+                );
             case 'characters':
                 return <CharacterManagerTab project={project} onProjectUpdate={handleProjectUpdate} />;
             case 'library':
-                return <div>Asset Kütüphanesi (Yakında)</div>;
+                return <AssetLibraryTab projectId={project.id} onParseSuccess={handleParseSuccess} />;
             default:
                 return null;
         }
@@ -193,10 +242,11 @@ export default function ModderStudioClient({ project: initialProject }: Props) {
     
     return (
         <div>
+            <h1>Modder Stüdyosu: {project.name}</h1>
             <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #444', margin: '20px 0' }}>
-                <button onClick={() => setActiveTab('triage')} style={{ background: activeTab === 'triage' ? 'purple' : 'transparent' }}>Eşleştirme (Triyaj)</button>
-                <button onClick={() => setActiveTab('characters')} style={{ background: activeTab === 'characters' ? 'purple' : 'transparent' }}>Karakter Yönetimi</button>
-                <button onClick={() => setActiveTab('library')} style={{ background: activeTab === 'library' ? 'purple' : 'transparent' }}>Asset Kütüphanesi</button>
+                <button onClick={() => setActiveTab('triage')}>Eşleştirme (Triyaj)</button>
+                <button onClick={() => setActiveTab('characters')}>Karakter Yönetimi</button>
+                <button onClick={() => setActiveTab('library')}>Asset Kütüphanesi</button>
             </div>
             <div>{renderActiveTab()}</div>
         </div>

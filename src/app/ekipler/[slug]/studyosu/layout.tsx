@@ -29,13 +29,16 @@ export default async function TeamStudioLayout({
     params
 }: {
     children: ReactNode;
-    params: { slug: string };
+    // DÜZELTME: params'ın projectId'yi de içerebileceğini belirtiyoruz.
+    // Proje detay sayfalarında bu parametre dolu olacak.
+    params: { slug: string; projectId?: string }; 
 }) {
+    const { slug, projectId } = params; // slug ve projectId'yi alıyoruz
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return notFound();
 
     const userId = parseInt(session.user.id);
-    const team = await getTeamForLayout(params.slug, userId);
+    const team = await getTeamForLayout(slug, userId);
 
     if (!team || team.members.length === 0) {
         return (
@@ -67,8 +70,15 @@ export default async function TeamStudioLayout({
                 </nav>
             </aside>
 
-            {/* Ana İçerik Alanı (Alt sayfalar buraya render edilecek) */}
-            <main style={{ flex: 1, padding: '20px', overflowX: 'auto' }}>
+            {/* Ana İçerik Alanı */}
+            <main 
+                // ======================================================
+                // === NİHAİ VE EN ÖNEMLİ ÇÖZÜM BURADA ===
+                // ======================================================
+                key={projectId || slug} 
+                // ======================================================
+                style={{ flex: 1, padding: '20px', overflowX: 'auto' }}
+            >
                 {children}
             </main>
         </div>

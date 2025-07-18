@@ -8,16 +8,26 @@ async function main() {
   console.log('Start seeding ...');
 
   // --- Temizlik: Önceki verileri sil ---
+  // Önce çoktan-çoğa ve bağımlı tablolar
   await prisma.interaction.deleteMany();
-  await prisma.userDemo.deleteMany();
-  await prisma.userSkill.deleteMany();
-  await prisma.project.deleteMany();
+  await prisma.comment.deleteMany();
+  await prisma.taskAssignee.deleteMany();
   await prisma.teamMember.deleteMany();
+  await prisma.userSkill.deleteMany();
+  await prisma.projectCharacterVoiceActor.deleteMany();
+
+  // Sonra ana tablolarla ilişkili olanlar
+  await prisma.task.deleteMany();
+  await prisma.translationLine.deleteMany();
+  await prisma.asset.deleteMany();
+  await prisma.character.deleteMany();
+  await prisma.project.deleteMany();
+  
+  // En son, birçok şeye bağlanan ana tablolar
   await prisma.team.deleteMany();
-  await prisma.content.deleteMany();
-  await prisma.skill.deleteMany();
-  await prisma.user.deleteMany();
-  console.log('Previous data deleted.');
+  await prisma.user.deleteMany(); // User'ı en son silmek genellikle en güvenlisidir.
+  
+  console.log('Cleared previous data.');
 
   // --- 1. Temel Yetenekleri (Skills) Oluştur ---
   const skillVoice = await prisma.skill.create({ data: { name: 'Seslendirme', category: 'SES' } });
