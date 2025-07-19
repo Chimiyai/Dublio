@@ -63,7 +63,9 @@ export default async function ProjectWorkspacePage({ params }: { params: { proje
                         Modder Paneli
                     </Link>
                 ) : null}
-                <Link href="#" style={{color: 'gray'}}>Mix Atölyesi (Yakında)</Link>
+                <Link href={`/ekipler/${params.slug}/studyosu/projeler/${projectId}/miksaj`} style={{color: 'lightblue', textDecoration: 'underline'}}>
+                    Mix Atölyesi
+                </Link>
             </div>
             
             <TaskBoard 

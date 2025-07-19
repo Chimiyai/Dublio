@@ -1,23 +1,19 @@
 // src/app/api/voice-recordings/route.ts
-
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import { v2 as cloudinary } from 'cloudinary';
-
-// Cloudinary yapılandırması
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { VoiceRecordingStatus } from '@prisma/client';
+import { writeFile } from 'fs/promises'; // Dosya yazmak için
+import { mkdir } from 'fs/promises'; // Klasör oluşturmak için
+import path from 'path'; // Dosya yollarını birleştirmek için
 
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Yetkisiz' }, { status: 401 });
     }
+    const userId = parseInt(session.user.id);
 
     try {
         const formData = await request.formData();
@@ -25,38 +21,55 @@ export async function POST(request: Request) {
         const lineIdStr = formData.get('lineId') as string | null;
 
         if (!audioBlob || !lineIdStr) {
-            return NextResponse.json({ message: 'Eksik veri: audioBlob veya lineId' }, { status: 400 });
+            return NextResponse.json({ message: 'Eksik veri' }, { status: 400 });
         }
         
         const lineId = parseInt(lineIdStr);
 
-        // Buffer'a çevir
-        const audioBuffer = await audioBlob.arrayBuffer();
-        const buffer = Buffer.from(audioBuffer);
+        // 1. Dosyayı Buffer'a çevir
+        const buffer = Buffer.from(await audioBlob.arrayBuffer());
+        
+        // 2. Benzersiz bir dosya adı oluştur (çakışmaları önlemek için)
+        const filename = `raw_line_${lineId}_${Date.now()}.webm`;
 
-        // Cloudinary'e yükle
-        const uploadResponse = await new Promise((resolve, reject) => {
-            cloudinary.uploader.upload_stream({
-                resource_type: 'video', // audio 'video' tipi altında saklanır
-                folder: 'voice_recordings' // Cloudinary'de bir klasörde sakla
-            }, (error, result) => {
-                if (error) reject(error);
-                resolve(result);
-            }).end(buffer);
+        // 3. Kaydedilecek yolu belirle
+        const directoryPath = path.join(process.cwd(), 'public', 'uploads', 'recordings');
+        const filePath = path.join(directoryPath, filename);
+        
+        // 4. Klasörün var olduğundan emin ol (yoksa oluştur)
+        await mkdir(directoryPath, { recursive: true });
+
+        // 5. Dosyayı diske yaz
+        await writeFile(filePath, buffer);
+
+        // 6. Veritabanına kaydedilecek halka açık URL'i oluştur
+        const publicUrl = `/uploads/recordings/${filename}`;
+        
+        // 7. Prisma "upsert" ile veritabanını güncelle
+        const newRawRecording = await prisma.rawVoiceRecording.upsert({
+            where: { lineId: lineId },
+            update: {
+                url: publicUrl,
+                uploadedById: userId,
+                createdAt: new Date(),
+            },
+            create: {
+                lineId: lineId,
+                url: publicUrl,
+                uploadedById: userId,
+            }
         });
 
-        const result = uploadResponse as { secure_url: string };
-        if (!result || !result.secure_url) {
-            throw new Error('Cloudinary yüklemesi başarısız oldu.');
-        }
+        const updatedLine = await prisma.translationLine.update({
+        where: { id: lineId },
+        data: { recordingStatus: VoiceRecordingStatus.PENDING_MIX }
+    });
 
-        // Veritabanındaki TranslationLine'ı güncelle
-        await prisma.translationLine.update({
-            where: { id: lineId },
-            data: { voiceRecordingUrl: result.secure_url }
-        });
-
-        return NextResponse.json({ url: result.secure_url });
+        return NextResponse.json({
+        message: "Ham kayıt başarıyla yüklendi, miksaj bekleniyor.",
+        recordingStatus: updatedLine.recordingStatus,
+        rawRecordingUrl: newRawRecording.url // YENİ: URL'i ekledik
+    });
 
     } catch (error: any) {
         console.error("[VOICE_RECORDING_POST_ERROR]", error);

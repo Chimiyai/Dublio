@@ -16,6 +16,12 @@ datasource db {
 // BÖLÜM 1: ENUMLAR (Merkezi Tip Tanımları)
 // =================================================================
 
+enum VoiceRecordingStatus {
+  PENDING_RECORDING // Kayıt Bekleniyor (Varsayılan)
+  PENDING_MIX       // Miksaj Bekleniyor
+  COMPLETED         // Tamamlandı
+}
+
 enum AssetClassification {
   UNCLASSIFIED
   DIALOGUE
@@ -145,6 +151,9 @@ model TranslationLine {
   notes  String?
 
   voiceRecordingUrl String? // Kullanıcının kaydettiği Türkçe ses dosyası
+  recordingStatus VoiceRecordingStatus @default(PENDING_RECORDING)
+
+  rawRecording RawVoiceRecording?
 
   // Bu satırın diyalog metni yok mu? (Sadece inleme, efekt vb.)
   // Bu property TranslationLine'ın kendisine ait.
@@ -161,6 +170,19 @@ model TranslationLine {
 
   @@unique([sourceAssetId, key]) // Her kaynak Asset için anahtar benzersiz olmalı
   @@map("translation_lines")
+}
+
+model RawVoiceRecording {
+  id        Int      @id @default(autoincrement())
+  lineId    Int      @unique // Her çeviri satırının sadece bir ham kaydı olabilir.
+  line      TranslationLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  
+  url       String   // Ham ses dosyasının Cloudinary URL'si
+  uploadedById Int
+  uploadedBy User     @relation(fields: [uploadedById], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("raw_voice_recordings")
 }
 
 model Asset {
@@ -226,6 +248,7 @@ model User {
   uploadedAssets          Asset[]
   conversationMemberships ConversationParticipant[]
   assignedVoiceActors     ProjectCharacterVoiceActor[]
+  rawRecordings RawVoiceRecording[]
 
   @@map("users")
 }

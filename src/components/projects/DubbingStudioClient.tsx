@@ -1,31 +1,33 @@
 // src/components/projects/DubbingStudioClient.tsx
-
 'use client';
 
 import { useState, useRef, useMemo, FC } from 'react';
 import { toast } from 'react-hot-toast';
 import { LineForDubbingWithDetails } from '@/app/ekipler/[slug]/studyosu/projeler/[projectId]/dublaj/page'; 
 import { ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/solid';
-import CommentModal from './CommentModal'; // Yorum modalını import et
+import CommentModal from './CommentModal';
+import { VoiceRecordingStatus } from '@prisma/client';
 
 // === BİLEŞEN PROPS TİPLERİ ===
 interface RecordingLineProps {
     line: LineForDubbingWithDetails;
-    onUploadSuccess: (lineId: number, newUrl: string) => void;
+    onUploadSuccess: (lineId: number, newRawRecording: { url: string }) => void;
     onOpenComments: (line: LineForDubbingWithDetails) => void;
+    onUndo: (lineId: number) => Promise<void>;
 }
 
 interface DubbingStudioProps {
   lines: LineForDubbingWithDetails[]; 
 }
 
-
-// === KAYIT SATIRI COMPONENT'İ (YENİLENDİ) ===
-function RecordingLine({ line, onUploadSuccess, onOpenComments }: RecordingLineProps) {
+// === KAYIT SATIRI COMPONENT'İ (SON HALİ) ===
+function RecordingLine({ line, onUploadSuccess, onOpenComments, onUndo }: RecordingLineProps) {
+    // DÜZELTME: useState hook'u en üstte, koşulsuz çağrılıyor.
+    // Başlangıç değeri, duruma göre doğru URL'i seçiyor.
+    const [audioURL, setAudioURL] = useState(line.rawRecording?.url || line.voiceRecordingUrl || '');
     const [isRecording, setIsRecording] = useState(false);
-    const [audioURL, setAudioURL] = useState(line.voiceRecordingUrl || '');
     const [isUploading, setIsUploading] = useState(false);
-
+    
     const mediaRecorder = useRef<MediaRecorder | null>(null);
     const audioChunks = useRef<Blob[]>([]);
 
@@ -68,7 +70,6 @@ function RecordingLine({ line, onUploadSuccess, onOpenComments }: RecordingLineP
       }
       
       setIsUploading(true);
-      // DÜZELTME: Toast ID'sini alıyoruz.
       const toastId = toast.loading("Kayıt yükleniyor...");
 
       const audioBlob = await fetch(audioURL).then(r => r.blob());
@@ -79,19 +80,15 @@ function RecordingLine({ line, onUploadSuccess, onOpenComments }: RecordingLineP
       formData.append('lineId', line.id.toString());
       
       try {
-          const response = await fetch('/api/voice-recordings', {
-              method: 'POST',
-              body: formData,
-          });
+          const response = await fetch('/api/voice-recordings', { method: 'POST', body: formData });
           const data = await response.json();
           if (!response.ok) throw new Error(data.message || "Yükleme başarısız.");
 
-          setAudioURL(data.url); 
-          onUploadSuccess(line.id, data.url); // Ana state'i güncellemek için sinyal gönder
-          // DÜZELTME: ID ile doğru toast'u güncelliyoruz.
+          // DÜZELTME: Ana component'e hem URL'i hem de yeni durumu bildiriyoruz.
+          onUploadSuccess(line.id, { url: data.recordingUrl }); // data.recordingUrl API'den gelen gerçek URL olmalı.
+          setAudioURL(data.recordingUrl); // Bu satırın URL'ini de güncelle
           toast.success("Kayıt başarıyla yüklendi!", { id: toastId });
       } catch (error: any) {
-          // DÜZELTME: ID ile doğru toast'u güncelliyoruz.
           toast.error(error.message, { id: toastId });
       } finally {
           setIsUploading(false);
@@ -99,7 +96,7 @@ function RecordingLine({ line, onUploadSuccess, onOpenComments }: RecordingLineP
     };
 
     return (
-        <div style={{ background: '#2a2a2a', padding: '15px', borderLeft: `4px solid ${line.voiceRecordingUrl ? '#22c55e' : '#f97316'}`, borderRadius: '8px' }}>
+        <div style={{ background: '#2a2a2a', padding: '15px', borderLeft: `4px solid ${line.recordingStatus === 'COMPLETED' ? '#22c55e' : (line.recordingStatus === 'PENDING_MIX' ? 'orange' : '#ef4444')}`, borderRadius: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 {line.character && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -109,13 +106,20 @@ function RecordingLine({ line, onUploadSuccess, onOpenComments }: RecordingLineP
                 )}
                 {/* YORUM BUTONU */}
                 <button onClick={() => onOpenComments(line)} title="Yorumlar" style={{ position: 'relative', background: 'transparent', border: '1px solid #555' }}>
-                    <ChatBubbleBottomCenterTextIcon style={{width: 20}} />
-                    {line.commentCount > 0 && (
-                        <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {line.commentCount}
-                        </span>
-                    )}
-                </button>
+    <ChatBubbleBottomCenterTextIcon style={{width: 20}} />
+    {/* DÜZELTME: Artık doğru property'i kullanıyoruz */}
+    {line.commentCount > 0 && (
+        <span style={{
+            position: 'absolute', top: '-5px', right: '-5px',
+            background: 'red', color: 'white',
+            borderRadius: '50%', width: '18px', height: '18px',
+            fontSize: '11px', display: 'flex',
+            alignItems: 'center', justifyContent: 'center'
+        }}>
+            {line.commentCount}
+        </span>
+    )}
+</button>
             </div>
             
             <p style={{ fontFamily: 'monospace', color: '#aaa' }}>{line.key}</p>
@@ -133,82 +137,142 @@ function RecordingLine({ line, onUploadSuccess, onOpenComments }: RecordingLineP
                     <audio src={line.originalVoiceReferenceAsset.path} controls style={{ width: '100%', marginTop: '5px' }} />
                 </div>
             )}
+            
+            {/* DÜZELTME: Ham ve Nihai ses oynatıcıları */}
+            {line.recordingStatus === 'PENDING_MIX' && line.rawRecording?.url && (
+                <div>
+                    <p style={{marginTop: '10px', fontSize: '0.9em'}}><strong>Gönderilen Ham Kayıt:</strong></p>
+                    <audio key={line.rawRecording.url} src={line.rawRecording.url} controls style={{width: '100%'}} />
+                </div>
+            )}
+            {line.recordingStatus === 'COMPLETED' && line.voiceRecordingUrl && (
+                <div>
+                    <p style={{marginTop: '10px', fontSize: '0.9em'}}><strong>Tamamlanan Nihai Kayıt:</strong></p>
+                    <audio key={line.voiceRecordingUrl} src={line.voiceRecordingUrl} controls style={{width: '100%'}} />
+                </div>
+            )}
 
+            {/* Kontrol Butonları */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '20px', borderTop: '1px solid #444', paddingTop: '15px' }}>
-                <button onClick={isRecording ? stopRecording : startRecording} disabled={isUploading}>
-                    {isRecording ? 'Durdur' : '🎙️ Kayıt Başlat'}
-                </button>
-                {audioURL && <audio key={audioURL} src={audioURL} controls />}
-                <button onClick={handleUpload} disabled={isUploading || !audioURL || audioURL.startsWith('/uploads/')}>
-                    {isUploading ? 'Yükleniyor...' : '☁️ Sunucuya Gönder'}
-                </button>
+                {/* Kayıt ve Gönder butonları SADECE kayıt bekliyorsa görünür */}
+                {line.recordingStatus === 'PENDING_RECORDING' && (
+                    <>
+                        <button onClick={isRecording ? stopRecording : startRecording} disabled={isUploading}>
+                            {isRecording ? 'Durdur' : '🎙️ Kayıt Başlat'}
+                        </button>
+                        {/* Yeni, lokalde kaydedilen sesin oynatıcısı */}
+                        {audioURL && !audioURL.startsWith('/uploads/') && <audio key={audioURL} src={audioURL} controls />}
+                        <button onClick={handleUpload} disabled={isUploading || !audioURL || audioURL.startsWith('/uploads/')}>
+                            {isUploading ? 'Yükleniyor...' : '☁️ Sunucuya Gönder'}
+                        </button>
+                    </>
+                )}
+                
+                {/* Geri Al butonu SADECE miksaj bekliyorsa görünür */}
+                {line.recordingStatus === 'PENDING_MIX' && (
+                    <button onClick={() => onUndo(line.id)} style={{ background: '#b91c1c' }}>
+                        Geri Al
+                    </button>
+                )}
+                
+                {line.recordingStatus === 'COMPLETED' && (
+                    <p style={{color: '#22c55e'}}>✓ Bu kayıt tamamlandı.</p>
+                )}
             </div>
         </div>
     );
 }
 
-// === ANA DUBLAJ STÜDYOSU COMPONENT'İ (YENİLENDİ) ===
+// === ANA DUBLAJ STÜDYOSU COMPONENT'İ (SON HALİ) ===
 export default function DubbingStudioClient({ lines: initialLines }: DubbingStudioProps) {
     const [lines, setLines] = useState(initialLines);
-    const [activeTab, setActiveTab] = useState<'TODO' | 'DONE' | 'ALL'>('TODO');
+    const [activeTab, setActiveTab] = useState<'TODO' | 'PENDING_MIX' | 'DONE' | 'ALL'>('TODO');
     const [commentingLine, setCommentingLine] = useState<LineForDubbingWithDetails | null>(null);
 
     const handleOpenComments = (line: LineForDubbingWithDetails) => setCommentingLine(line);
     const handleCloseComments = () => setCommentingLine(null);
-
-    const handleUploadSuccess = (lineId: number, newUrl: string) => {
+    
+    const onUploadSuccess = (lineId: number, newRawRecording: { url: string }) => {
         setLines(prevLines =>
             prevLines.map(line =>
-                line.id === lineId ? { ...line, voiceRecordingUrl: newUrl } : line
+                line.id === lineId ? { 
+                    ...line, 
+                    rawRecording: newRawRecording, // Yeni ham kaydı ekle
+                    recordingStatus: VoiceRecordingStatus.PENDING_MIX // Durumu güncelle
+                } : line
             )
         );
     };
 
-    const filteredLines = useMemo(() => {
-        switch (activeTab) {
-            case 'TODO': return lines.filter(line => !line.voiceRecordingUrl);
-            case 'DONE': return lines.filter(line => !!line.voiceRecordingUrl);
-            case 'ALL':
-            default: return lines;
+    const handleUndo = async (lineId: number) => {
+        if (!confirm("Bu kaydı miksajdan geri çekmek istediğinizden emin misiniz? Yüklediğiniz ham ses dosyası silinecektir.")) return;
+        const toastId = toast.loading("İşlem geri alınıyor...");
+        try {
+            const response = await fetch(`/api/raw-recordings/${lineId}`, { method: 'DELETE' });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Geri alma başarısız oldu.");
+            }
+            // DÜZELTME: Geri alındığında rawRecording'i null yap ve durumu PENDING_RECORDING'e çevir.
+            setLines(prevLines =>
+                prevLines.map(line =>
+                    line.id === lineId ? { ...line, rawRecording: null, recordingStatus: VoiceRecordingStatus.PENDING_RECORDING } : line
+                )
+            );
+            toast.success("Kayıt geri alındı, tekrar kayıt yapabilirsiniz.", { id: toastId });
+        } catch (error: any) {
+            toast.error(error.message, { id: toastId });
         }
-    }, [lines, activeTab]);
+    };
 
-    const tabCounts = {
-        TODO: lines.filter(line => !line.voiceRecordingUrl).length,
-        DONE: lines.filter(line => !!line.voiceRecordingUrl).length,
-        ALL: lines.length
+    const filteredLines = useMemo(() => {
+    switch (activeTab) {
+        case 'TODO': return lines.filter(line => line.recordingStatus === 'PENDING_RECORDING');
+        case 'PENDING_MIX': return lines.filter(line => line.recordingStatus === 'PENDING_MIX');
+        case 'DONE': return lines.filter(line => line.recordingStatus === 'COMPLETED');
+        case 'ALL':
+        default: return lines;
     }
+}, [lines, activeTab]);
+
+const tabCounts = {
+    TODO: lines.filter(line => line.recordingStatus === 'PENDING_RECORDING').length,
+    PENDING_MIX: lines.filter(line => line.recordingStatus === 'PENDING_MIX').length,
+    DONE: lines.filter(line => line.recordingStatus === 'COMPLETED').length,
+    ALL: lines.length
+};
 
     return (
     <div>
-        {/* Filtreleme Sekmeleri */}
+        {/* DÜZELTME: Yeni sekme eklendi */}
         <div style={{ marginBottom: '20px', display: 'flex', gap: '5px' }}>
             <button onClick={() => setActiveTab('TODO')} style={{ background: activeTab === 'TODO' ? 'purple' : '#3f3f46' }}>
-                Dublajlanacak ({tabCounts.TODO})
+                Kaydedilecek ({tabCounts.TODO})
+            </button>
+            <button onClick={() => setActiveTab('PENDING_MIX')} style={{ background: activeTab === 'PENDING_MIX' ? 'purple' : '#3f3f46' }}>
+                Miksaj Bekliyor ({tabCounts.PENDING_MIX})
             </button>
             <button onClick={() => setActiveTab('DONE')} style={{ background: activeTab === 'DONE' ? 'purple' : '#3f3f46' }}>
-                Dublajlanan ({tabCounts.DONE})
+                Tamamlanan ({tabCounts.DONE})
             </button>
             <button onClick={() => setActiveTab('ALL')} style={{ background: activeTab === 'ALL' ? 'purple' : '#3f3f46' }}>
                 Tümü ({tabCounts.ALL})
             </button>
         </div>
 
-        {/* Kayıt Satırları Listesi */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {filteredLines.length > 0 ? filteredLines.map(line => (
-                <RecordingLine 
-                    key={line.id} 
-                    line={line} 
-                    onUploadSuccess={handleUploadSuccess}
-                    onOpenComments={handleOpenComments}
-                />
-            )) : <p>Bu sekmede gösterilecek replik bulunmuyor.</p>}
-        </div>
-
-        {/* Yorum Modalı */}
-        {commentingLine && (
-            <CommentModal 
+                {filteredLines.map(line => (
+                    <RecordingLine 
+                        key={line.id} 
+                        line={line} 
+                        onUploadSuccess={onUploadSuccess}
+                        onOpenComments={handleOpenComments}
+                        onUndo={handleUndo}
+                    />
+                ))}
+                {filteredLines.length === 0 && <p>Bu sekmede gösterilecek replik bulunmuyor.</p>}
+            </div>
+            {commentingLine && ( <CommentModal
                 lineId={commentingLine.id}
                 lineKey={commentingLine.key}
                 onClose={handleCloseComments}
