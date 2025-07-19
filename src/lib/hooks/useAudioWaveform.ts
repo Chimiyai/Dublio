@@ -1,3 +1,4 @@
+//src/lib/hooks/useAudioWaveform.ts
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 // === HELPER FONKSİYON ===
@@ -17,61 +18,102 @@ const processAudioBuffer = (audioBuffer: AudioBuffer, totalBars: number) => {
     return filteredData;
 };
 
+interface UseAudioWaveformReturn {
+  waveform: number[];
+  progress: number;
+  isPlaying: boolean;
+  isLoading: boolean;
+  error: string | null;
+  duration: number;
+  audioBuffer: AudioBuffer | null; // audioBuffer'ı dışarıya veriyoruz
+  loadAudio: (source: string | ArrayBuffer | Blob) => void; // Kaynak tipi genişletildi
+  play: () => void;
+  pause: () => void;
+  seekTo: (percentage: number) => void;
+}
 
-// === HOOK'UN SON HALİ (TÜM HATALARI GİDERİLMİŞ) ===
-export const useAudioWaveform = () => {
+// === HOOK'UN SON HALİ ===
+export const useAudioWaveform = (): UseAudioWaveformReturn => {
   const [waveform, setWaveform] = useState<number[]>([]);
   const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
+  // YENİ: AudioBuffer'ı state olarak tutuyoruz
+  const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const loadAudio = useCallback(async (audioUrl: string) => {
+  // DÜZELTME: loadAudio artık farklı kaynak türlerini kabul ediyor
+  const loadAudio = useCallback(async (source: string | ArrayBuffer | Blob) => {
     setIsLoading(true);
     setError(null);
     setWaveform([]);
     setProgress(0);
+    setAudioBuffer(null); // Başlangıçta buffer'ı temizle
     
     if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeAttribute('src');
     }
 
-    try {
-        const response = await fetch(audioUrl, { mode: 'cors' });
-        if (!response.ok) throw new Error(`Ses dosyası yüklenemedi (HTTP ${response.status})`);
-        const arrayBuffer = await response.arrayBuffer();
+    let arrayBuffer: ArrayBuffer;
+    let objectUrlForPlayback: string;
 
-        // DÜZELTME: AudioContext'i burada oluşturup null kontrolünü sağlıyoruz.
+    try {
+        if (typeof source === 'string') {
+            if (source.startsWith('data:')) {
+                // Senaryo 1: Kaynak bir Data URI
+                const parts = source.split(',');
+                const base64Data = parts[1];
+                const binaryString = window.atob(base64Data);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
+                arrayBuffer = bytes.buffer;
+                objectUrlForPlayback = source;
+            } else {
+                // Senaryo 2: Kaynak bir URL
+                const response = await fetch(source, { mode: 'cors' });
+                if (!response.ok) throw new Error(`Ses dosyası yüklenemedi (HTTP ${response.status})`);
+                arrayBuffer = await response.arrayBuffer();
+                const blob = new Blob([arrayBuffer]);
+                objectUrlForPlayback = URL.createObjectURL(blob);
+            }
+        } else if (source instanceof Blob) {
+            // Senaryo 3: Kaynak bir Blob
+            arrayBuffer = await source.arrayBuffer();
+            objectUrlForPlayback = URL.createObjectURL(source);
+        } else {
+            // Senaryo 4: Kaynak bir ArrayBuffer
+            arrayBuffer = source;
+            const blob = new Blob([arrayBuffer]);
+            objectUrlForPlayback = URL.createObjectURL(blob);
+        }
+
         if (!audioContextRef.current) {
             audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
         }
-        
-        const audioContext = audioContextRef.current; // Null olmayacağını bildiğimiz için bir değişkene atayalım.
-
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
+        if (audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
         }
         
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
-        const filteredData = processAudioBuffer(audioBuffer, 120);
+        const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer.slice(0));
+        setAudioBuffer(decodedBuffer); // YENİ: State'i ayarla
+
+        const filteredData = processAudioBuffer(decodedBuffer, 120);
         setWaveform(filteredData);
 
-        const blob = new Blob([arrayBuffer]);
-        const objectUrl = URL.createObjectURL(blob);
-        
         if (!audioRef.current) {
             audioRef.current = new Audio();
             audioRef.current.crossOrigin = "anonymous";
         }
-        
         const audio = audioRef.current;
-        audio.src = objectUrl;
-
+        audio.src = objectUrlForPlayback;
+        
+        // Olay dinleyicileri
         const timeUpdateHandler = () => setProgress(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
         const durationChangeHandler = () => { if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
         const playHandler = () => setIsPlaying(true);
@@ -86,7 +128,7 @@ export const useAudioWaveform = () => {
 
     } catch (err: any) {
         console.error("useAudioWaveform Hatası:", err);
-        setError("Ses dosyası analiz edilemedi. (IDM gibi eklentileri kontrol edin)");
+        setError("Ses dosyası analiz edilemedi.");
     } finally {
         setIsLoading(false);
     }
@@ -106,5 +148,6 @@ export const useAudioWaveform = () => {
     };
   }, []);
 
-  return { waveform, progress, isPlaying, isLoading, error, duration, loadAudio, play, pause, seekTo };
+  // DÜZELTME: audioBuffer'ı da döndür
+  return { waveform, progress, isPlaying, isLoading, error, duration, audioBuffer, loadAudio, play, pause, seekTo };
 };
