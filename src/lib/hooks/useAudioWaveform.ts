@@ -1,102 +1,110 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
-const filterData = (audioBuffer: AudioBuffer, totalBars: number) => {
-  const rawData = audioBuffer.getChannelData(0); 
-  const samples = totalBars;
-  const blockSize = Math.floor(rawData.length / samples);
-  const filteredData = [];
-  for (let i = 0; i < samples; i++) {
-    const blockStart = blockSize * i;
-    let sum = 0;
-    for (let j = 0; j < blockSize; j++) {
-      sum += Math.abs(rawData[blockStart + j]);
+// === HELPER FONKSİYON ===
+const processAudioBuffer = (audioBuffer: AudioBuffer, totalBars: number) => {
+    const rawData = audioBuffer.getChannelData(0);
+    const samples = totalBars;
+    const blockSize = Math.floor(rawData.length / samples);
+    const filteredData = [];
+    for (let i = 0; i < samples; i++) {
+        const blockStart = blockSize * i;
+        let sum = 0;
+        for (let j = 0; j < blockSize; j++) {
+            sum += Math.abs(rawData[blockStart + j] || 0);
+        }
+        filteredData.push(sum / blockSize);
     }
-    filteredData.push(sum / blockSize);
-  }
-  return filteredData;
+    return filteredData;
 };
 
-// Hook'un son ve en sağlam hali
-export const useAudioWaveform = () => { // Artık audioUrl'i başlangıçta almıyor
+
+// === HOOK'UN SON HALİ (TÜM HATALARI GİDERİLMİŞ) ===
+export const useAudioWaveform = () => {
   const [waveform, setWaveform] = useState<number[]>([]);
   const [progress, setProgress] = useState(0);
-  const [isLoading, setIsLoading] = useState(false); // Artık true ile başlamıyor
-  const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [duration, setDuration] = useState(0);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  useEffect(() => {
-    audioRef.current = new Audio();
-    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const audio = audioRef.current;
-
-    const handleTimeUpdate = () => setProgress(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.pause();
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, []);
-
-  // YENİ: Sesi yükleyen fonksiyonu dışarıya veriyoruz.
   const loadAudio = useCallback(async (audioUrl: string) => {
-    if (!audioRef.current) return;
-    
     setIsLoading(true);
     setError(null);
     setWaveform([]);
     setProgress(0);
-    setIsPlaying(false);
-
-    const audio = audioRef.current;
-    audio.src = audioUrl;
-    audio.load();
-
-    const handleCanPlay = () => {
-      audio.play().catch(e => console.warn("Otomatik oynatma engellendi."));
-    };
-    audio.addEventListener('canplaythrough', handleCanPlay, { once: true });
+    
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeAttribute('src');
+    }
 
     try {
-        const response = await fetch(audioUrl);
+        const response = await fetch(audioUrl, { mode: 'cors' });
+        if (!response.ok) throw new Error(`Ses dosyası yüklenemedi (HTTP ${response.status})`);
         const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioContextRef.current!.decodeAudioData(arrayBuffer);
-        const filteredData = filterData(audioBuffer, 100);
+
+        // DÜZELTME: AudioContext'i burada oluşturup null kontrolünü sağlıyoruz.
+        if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        
+        const audioContext = audioContextRef.current; // Null olmayacağını bildiğimiz için bir değişkene atayalım.
+
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        const filteredData = processAudioBuffer(audioBuffer, 120);
         setWaveform(filteredData);
-    } catch (e: any) {
-        setError("Ses verisi analiz edilemedi.");
+
+        const blob = new Blob([arrayBuffer]);
+        const objectUrl = URL.createObjectURL(blob);
+        
+        if (!audioRef.current) {
+            audioRef.current = new Audio();
+            audioRef.current.crossOrigin = "anonymous";
+        }
+        
+        const audio = audioRef.current;
+        audio.src = objectUrl;
+
+        const timeUpdateHandler = () => setProgress(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
+        const durationChangeHandler = () => { if (audio.duration && isFinite(audio.duration)) setDuration(audio.duration); };
+        const playHandler = () => setIsPlaying(true);
+        const pauseHandler = () => setIsPlaying(false);
+
+        audio.addEventListener('durationchange', durationChangeHandler);
+        audio.addEventListener('loadedmetadata', durationChangeHandler);
+        audio.addEventListener('timeupdate', timeUpdateHandler);
+        audio.addEventListener('play', playHandler);
+        audio.addEventListener('pause', pauseHandler);
+        audio.addEventListener('ended', pauseHandler);
+
+    } catch (err: any) {
+        console.error("useAudioWaveform Hatası:", err);
+        setError("Ses dosyası analiz edilemedi. (IDM gibi eklentileri kontrol edin)");
     } finally {
         setIsLoading(false);
     }
   }, []);
 
-  const playPause = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      if (audio.paused) audio.play();
-      else audio.pause();
-    }
-  }, []);
-
+  const play = useCallback(() => audioRef.current?.play(), []);
+  const pause = useCallback(() => audioRef.current?.pause(), []);
   const seekTo = useCallback((percentage: number) => {
-    const audio = audioRef.current;
-    if (audio && audio.duration) {
-      audio.currentTime = audio.duration * (percentage / 100);
-    }
+      if (audioRef.current && duration > 0) {
+          audioRef.current.currentTime = (percentage / 100) * duration;
+      }
+  }, [duration]);
+
+  useEffect(() => {
+    return () => {
+        audioRef.current?.pause();
+    };
   }, []);
 
-  return { waveform, progress, isLoading, error, isPlaying, playPause, seekTo, loadAudio };
+  return { waveform, progress, isPlaying, isLoading, error, duration, loadAudio, play, pause, seekTo };
 };

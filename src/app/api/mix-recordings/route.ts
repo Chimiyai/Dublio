@@ -15,35 +15,36 @@ export async function POST(request: Request) {
 
     try {
         const formData = await request.formData();
-        const finalMixBlob = formData.get('finalMixBlob') as File | null;
+        // DÜZELTME: Gelen veriyi File yerine Blob olarak ele almak daha güvenlidir.
+        const finalMixBlob = formData.get('finalMixBlob') as Blob | null;
         const lineIdStr = formData.get('lineId') as string | null;
 
         if (!finalMixBlob || !lineIdStr) {
             return NextResponse.json({ message: 'Eksik veri' }, { status: 400 });
         }
         
+        // YENİ: Dosyanın boş gelmediğinden emin olmak için bir güvenlik kontrolü
+        if (finalMixBlob.size === 0) {
+            return NextResponse.json({ message: 'Yüklenen dosya boş.' }, { status: 400 });
+        }
+        
         const lineId = parseInt(lineIdStr);
 
-        // 1. Dosyayı Buffer'a çevir
+        // DÜZELTME: Veriyi buffer'a dönüştürmenin en sağlam yolu
         const buffer = Buffer.from(await finalMixBlob.arrayBuffer());
 
-        // 2. Benzersiz bir dosya adı oluştur
-        const filename = `final_mix_line_${lineId}_${Date.now()}.${finalMixBlob.name.split('.').pop()}`;
+        // Dosya uzantısını orijinal addan alıyoruz
+        const fileExtension = (finalMixBlob as File).name.split('.').pop() || 'mp3';
+        const filename = `final_mix_line_${lineId}_${Date.now()}.${fileExtension}`;
 
-        // 3. Kaydedilecek yolu belirle
         const directoryPath = path.join(process.cwd(), 'public', 'uploads', 'recordings');
         const filePath = path.join(directoryPath, filename);
         
-        // 4. Klasörün var olduğundan emin ol
         await mkdir(directoryPath, { recursive: true });
-
-        // 5. Dosyayı diske yaz
         await writeFile(filePath, buffer);
 
-        // 6. Veritabanına kaydedilecek halka açık URL'i oluştur
         const publicUrl = `/uploads/recordings/${filename}`;
 
-        // 7. TranslationLine'ı doğrudan güncelle
         const updatedLine = await prisma.translationLine.update({
             where: { id: lineId },
             data: {

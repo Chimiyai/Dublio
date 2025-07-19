@@ -117,7 +117,7 @@ const TriageWorkspace = ({ projectId, allCharacters, onTriageComplete }: TriageP
   useEffect(() => { fetchAssets(); }, [fetchAssets]);
   const currentAsset = assets[currentIndex];
 
-  const { waveform, progress, isLoading: isWaveformLoading, error: waveformError, isPlaying, playPause, seekTo, loadAudio } = useAudioWaveform();
+  const { waveform, progress, isLoading: isWaveformLoading, error: waveformError, isPlaying, play, pause, seekTo, loadAudio } = useAudioWaveform();
 
   // YENİ useEffect: currentAsset değiştiğinde, sesi YÜKLE
   useEffect(() => {
@@ -378,7 +378,11 @@ const TriageWorkspace = ({ projectId, allCharacters, onTriageComplete }: TriageP
       }
       if (e.code === 'Space') {
           e.preventDefault();
-          playPause(); // Hook'tan gelen fonksiyonu çağır
+          if (isPlaying) {
+            pause();
+          } else {
+            play();
+          }
       }
       if (status === 'CLASSIFYING') {
         if (e.code === 'Digit1') { handleClassify(AssetClassification.AMBIANCE); }
@@ -395,7 +399,7 @@ const TriageWorkspace = ({ projectId, allCharacters, onTriageComplete }: TriageP
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [status, filteredLines, highlightedLineIndex, activeToastId, advanceToNext, handleClassify, handleLink, handleConfirmLink, playPause]);
+  }, [status, filteredLines, highlightedLineIndex, activeToastId, advanceToNext, handleClassify, handleLink, handleConfirmLink, isPlaying, play, pause]);
 
   // ====================================================================
   // ADIM 4: RENDER BLOĞU

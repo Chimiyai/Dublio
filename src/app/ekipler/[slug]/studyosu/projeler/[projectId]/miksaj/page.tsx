@@ -16,11 +16,12 @@ export type LineForMixing = Prisma.TranslationLineGetPayload<{
         translatedText: true,
         isNonDialogue: true,
         recordingStatus: true,
+        voiceRecordingUrl: true, // YENİ: Bu alanı ekleyin
         character: { 
             select: { id: true, name: true, profileImage: true } 
         },
         originalVoiceReferenceAsset: { 
-            select: { id: true, name: true, path: true } // DÜZELTME: 'metadata' kaldırıldı.
+            select: { id: true, name: true, path: true }
         },
         rawRecording: { 
             select: { id: true, url: true, createdAt: true, uploadedBy: { select: { username: true } } }
@@ -37,17 +38,19 @@ async function getLinesForMixing(projectId: number): Promise<LineForMixing[]> {
       sourceAsset: {
         projectId: projectId
       },
-      recordingStatus: VoiceRecordingStatus.PENDING_MIX
+      recordingStatus: {
+        in: [VoiceRecordingStatus.PENDING_MIX, VoiceRecordingStatus.COMPLETED]
+      }
     },
-    // DÜZELTME: Tüm gerekli alanları içeren doğru select bloğu
     select: {
         id: true,
         key: true,
         translatedText: true,
         isNonDialogue: true,
         recordingStatus: true,
+        voiceRecordingUrl: true, // YENİ: Bu alanı ekleyin
         character: { select: { id: true, name: true, profileImage: true } },
-        originalVoiceReferenceAsset: { select: { id: true, name: true, path: true } }, // DÜZELTME: 'metadata' kaldırıldı.
+        originalVoiceReferenceAsset: { select: { id: true, name: true, path: true } },
         rawRecording: { 
             select: { id: true, url: true, createdAt: true, uploadedBy: { select: { username: true } } }
         }

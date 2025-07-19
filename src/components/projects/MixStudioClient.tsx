@@ -4,135 +4,87 @@
 import { useState, useMemo, FC } from 'react';
 import { toast } from 'react-hot-toast';
 import { LineForMixing } from '@/app/ekipler/[slug]/studyosu/projeler/[projectId]/miksaj/page'; 
-import { useAudioWaveform } from '@/lib/hooks/useAudioWaveform';
-import { WaveformPlayer } from './WaveformPlayer'; // Bu bileşeni daha önce yazmıştınız
+import { VoiceRecordingStatus } from '@prisma/client';
+import { AudioPanel } from './AudioPanel';
 
 // === TİPLER ===
 type Character = { id: number; name: string; profileImage: string | null };
+type MixStudioTab = 'PENDING_MIX' | 'COMPLETED' | 'ALL';
+// YENİ: API'den dönen ve anlık ses verisini de içeren tip
+type UpdatedLineData = LineForMixing & { newDataUri?: string };
 
 // === TEK BİR MİKSAJ KARTI ===
-const MixingCard = ({ line, onUploadComplete }: { line: LineForMixing, onUploadComplete: (lineId: number) => void }) => {
-    const { waveform, progress, isPlaying, playPause, loadAudio, seekTo } = useAudioWaveform();
-
+const MixingCard = ({ line, onMixComplete, onUndo }: { line: UpdatedLineData, onMixComplete: (lineId: number, updatedData: UpdatedLineData) => void, onUndo: (lineId: number) => void }) => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
-    // Ham kaydı yüklemek için
-    const handleLoadRawAudio = () => {
-        if (line.rawRecording?.url) {
-            loadAudio(line.rawRecording.url);
-        }
-    };
-    // YENİ: Dosya seçildiğinde state'i güncelleyen fonksiyon
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-        }
+        if (file) setSelectedFile(file);
     };
 
-    // YENİ: Yüklemeyi gerçekleştiren ana fonksiyon
-    const handleUploadAndComplete = async () => {
-        if (!selectedFile) {
-            toast.error("Lütfen önce bir dosya seçin.");
-            return;
+    const handleUpload = async () => {
+    if (!selectedFile) return toast.error("Lütfen bir dosya seçin.");
+    setIsUploading(true);
+    const toastId = toast.loading("Nihai miksaj yükleniyor...");
+
+    const formData = new FormData();
+    formData.append('finalMixBlob', selectedFile);
+    formData.append('lineId', line.id.toString());
+
+    try {
+        const response = await fetch('/api/mix-recordings', { method: 'POST', body: formData });
+        const result = await response.json(); // Tip atamasını kaldırıyoruz
+
+        if (!response.ok) {
+            // Hata durumunda, result objesinin 'message' alanı olabilir.
+            throw new Error(result.message || "Yükleme başarısız oldu.");
         }
+        
+        // Başarılı durumda, result'ın beklediğimiz tipte olduğunu varsayabiliriz.
+        toast.success("Miksaj tamamlandı!", { id: toastId });
+        onMixComplete(line.id, result as UpdatedLineData); // Burada tip ataması yapmak daha güvenli.
 
-        setIsUploading(true);
-        const toastId = toast.loading("Nihai miksaj yükleniyor...");
-
-        const formData = new FormData();
-        formData.append('finalMixBlob', selectedFile);
-        formData.append('lineId', line.id.toString());
-
-        try {
-            const response = await fetch('/api/mix-recordings', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.message || "Yükleme başarısız oldu.");
-            }
-
-            toast.success("Miksaj tamamlandı ve yüklendi!", { id: toastId });
-            
-            // Yükleme başarılı olduğunda ana bileşene haber veriyoruz.
-            onUploadComplete(line.id);
-
-        } catch (error: any) {
-            toast.error(error.message, { id: toastId });
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
+    } catch (error: any) {
+        toast.error(error.message, { id: toastId });
+    } finally {
+        setIsUploading(false);
+    }
+};
+    
     return (
         <div style={{ background: '#2a2a2a', borderRadius: '8px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {/* Kart Başlığı */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontFamily: 'monospace', color: '#aaa' }}>{line.key}</span>
-                <span style={{ fontStyle: 'italic', color: 'orange' }}>Miksaj Bekliyor</span>
+                <span style={{ fontStyle: 'italic', color: line.recordingStatus === 'COMPLETED' ? 'lightgreen' : 'orange' }}>
+                    {line.recordingStatus === 'COMPLETED' ? 'Tamamlandı' : 'Miksaj Bekliyor'}
+                </span>
             </div>
             {line.isNonDialogue ? <p><i>[Diyalog Metni Yok]</i></p> : <blockquote>"{line.translatedText}"</blockquote>}
 
-            {/* Ses Panelleri */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                {/* Orijinal Ses Paneli */}
-                <div style={{ background: '#1c1c1c', padding: '10px', borderRadius: '4px' }}>
-    <h4>Orijinal Referans Ses</h4>
-    {line.originalVoiceReferenceAsset ? (
-        <>
-            <audio src={line.originalVoiceReferenceAsset.path} controls style={{ width: '100%' }}/>
-            <a href={line.originalVoiceReferenceAsset.path} download>İndir</a>
-        </>
-    ) : <p>Referans yok.</p>}
-</div>
-                {/* Ham Türkçe Kayıt Paneli */}
-                <div style={{ background: '#1c1c1c', padding: '10px', borderRadius: '4px' }}>
-                    <h4>Ham Türkçe Kayıt ({line.rawRecording?.uploadedBy.username})</h4>
-                    {line.rawRecording ? (
-                        <>
-                            <audio src={line.rawRecording.url} controls style={{ width: '100%' }}/>
-                            <a href={line.rawRecording.url} download>İndir</a>
-                            <button onClick={handleLoadRawAudio} style={{marginTop: '5px'}}>Waveform'da Göster</button>
-                        </>
-                    ) : <p>Ham kayıt yok.</p>}
-                </div>
+                <AudioPanel title="Orijinal Referans" url={line.originalVoiceReferenceAsset?.path} />
+                <AudioPanel title={`Ham Kayıt (${line.rawRecording?.uploadedBy.username})`} url={line.rawRecording?.url} />
             </div>
 
-            {/* Waveform Oynatıcı */}
-            <div style={{minHeight: '100px'}}>
-                {waveform.length > 0 ? (
-                    <WaveformPlayer 
-                        waveform={waveform} 
-                        progress={progress} 
-                        isPlaying={isPlaying} 
-                        // DÜZELTME: Eksik prop burada eklendi.
-                        onCanvasClick={(percentage) => seekTo(percentage * 100)} 
-                    />
+            <div style={{ borderTop: '1px solid #444', paddingTop: '15px' }}>
+                {line.recordingStatus === 'PENDING_MIX' ? (
+                    <div style={{textAlign: 'center'}}>
+                        <p>Nihai, miksajlanmış sesi buraya yükleyin:</p>
+                        <input type="file" accept="audio/*" onChange={handleFileChange} disabled={isUploading} />
+                        <button onClick={handleUpload} disabled={!selectedFile || isUploading} style={{marginLeft: '10px'}}>
+                            {isUploading ? 'Yükleniyor...' : 'Yükle ve Tamamla'}
+                        </button>
+                    </div>
                 ) : (
-                    <p style={{textAlign: 'center', color: '#555'}}>Waveform'u görmek için bir sesi yükleyin.</p>
+                    <div>
+                        {/* DÜZELTME: Artık geçici çözüme gerek yok, hook her şeyi hallediyor. */}
+                        <AudioPanel title="Nihai Miksaj" url={line.voiceRecordingUrl} />
+                        <div style={{textAlign: 'center', marginTop: '10px'}}>
+                            <button onClick={() => onUndo(line.id)} style={{background: '#b91c1c'}}>Miksajı Geri Al</button>
+                        </div>
+                    </div>
                 )}
-            </div>
-
-            {/* Yükleme Alanı */}
-            <div style={{ borderTop: '1px solid #444', paddingTop: '15px', textAlign: 'center' }}>
-                <p>Nihai, miksajlanmış sesi buraya yükleyin:</p>
-                <input 
-                    type="file" 
-                    accept="audio/*" 
-                    onChange={handleFileChange}
-                    disabled={isUploading}
-                />
-                <button 
-                    onClick={handleUploadAndComplete}
-                    disabled={!selectedFile || isUploading}
-                    style={{ marginLeft: '10px' }}
-                >
-                    {isUploading ? 'Yükleniyor...' : 'Yükle ve Tamamla'}
-                </button>
             </div>
         </div>
     );
@@ -140,8 +92,9 @@ const MixingCard = ({ line, onUploadComplete }: { line: LineForMixing, onUploadC
 
 // === ANA MİKSAJ STÜDYOSU COMPONENT'İ ===
 export default function MixStudioClient({ initialLines }: { initialLines: LineForMixing[] }) {
-    const [lines, setLines] = useState(initialLines);
+    const [lines, setLines] = useState<UpdatedLineData[]>(initialLines);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+    const [activeTab, setActiveTab] = useState<MixStudioTab>('PENDING_MIX');
 
     const allCharacters = useMemo(() => {
         const charMap = new Map<number, Character>();
@@ -151,23 +104,36 @@ export default function MixStudioClient({ initialLines }: { initialLines: LineFo
         return Array.from(charMap.values());
     }, [lines]);
 
-    const linesForSelectedChar = useMemo(() => {
-        if (!selectedCharacter) return [];
-        return lines.filter(line => line.character?.id === selectedCharacter.id);
-    }, [lines, selectedCharacter]);
-
-    // YENİ: Yükleme başarılı olduğunda çağrılacak fonksiyon
-    const handleUploadComplete = (completedLineId: number) => {
-        // Tamamlanan satırı state'ten filtreleyerek arayüzden anında kaldır
-        setLines(prevLines => prevLines.filter(line => line.id !== completedLineId));
-        toast.success("Liste güncellendi!");
+    const filteredLines = useMemo(() => {
+        let characterFiltered = selectedCharacter ? lines.filter(l => l.character?.id === selectedCharacter.id) : lines;
+        if (activeTab === 'ALL') return characterFiltered;
+        return characterFiltered.filter(l => l.recordingStatus === activeTab);
+    }, [lines, selectedCharacter, activeTab]);
+    
+    const handleMixComplete = (lineId: number, updatedData: UpdatedLineData) => {
+        setLines(prev => prev.map(l => l.id === lineId ? updatedData : l));
     };
 
+    const handleUndo = async (lineId: number) => {
+        if (!confirm("Bu miksajı geri almak istediğinizden emin misiniz?")) return;
+        
+        const toastId = toast.loading("Miksaj geri alınıyor...");
+        try {
+            const res = await fetch(`/api/mix-recordings/${lineId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("Geri alma başarısız.");
+            const revertedLine = await res.json();
+            
+            setLines(prev => prev.map(l => l.id === lineId ? { ...l, ...revertedLine } : l));
+            toast.success("Miksaj geri alındı.", { id: toastId });
+        } catch (error: any) {
+            toast.error(error.message, { id: toastId });
+        }
+    };
+    
     if (!allCharacters.length) {
         return <p>Miksaj için bekleyen bir ses kaydı bulunmuyor.</p>;
     }
-    
-    // Karakter seçme ekranı
+
     if (!selectedCharacter) {
         return (
           <div style={{ padding: '20px' }}>
@@ -184,24 +150,30 @@ export default function MixStudioClient({ initialLines }: { initialLines: LineFo
         );
     }
 
-    // Seçili karakterin kartları
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h3>İşlenen Karakter: <strong>{selectedCharacter.name}</strong></h3>
                 <button onClick={() => setSelectedCharacter(null)} style={{ background: '#555' }}>Karakter Listesine Dön</button>
             </div>
+            
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '5px' }}>
+                <button onClick={() => setActiveTab('PENDING_MIX')} style={{background: activeTab === 'PENDING_MIX' ? 'purple' : '#3f3f46'}}>Miksaj Bekliyor</button>
+                <button onClick={() => setActiveTab('COMPLETED')} style={{background: activeTab === 'COMPLETED' ? 'purple' : '#3f3f46'}}>Tamamlanan</button>
+                <button onClick={() => setActiveTab('ALL')} style={{background: activeTab === 'ALL' ? 'purple' : '#3f3f46'}}>Tümü</button>
+            </div>
+
             <div style={{ display: 'grid', gap: '20px' }}>
-                {linesForSelectedChar.length > 0 ? 
-                    linesForSelectedChar.map(line => (
+                {filteredLines.length > 0 ? 
+                    filteredLines.map(line => (
                         <MixingCard 
                             key={line.id} 
-                            line={line} 
-                            // DÜZENLEME: Yeni prop'u MixingCard'a aktarıyoruz
-                            onUploadComplete={handleUploadComplete} 
+                            line={line}
+                            onMixComplete={handleMixComplete}
+                            onUndo={handleUndo}
                         />
                     )) : 
-                    <p>Bu karakter için miksaj bekleyen kayıt yok.</p>
+                    <p>Bu filtrede gösterilecek kayıt yok.</p>
                 }
             </div>
         </div>
